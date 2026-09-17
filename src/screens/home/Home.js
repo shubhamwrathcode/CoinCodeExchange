@@ -85,6 +85,7 @@ import { getVersion } from "react-native-device-info";
 import { setLoading } from "../../slices/authSlice";
 import HeaderTop from "../../shared/components/HeaderTop";
 import AccountSetupProgress from "../../shared/components/AccountSetupProgress";
+import VerifyBanner from "../../shared/components/VerifyBanner";
 import FastImage from "react-native-fast-image";
 import { KYC_STATUS_SCREEN, SEARCH_SCREEN, WALLET_SCREEN, DEPOSIT_COIN_SCREEN, NAVIGATION_AUTH_STACK, LOGIN_SCREEN } from "../../navigation/routes";
 import NavigationService from "../../navigation/NavigationService";
@@ -261,7 +262,7 @@ const Home = () => {
         <View>
           <HeaderTop />
           <AccountSetupProgress />
-          {isKycVerified && (
+          {!isKycVerified && (
             <View
               style={{
                 marginTop: 12,
@@ -317,48 +318,9 @@ const Home = () => {
         </View>
 
         {(kycVerified === 0 || kycVerified === 3) && (
-          <View
-            style={{
-              backgroundColor: isDark ? darkTheme.darkThemeInputColor : themeColors.input,
-              marginHorizontal: 12,
-              height: 188,
-              padding: 10,
-              borderRadius: 6,
-              marginVertical: 10,
-              borderWidth: 0.5,
-              borderColor: themeColors.border,
-            }}
-          >
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginVertical: 10,
-              }}
-            >
-              <FastImage
-                source={isDark ? verificationImageLight : verificationImage}
-                style={{ width: 104, height: 104 }}
-                resizeMode="contain"
-              />
-              <View style={{ width: "70%", bottom: 20, marginLeft: 3 }}>
-                <AppText style={{ color: themeColors.button }} type={EIGHTEEN} weight={SEMI_BOLD}>
-                  Verification
-                </AppText>
-                <AppText style={{ color: themeColors.secondaryText }} type={TWELVE}>
-                  Verify your identity to secure your
-                  account and unlock deposit/trading
-                  access.
-                </AppText>
-              </View>
-            </View>
-            <Button
-              onPress={() => NavigationService.navigate(KYC_STATUS_SCREEN)}
-              children="Verify Now"
-              containerStyle={{ width: "90%", height: 44, alignSelf: "center", backgroundColor: themeColors.button }}
-            />
-          </View>
+          <VerifyBanner
+            onVerifyPress={() => NavigationService.navigate(KYC_STATUS_SCREEN)}
+          />
         )}
 
         <View style={{ right: 10 }}>

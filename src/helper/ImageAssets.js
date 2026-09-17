@@ -443,6 +443,7 @@ export const verifyEmailImg = require('../../assets/images/verifyEmailImg.png');
 export const authUserImg = require('../../assets/images/authUserImg.png');
 export const gridIcon = require('../../assets/images/gridIcon.png');
 export const bellIcon = require('../../assets/images/bellIcon.png');
+export const verifyIdentity = require('../../assets/images/verifyIdentity.png');
 
 
 
