@@ -102,7 +102,8 @@ const Home = () => {
   const loading = useAppSelector((state) => state.auth.isLoading);
   const coinPairs = useAppSelector((state) => state.home.coinPairs);
   const userData = useAppSelector((state) => state.auth.userData);
-  const { kycVerified } = userData ?? "";
+  const kycVerified = userData?.kycVerified != null ? Number(userData.kycVerified) : 0;
+  const isKycVerified = kycVerified === 1;
   const [CheckCurrent, setCheckCurrent] = useState(getVersion());
   const [showBalance, setShowBalance] = useState(true);
 
@@ -260,57 +261,59 @@ const Home = () => {
         <View>
           <HeaderTop />
           <AccountSetupProgress />
-          <View
-            style={{
-              marginTop: 12,
-              paddingHorizontal: 20,
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <View>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-                <AppText type={SIXTEEN} color={isDark ? colors.white : DISCLAIMTEXT}>Estimated Balance</AppText>
-                <TouchableOpacity onPress={() => setShowBalance(!showBalance)}>
-                  <FastImage
-                    source={!showBalance ? eye_close_icon : eye_open_icon}
-                    resizeMode="contain"
-                    style={{ width: 16, height: 16 }}
-                    tintColor={theme !== "Dark" ? colors.disclaimText : colors.white}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <View style={{ marginTop: 5 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
-                  <AppText type={TWENTY_SIX} weight={SEMI_BOLD} color={isDark ? colors.white : themeColors.text} >
-                    {!showBalance ? "****" : formatEstimateHeader(portfolioPreferredAmount(walletBalance), 5)}{" "}
-                  </AppText>
-                  <AppText type={FIFTEEN} color={isDark ? colors.white : DISCLAIMTEXT} style={{ top: 5 }}>
-                    {portfolioPreferredCurrency(walletBalance)}
-                  </AppText>
-                </View>
-                <View style={{ marginTop: 6 }}>
-                  <AppText type={FOURTEEN} color={isDark ? colors.white : DISCLAIMTEXT}>
-                    ≈ {!showBalance ? "****" : formatEstimateHeader(portfolioUsdtEstimate(walletBalance), 5)} USD
-                  </AppText>
-                </View>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              onPress={() => depositChoiceSheetRef.current?.open?.()}
+          {isKycVerified && (
+            <View
               style={{
-                backgroundColor: isDark ? darkTheme.darkThemeInputColor : '#303236',
+                marginTop: 12,
                 paddingHorizontal: 20,
-                paddingVertical: 8,
-                borderRadius: 20,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
               }}
             >
-              <AppText weight={SEMI_BOLD} style={{ color: colors.white }}>Deposit</AppText>
-            </TouchableOpacity>
-          </View>
+              <View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                  <AppText type={SIXTEEN} color={isDark ? colors.white : DISCLAIMTEXT}>Estimated Balance</AppText>
+                  <TouchableOpacity onPress={() => setShowBalance(!showBalance)}>
+                    <FastImage
+                      source={!showBalance ? eye_close_icon : eye_open_icon}
+                      resizeMode="contain"
+                      style={{ width: 16, height: 16 }}
+                      tintColor={theme !== "Dark" ? colors.disclaimText : colors.white}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={{ marginTop: 5 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
+                    <AppText type={TWENTY_SIX} weight={SEMI_BOLD} color={isDark ? colors.white : themeColors.text} >
+                      {!showBalance ? "****" : formatEstimateHeader(portfolioPreferredAmount(walletBalance), 5)}{" "}
+                    </AppText>
+                    <AppText type={FIFTEEN} color={isDark ? colors.white : DISCLAIMTEXT} style={{ top: 5 }}>
+                      {portfolioPreferredCurrency(walletBalance)}
+                    </AppText>
+                  </View>
+                  <View style={{ marginTop: 6 }}>
+                    <AppText type={FOURTEEN} color={isDark ? colors.white : DISCLAIMTEXT}>
+                      ≈ {!showBalance ? "****" : formatEstimateHeader(portfolioUsdtEstimate(walletBalance), 5)} USD
+                    </AppText>
+                  </View>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => depositChoiceSheetRef.current?.open?.()}
+                style={{
+                  backgroundColor: isDark ? darkTheme.darkThemeInputColor : '#303236',
+                  paddingHorizontal: 20,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                }}
+              >
+                <AppText weight={SEMI_BOLD} style={{ color: colors.white }}>Deposit</AppText>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {(kycVerified === 0 || kycVerified === 3) && (
