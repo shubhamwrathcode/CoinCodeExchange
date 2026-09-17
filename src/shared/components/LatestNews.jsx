@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, StyleSheet, TouchableOpacity } from "react-native";
 import FastImage from "react-native-fast-image";
 import moment from "moment";
@@ -9,12 +9,22 @@ import { fonts } from "../../theme/fonts";
 import { newsImg } from "../../helper/ImageAssets";
 import NavigationService from "../../navigation/NavigationService";
 import { NOTIFICATION_SCREEN } from "../../navigation/routes";
-import { useAppSelector } from "../../store/hooks";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { getNotificationList } from "../../actions/homeActions";
 
 export const LatestNews = () => {
+  const dispatch = useAppDispatch();
   const { colors: themeColors, isDark } = useTheme();
   const rawList = useAppSelector((state) => state.home.notificationList);
   const notificationRows = Array.isArray(rawList) ? rawList : [];
+
+  useEffect(() => {
+    if (notificationRows.length === 0) {
+      dispatch(
+        getNotificationList({ page: 1, limit: 10, skipGlobalLoader: true })
+      );
+    }
+  }, [dispatch, notificationRows.length]);
 
   const displayItems =
     notificationRows.length > 0
@@ -86,7 +96,7 @@ export const LatestNews = () => {
         {displayItems.map((news, idx) => {
           const dateStr = news.createdAt || news.created_at || news.date;
           const titleStr =
-            news.title || news.message || "New Update Available";
+            news.title || news.message || "New Notification Available";
           return (
             <TouchableOpacity
               key={news._id || news.id || String(idx)}
