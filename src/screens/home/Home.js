@@ -251,7 +251,7 @@ const Home = () => {
         style={[authStyles.mainContainer, commonStyles.zeroPadding]}
         contentContainerStyle={{
           flexGrow: 1,
-          paddingBottom: Platform.OS === "ios" ? 24 : 36,
+          paddingBottom: Platform.OS === "ios" ? 120 : 90,
         }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
