@@ -92,7 +92,8 @@ const HomeMenuBar = () => {
       id: "1",
       title: checkValue(languages?.spot) || "Spot",
       icon: spotIcon,
-      onPress: () => NavigationService.navigate(TRADE_SCREEN),
+      onPress: () =>
+        NavigationService.navigate(TRADE_SCREEN, { activeTab: "Spot" }),
     },
     {
       id: "2",
@@ -112,7 +113,7 @@ const HomeMenuBar = () => {
       title: "Swap",
       icon: swapIcon,
       onPress: () =>
-        NavigationService.navigate(TRADE_SCREEN, { activeTab: "Swap" }),
+        NavigationService.navigate(TRADE_SCREEN, { activeTab: "Buy Crypto" }),
     },
     {
       id: "5",
@@ -157,7 +158,7 @@ const styles = StyleSheet.create({
     height: 24,
   },
   linkTitle: {
-    fontSize: 11,
+    fontSize: 14,
     fontFamily: fonts.medium,
     marginTop: 8,
   },

@@ -2361,6 +2361,9 @@ const Spot = () => {
   // Lifecycle: on focus subscribe and show content; on blur clear global loader first (no overlay), then all timers and unsubscribe
   useFocusEffect(
     useCallback(() => {
+      if (route?.params?.activeTab) {
+        setHeaderTab(route.params.activeTab);
+      }
       unsubscribeFromMarket();
       unsubscribeFromFutures();
       dispatch(setLoading(false));
