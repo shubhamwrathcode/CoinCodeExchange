@@ -31,31 +31,31 @@ const MOCK_EVENTS = [
   {
     id: "2",
     title: "Complete KYC & Get Bonus Rewards",
-    image: verifyIdentity,
+    image: event1,
     screen: KYC_STATUS_SCREEN,
   },
   {
     id: "3",
     title: "Deposit Crypto & Earn 10% APY",
-    image: landingpagedemo,
+    image: event1,
     screen: WALLET_SCREEN,
   },
   {
     id: "4",
     title: "Invite Friends & Share Prize Pool",
-    image: landingpagedemo,
+    image: event1,
     screen: REFER_AND_EARN_SCREEN,
   },
   {
     id: "5",
     title: "Trade Futures & Win BTC",
-    image: landingpagedemo,
+    image: event1,
     screen: FUTURES_SCREEN,
   },
   {
     id: "6",
     title: "Exclusive Airdrop For New Users",
-    image: landingpagedemo,
+    image: event1,
     screen: "Support",
   },
 ];
@@ -120,7 +120,7 @@ const HomeSlider = () => {
               <AppText
                 style={{
                   color: colors.cyan,
-                  fontSize: 12,
+                  fontSize: 14,
                   fontFamily: fonts.semiBold,
                 }}
               >
@@ -135,7 +135,7 @@ const HomeSlider = () => {
                 <AppText
                   style={{
                     color: isDark ? colors.white : themeColors.text,
-                    fontSize: 10,
+                    fontSize: 12,
                     fontFamily: fonts.medium,
                   }}
                 >
@@ -147,11 +147,11 @@ const HomeSlider = () => {
             <AppText
               style={{
                 color: isDark ? colors.white : themeColors.text,
-                fontSize: 13,
+                fontSize: 14,
                 fontFamily: fonts.bold,
-                marginTop: 8,
-                lineHeight: 18,
-                minHeight: 36,
+                marginTop: 6,
+                lineHeight: 19,
+                minHeight: 38,
               }}
               numberOfLines={2}
             >
@@ -168,13 +168,13 @@ const HomeSlider = () => {
                       realIndex === dotIndex
                         ? [styles.activeDot, { backgroundColor: colors.cyan }]
                         : [
-                            styles.inactiveDot,
-                            {
-                              backgroundColor: isDark
-                                ? "#2A2C31"
-                                : "#D1D5DB",
-                            },
-                          ],
+                          styles.inactiveDot,
+                          {
+                            backgroundColor: isDark
+                              ? "#2A2C31"
+                              : "#D1D5DB",
+                          },
+                        ],
                     ]}
                   />
                 ))}
@@ -219,7 +219,7 @@ const HomeSlider = () => {
         onMomentumScrollEnd={handleScrollEnd}
         initialScrollIndex={START_INDEX}
         getItemLayout={getItemLayout}
-        onScrollBeginDrag={() => {}}
+        onScrollBeginDrag={() => { }}
       />
     </View>
   );
@@ -233,23 +233,26 @@ const styles = StyleSheet.create({
   },
   container: {
     flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#0F1012",
     borderRadius: 20,
     marginHorizontal: 16,
-    padding: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.05)",
   },
   imageContainer: {
-    width: 90,
-    height: 90,
+    width: 105,
+    height: 105,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 10,
+    marginLeft: -4,
   },
   image: {
-    width: "100%",
-    height: "100%",
+    width: 115,
+    height: 115,
   },
   contentContainer: {
     flex: 1,
@@ -270,7 +273,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 12,
+    marginTop: 10,
   },
   pagination: {
     flexDirection: "row",
@@ -291,7 +294,7 @@ const styles = StyleSheet.create({
   joinButton: {
     borderWidth: 1,
     borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
   },
 });
