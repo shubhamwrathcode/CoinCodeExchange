@@ -2114,8 +2114,9 @@ const Spot = () => {
   useEffect(() => {
     if (route?.params?.activeTab) {
       setHeaderTab(route.params.activeTab);
+      navigation.setParams({ activeTab: undefined });
     }
-  }, [route?.params?.activeTab]);
+  }, [route?.params?.activeTab, navigation]);
   const [marginMode, setMarginMode] = useState("Isolated");
   const [marginLeverage, setMarginLeverage] = useState("5x");
 
@@ -2363,6 +2364,7 @@ const Spot = () => {
     useCallback(() => {
       if (route?.params?.activeTab) {
         setHeaderTab(route.params.activeTab);
+        navigation.setParams({ activeTab: undefined });
       }
       unsubscribeFromMarket();
       unsubscribeFromFutures();

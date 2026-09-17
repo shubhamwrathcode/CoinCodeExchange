@@ -19,6 +19,7 @@ import {
 import NavigationService from "../../navigation/NavigationService";
 import {
   ACCOUNT_SCREEN,
+  NAVIGATION_BOTTOM_TAB_STACK,
   TRADE_SCREEN,
   WALLET_SCREEN,
 } from "../../navigation/routes";
@@ -93,14 +94,20 @@ const HomeMenuBar = () => {
       title: checkValue(languages?.spot) || "Spot",
       icon: spotIcon,
       onPress: () =>
-        NavigationService.navigate(TRADE_SCREEN, { activeTab: "Spot" }),
+        NavigationService.navigate(NAVIGATION_BOTTOM_TAB_STACK, {
+          screen: TRADE_SCREEN,
+          params: { activeTab: "Spot" },
+        }),
     },
     {
       id: "2",
       title: "Margin",
       icon: marginIcon,
       onPress: () =>
-        NavigationService.navigate(TRADE_SCREEN, { activeTab: "Margin" }),
+        NavigationService.navigate(NAVIGATION_BOTTOM_TAB_STACK, {
+          screen: TRADE_SCREEN,
+          params: { activeTab: "Margin" },
+        }),
     },
     {
       id: "3",
@@ -113,7 +120,10 @@ const HomeMenuBar = () => {
       title: "Swap",
       icon: swapIcon,
       onPress: () =>
-        NavigationService.navigate(TRADE_SCREEN, { activeTab: "Buy Crypto" }),
+        NavigationService.navigate(NAVIGATION_BOTTOM_TAB_STACK, {
+          screen: TRADE_SCREEN,
+          params: { activeTab: "Buy Crypto" },
+        }),
     },
     {
       id: "5",
