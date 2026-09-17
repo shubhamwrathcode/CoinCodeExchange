@@ -76,14 +76,23 @@ const SearchInput = ({
   const { colors: themeColors, isDark } = useTheme();
 
   return (
-    <View style={[styles.mainViewStyle, containerStyle,{backgroundColor:isDark? colors.newThemeColor: colors.white}]}>
-      <View style={[styles.container, {
-        marginLeft: 10,
-        marginTop: 20,
-        backgroundColor:isDark? colors.themeElevationColor: colors.white,
-        borderColor: themeColors.border,
-        ...searchContainStyle,
-      }]}>
+    <View
+      style={[
+        styles.mainViewStyle,
+        { backgroundColor: isDark ? colors.newThemeColor : colors.white },
+        containerStyle,
+      ]}
+    >
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: isDark ? colors.themeElevationColor : colors.white,
+            borderColor: themeColors.border,
+            ...searchContainStyle,
+          },
+        ]}
+      >
         <FastImage
           source={searchIcon}
           resizeMode="contain"
@@ -99,7 +108,11 @@ const SearchInput = ({
           autoComplete="off"
           selectionColor={themeColors.text + '40'}
           cursorColor={themeColors.text}
-          style={[styles.inputF, inputStyle, { color: themeColors.text, fontFamily: fontFamilyMedium, fontSize: 13 }]}
+          style={[
+            styles.inputF,
+            { color: themeColors.text, fontFamily: fontFamilyMedium, fontSize: 13 },
+            inputStyle,
+          ]}
           value={value}
           onChangeText={onChangeText}
           onEndEditing={onEndEditing}
@@ -119,8 +132,13 @@ const SearchInput = ({
           onPress={() => {
             setFocus(false);
             NavigationService.goBack();
-          }}>
-          <AppText type={FIFTEEN} color={isDark? colors.white:colors.black} weight={MEDIUM}>
+          }}
+        >
+          <AppText
+            type={FIFTEEN}
+            color={isDark ? colors.white : colors.black}
+            weight={MEDIUM}
+          >
             Cancel
           </AppText>
         </TouchableOpacityView>
@@ -129,7 +147,8 @@ const SearchInput = ({
       {sheetDownButton && (
         <TouchableOpacityView
           style={styles.cancelButton}
-          onPress={sheetDownPress}>
+          onPress={sheetDownPress}
+        >
           <AppText type={FIFTEEN} color={YELLOW} weight={MEDIUM}>
             Cancel
           </AppText>
@@ -141,37 +160,37 @@ const SearchInput = ({
 
 export { SearchInput };
 const styles = StyleSheet.create({
+  mainViewStyle: {
+    width: '100%',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  container: {
+    flex: 1,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: colors.iconBgColor,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  searchIcon: {
+    height: 16,
+    width: 16,
+    marginRight: 8,
+  },
   inputF: {
     fontFamily: fontFamily,
     fontSize: 14,
     height: 40,
     flex: 1,
-  },
-  container: {
-    height: 40,
-    borderWidth: 0,
-    borderRadius: 5,
-    backgroundColor: colors.iconBgColor,
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '80%',
-    paddingHorizontal: universalPaddingHorizontal,
-    alignSelf: 'flex-start',
-  },
-  searchIcon: {
-    height: 16,
-    width: 16,
+    paddingVertical: 0,
   },
   cancelButton: {
-    position: 'absolute',
-    bottom: 10,
-    right: 15,
-  },
-  mainViewStyle: {
-    width: '100%',
-    padding: 5,
-    flexDirection: 'row',
+    marginLeft: 14,
+    justifyContent: 'center',
     alignItems: 'center',
-    
   },
 });

@@ -108,7 +108,7 @@ const HeaderTop = () => {
           style={[styles.searchPlaceholder, { color: mutedColor }]}
           numberOfLines={1}
         >
-          Search Coin, Market...
+          Search for market
         </AppText>
       </TouchableOpacity>
 

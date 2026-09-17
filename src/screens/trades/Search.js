@@ -76,9 +76,6 @@ const Search = () => {
         autoCapitalize="none"
         returnKeyType="done"
         onSubmitEditing={() => getData()}
-        // onFocus={true}
-        containerStyle={{ paddingTop: Platform.OS === 'ios' ? 25 : 0, paddingHorizontal: 5, backgroundColor: colors.white, }}
-        inputStyle={{}}
       />
       <KeyBoardAware>
         <AppText weight={SEMI_BOLD} type={SIXTEEN} style={[styles.text, { color: themeColors.text }]}>
