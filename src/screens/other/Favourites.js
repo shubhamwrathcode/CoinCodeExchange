@@ -15,7 +15,6 @@ import NavigationService from "../../navigation/NavigationService";
 import { colors } from "../../theme/colors";
 import { toFixedFive, toFixedThree } from "../../helper/utility";
 import { useTheme } from "../../hooks/useTheme";
-import { IMAGE_BASE_URL } from "../../helper/Constants";
 
 const Favourites = ({ style, from, coinPairs: propsCoinPairs, search: propsSearch = "", isLoggedIn = true, isSelectionModeForce = false, subCategory = "All", onPress }) => {
   const dispatch = useDispatch();
@@ -157,7 +156,7 @@ const Favourites = ({ style, from, coinPairs: propsCoinPairs, search: propsSearc
     const change = Number(item?.change_percentage) || 0;
     const isPositive = change >= 0;
     const pctStr = `${isPositive ? '+' : ''}${change.toFixed(2)}%`;
-    const iconUri = item?.icon_path ? IMAGE_BASE_URL + item.icon_path : null;
+    const iconUri = item?.icon_path ? item.icon_path : null;
     const priceStr = `$${Number(item?.last_price || item?.buy_price || 0).toFixed(2)}`;
 
     return (

@@ -66,7 +66,7 @@ const Search = () => {
 
 
   return (
-    <AppSafeAreaView style={{ backgroundColor: isDark? colors.newThemeColor: colors.white }}>
+    <AppSafeAreaView style={{ backgroundColor: isDark ? colors.newThemeColor : colors.white }}>
       <SearchInput
         cancelBtn={true}
         value={value}

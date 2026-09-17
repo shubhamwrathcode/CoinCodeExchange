@@ -452,6 +452,10 @@ export const event1 = require('../../assets/images/event1.png');
 export const landingpagedemo = require('../../assets/images/landingpagedemo.png');
 export const stakingHomeIcon = require('../../assets/images/stakingHomeIcon.png');
 export const newsImg = require('../../assets/images/newsImg.png');
+export const EarnIcon = require('../../assets/images/EarnIcon.png');
+export const MarketIcon = require('../../assets/images/MarketIcon.png');
+export const TradeIcon = require('../../assets/images/TradeIcon.png');
+export const AssetsIcon = require('../../assets/images/AssetsIcon.png');
 
 
 

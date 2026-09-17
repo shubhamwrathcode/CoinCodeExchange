@@ -133,7 +133,6 @@ const Market = () => {
   const prevTabIndexRef = useRef(activeTabIndex);
 
   const [search, setSearch] = useState("");
-  const [refreshing, setRefreshing] = useState(false);
 
 
   useEffect(() => {

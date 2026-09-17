@@ -25,7 +25,7 @@ const TABS = [
   { key: "Spot", label: "Spot" },
   { key: "Cryptos", label: "Cryptos" },
   { key: "USD_M_FUTURES", label: "USDⓈ-M Futures" },
-  { key: "OPTIONS", label: "Options" },
+  // { key: "OPTIONS", label: "Options" },
 ];
 
 const formatSubCategoryLabel = (key) => {
@@ -100,7 +100,11 @@ const MarketHeader = ({
     <View style={[styles.wrapper, { backgroundColor: themeColors.background }]}>
       {/* Search bar - full width, reference style */}
       {showSearch && (
-        <View style={[styles.searchBar, { backgroundColor: isDark ? darkTheme.darkThemeInputColor : '#F4F4F4', borderColor: 'transparent', borderWidth: 0.8 }]}>
+        <View style={[styles.searchBar,
+        {
+          backgroundColor: isDark ? colors.lightBlackLatest : '#F4F4F4',
+          borderColor: themeColors.border, borderWidth: 0.4
+        }]}>
           <FastImage
             source={searchIcon}
             resizeMode="contain"
@@ -108,7 +112,10 @@ const MarketHeader = ({
             tintColor={placeholderColor}
           />
           <TextInput
-            style={[styles.searchInput, { color: textColor, fontSize: 14, fontFamily: fontFamilySemiBold }]}
+            style={[styles.searchInput, {
+              color: textColor, fontSize: 14,
+              fontFamily: fontFamilySemiBold
+            }]}
             placeholder="Search Coins"
             placeholderTextColor={placeholderColor}
             value={search}

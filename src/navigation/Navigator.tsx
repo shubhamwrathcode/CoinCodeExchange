@@ -19,10 +19,14 @@ import AuthVerificationScreen from "../screens/auth/AuthVerificationScreen";
 import FastImage from "react-native-fast-image";
 import { colors } from "../theme/colors";
 import {
+  AssetsIcon,
+  EarnIcon,
   futuresActiveIcon,
   homeIcon,
+  MarketIcon,
   marketIcon,
   marketIconDark,
+  TradeIcon,
   tradeImg,
   wallet_ic,
 } from "../helper/ImageAssets";
@@ -196,8 +200,8 @@ const CustomBottomTabBar = ({ state, descriptors, navigation }: any) => {
     [routes.HOME_SCREEN]: "Home",
     [routes.MARKET_SCREEN]: "Market",
     [routes.TRADE_SCREEN]: "Trade",
-    [routes.FUTURES_SCREEN]: "Future",
-    [routes.WALLET_SCREEN]: "Wallet",
+    [routes.FUTURES_SCREEN]: "Earn",
+    [routes.WALLET_SCREEN]: "Assets",
   };
 
   const isAuthRequiredRoute = (routeName: string) => {
@@ -319,11 +323,11 @@ const CustomBottomTabBar = ({ state, descriptors, navigation }: any) => {
           };
 
           const iconByRoute: any = {
-            [routes.HOME_SCREEN]: homeIcon,
-            [routes.MARKET_SCREEN]: marketIcon,
-            [routes.TRADE_SCREEN]: tradeImg,
-            [routes.FUTURES_SCREEN]: futuresActiveIcon,
-            [routes.WALLET_SCREEN]: wallet_ic,
+            [routes.HOME_SCREEN]: null,
+            [routes.MARKET_SCREEN]: MarketIcon,
+            [routes.TRADE_SCREEN]: TradeIcon,
+            [routes.FUTURES_SCREEN]: EarnIcon,
+            [routes.WALLET_SCREEN]: AssetsIcon,
           };
 
           const icon = iconByRoute[route.name];
@@ -873,7 +877,7 @@ function BottomNavigation() {
                   ]}
                 >
                   <FastImage
-                    source={isDark ? marketIconDark : marketIcon}
+                    source={MarketIcon}
                     style={bottomTabStyles.tabIconMd}
                     resizeMode="contain"
                     tintColor={focused ? activeIcon : inactive}
@@ -903,7 +907,7 @@ function BottomNavigation() {
                   ]}
                 >
                   <FastImage
-                    source={tradeImg}
+                    source={TradeIcon}
                     style={bottomTabStyles.tabIconMd}
                     resizeMode="contain"
                     tintColor={focused ? activeIcon : inactive}
@@ -919,7 +923,6 @@ function BottomNavigation() {
               </View>
             ),
           }}
-          // initialParams={__DEV__ ? { historyOnly: true } : undefined}
           component={Spot}
         />
         <Tab.Screen
@@ -934,7 +937,7 @@ function BottomNavigation() {
                   ]}
                 >
                   <FastImage
-                    source={futuresActiveIcon}
+                    source={EarnIcon}
                     style={bottomTabStyles.tabIconMd}
                     resizeMode="contain"
                     tintColor={focused ? activeIcon : inactive}
@@ -945,7 +948,7 @@ function BottomNavigation() {
                   type={TEN}
                   style={[bottomTabStyles.tabLabel, { color: focused ? activeIcon : inactive }]}
                 >
-                  Future
+                  Earn
                 </AppText>
               </View>
             ),
@@ -964,7 +967,7 @@ function BottomNavigation() {
                   ]}
                 >
                   <FastImage
-                    source={wallet_ic}
+                    source={AssetsIcon}
                     style={bottomTabStyles.tabIcon}
                     resizeMode="contain"
                     tintColor={focused ? activeIcon : inactive}
@@ -975,7 +978,7 @@ function BottomNavigation() {
                   type={TEN}
                   style={[bottomTabStyles.tabLabel, { color: focused ? activeIcon : inactive }]}
                 >
-                  Wallet
+                  Assets
                 </AppText>
               </View>
             ),

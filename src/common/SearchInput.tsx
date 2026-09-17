@@ -87,7 +87,8 @@ const SearchInput = ({
         style={[
           styles.container,
           {
-            backgroundColor: isDark ? colors.themeElevationColor : colors.white,
+            borderWidth: 0.3,
+            backgroundColor: isDark ? colors.lightBlackLatest : colors.white,
             borderColor: themeColors.border,
             ...searchContainStyle,
           },

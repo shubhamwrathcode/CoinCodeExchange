@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, TouchableOpacity, Platform, View } from "react-native";
 import FastImage from "react-native-fast-image";
+import { Home } from "lucide-react-native";
 import Animated, {
   useSharedValue,
   withTiming,
@@ -11,6 +12,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { AppText, BOLD, TWELVE } from "../shared";
 import { colors } from "../theme/colors";
+import { fonts } from "../theme/fonts";
 
 export const customTabBarStyles = StyleSheet.create({
   container: {
@@ -81,7 +83,7 @@ export const TabItem = ({
   const textStyle = useAnimatedStyle(() => {
     return {
       opacity: progress.value,
-      width: interpolate(progress.value, [0, 1], [0, 50]),
+      width: interpolate(progress.value, [0, 1], [0, 52]),
       marginLeft: interpolate(progress.value, [0, 1], [0, 8]),
     };
   });
@@ -96,12 +98,16 @@ export const TabItem = ({
       activeOpacity={0.8}
     >
       <Animated.View style={[customTabBarStyles.pill, animatedStyle]}>
-        <FastImage
-          source={icon}
-          style={{ width: 22, height: 22 }}
-          tintColor={tint}
-          resizeMode="contain"
-        />
+        {label === "Home" || !icon ? (
+          <Home color={tint} size={21} />
+        ) : (
+          <FastImage
+            source={icon}
+            style={{ width: 22, height: 22 }}
+            tintColor={tint}
+            resizeMode="contain"
+          />
+        )}
         <Animated.View
           style={[
             { overflow: "hidden", flexDirection: "row", alignItems: "center" },
@@ -111,7 +117,7 @@ export const TabItem = ({
           <AppText
             weight={BOLD}
             type={TWELVE}
-            style={{ color: colors.white }}
+            style={{ color: colors.white, fontFamily: fonts.semiBold }}
             numberOfLines={1}
           >
             {label}
