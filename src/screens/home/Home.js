@@ -323,9 +323,7 @@ const Home = () => {
           />
         )}
 
-        <View style={{ right: 10 }}>
-          <HomeMenuBar />
-        </View>
+        <HomeMenuBar />
 
         <View style={{ marginTop: 12 }}>
           {sliderReady ? <HomeSlider theme={theme} /> : <HomeSliderSkeleton />}

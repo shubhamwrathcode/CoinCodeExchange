@@ -90,7 +90,7 @@ export const VerifyBanner = ({ onVerifyPress }) => {
           Complete verification to enjoy{"\n"}all features and higher limits.
         </AppText>
         <TouchableOpacity
-          onPress={onVerifyPress || (() => {})}
+          onPress={onVerifyPress || (() => { })}
           activeOpacity={0.8}
           style={styles.verifyBtn}
         >
@@ -142,8 +142,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   verifyBtnText: {
-    color: "#000000",
+    color: colors.white,
     fontSize: 13,
-    fontFamily: fonts.semiBold,
+    fontFamily: fonts.medium,
   },
 });

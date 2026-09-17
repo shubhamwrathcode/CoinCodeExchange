@@ -444,6 +444,10 @@ export const authUserImg = require('../../assets/images/authUserImg.png');
 export const gridIcon = require('../../assets/images/gridIcon.png');
 export const bellIcon = require('../../assets/images/bellIcon.png');
 export const verifyIdentity = require('../../assets/images/verifyIdentity.png');
+export const marginIcon = require('../../assets/images/marginIcon.png');
+export const walletIcon = require('../../assets/images/walletIcon.png');
+export const swapIcon = require('../../assets/images/swapIcon.png');
+export const moreIcon = require('../../assets/images/moreIcon.png');
 
 
 

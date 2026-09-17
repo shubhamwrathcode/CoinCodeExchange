@@ -1,46 +1,42 @@
 import React from "react";
-import { Dimensions, Image, ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import FastImage from "react-native-fast-image";
 import TouchableOpacityView from "../../shared/components/TouchableOpacityView";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
 } from "react-native-reanimated";
-import { AppText, THIRTEEN, } from "../../shared";
+import { AppText } from "../../shared";
 import { useTheme } from "../../hooks/useTheme";
-const Width = Dimensions.get("window").width;
-import Toast from "react-native-simple-toast";
 import {
-  swap,
-  margin,
-  wallet_ic,
   spotIcon,
-  earningAsset1,
-  lockLight,
-  spotIconDarkTheme,
+  marginIcon,
+  walletIcon,
+  swapIcon,
+  moreIcon,
 } from "../../helper/ImageAssets";
 import NavigationService from "../../navigation/NavigationService";
-import { ACCOUNT_SCREEN, EARNING_SCREEN, TRADE_SCREEN, WALLET_SCREEN } from "../../navigation/routes";
+import {
+  ACCOUNT_SCREEN,
+  TRADE_SCREEN,
+  WALLET_SCREEN,
+} from "../../navigation/routes";
 import { useAppSelector } from "../../store/hooks";
 import { checkValue } from "../../helper/utility";
-import { colors, darkTheme } from "../../theme/colors";
+import { colors } from "../../theme/colors";
+import { fonts } from "../../theme/fonts";
 
-const showComingSoonToast = () =>
-  Toast.showWithGravity("Coming soon", Toast.SHORT, Toast.BOTTOM);
-
-// ✅ Separate component for menu item to use hooks properly
-const MenuItem = React.memo(({ item, index }: any) => {
+const MenuItem = React.memo(({ item }: { item: any }) => {
   const { colors: themeColors, isDark } = useTheme();
   const scale = useSharedValue(1);
 
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: scale.value }],
-    };
-  });
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.9, { damping: 15 });
+    scale.value = withSpring(0.92, { damping: 15 });
   };
 
   const handlePressOut = () => {
@@ -48,39 +44,39 @@ const MenuItem = React.memo(({ item, index }: any) => {
   };
 
   return (
-    <Animated.View
-      style={animatedStyle}
-    >
+    <Animated.View style={animatedStyle}>
       <TouchableOpacityView
         onPress={item?.onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        style={styles.singleItem}
-        key={item?.id}
+        style={styles.quickLinkItem}
         activeOpacity={0.8}
       >
         <View
           style={[
-            item?.id === "6" ? styles.iconWrapMore : styles.iconWrap,
+            styles.quickLinkIconCircle,
             {
-              backgroundColor: isDark ? darkTheme.darkThemeInputColor : colors.iconBgColor,
-              borderRadius: 20,
+              backgroundColor: isDark ? "#0F1012" : "#F3F4F6",
+              borderColor: isDark
+                ? "rgba(255, 255, 255, 0.05)"
+                : "rgba(0, 0, 0, 0.06)",
             },
           ]}
         >
-          <Image
-            key={`${item?.id}-${isDark ? "dark" : "light"}`}
-            resizeMode="contain"
+          <FastImage
             source={item.icon}
-            style={[
-              item?.id === "6" ? styles.iconMore : styles.icon,
-              item?.id === "1" && isDark && { width: 45, height: 45 },
-              item?.id !== "1" && isDark ? { tintColor: colors.white } : null,
-              item?.id === "6" && !isDark ? { tintColor: themeColors.text } : null,
-            ]}
+            style={styles.icon}
+            resizeMode={FastImage.resizeMode.contain}
           />
         </View>
-        <AppText style={{ color: themeColors.text }} type={THIRTEEN}>
+        <AppText
+          style={[
+            styles.linkTitle,
+            {
+              color: isDark ? colors.white : themeColors.text,
+            },
+          ]}
+        >
           {item?.title}
         </AppText>
       </TouchableOpacityView>
@@ -89,125 +85,80 @@ const MenuItem = React.memo(({ item, index }: any) => {
 });
 
 const HomeMenuBar = () => {
-  const { colors: themeColors, theme, isDark } = useTheme();
+  const languages = useAppSelector((state) => state.account.languages);
 
-  const languages = useAppSelector((state) => {
-    return state.account.languages;
-  });
-  const Data = [
+  const data = [
     {
       id: "1",
-      title: checkValue(languages?.spot),
-      icon: isDark ? spotIconDarkTheme : spotIcon,
+      title: checkValue(languages?.spot) || "Spot",
+      icon: spotIcon,
       onPress: () => NavigationService.navigate(TRADE_SCREEN),
     },
     {
       id: "2",
       title: "Margin",
-      icon: margin,
-      onPress: () => NavigationService.navigate(TRADE_SCREEN, { activeTab: "Margin" }),
+      icon: marginIcon,
+      onPress: () =>
+        NavigationService.navigate(TRADE_SCREEN, { activeTab: "Margin" }),
     },
     {
       id: "3",
       title: "Wallet",
-      icon: wallet_ic,
+      icon: walletIcon,
       onPress: () => NavigationService.navigate(WALLET_SCREEN),
     },
-    // {
-    //   id: "4",
-    //   title: checkValue("Swap"),
-    //   icon: swap,
-    //   onPress: showComingSoonToast,
-    // },
+    {
+      id: "4",
+      title: "Swap",
+      icon: swapIcon,
+      onPress: () =>
+        NavigationService.navigate(TRADE_SCREEN, { activeTab: "Swap" }),
+    },
     {
       id: "5",
-      title: "Earning",
-      icon: earningAsset1,
-      onPress: () => NavigationService.navigate(EARNING_SCREEN),
-    },
-    {
-      id: "6",
-      title: "Security",
-      icon: lockLight,
+      title: "More",
+      icon: moreIcon,
       onPress: () => NavigationService.navigate(ACCOUNT_SCREEN),
     },
-
   ];
 
-  const renderItem = ({ item, index }: any) => {
-    return <MenuItem item={item} index={index} />;
-  };
-
   return (
-    <View style={styles.menuBarBackground}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {Data?.map((item, index) => (
-          <React.Fragment key={item.id}>{renderItem({ item, index })}</React.Fragment>
-        ))}
-      </ScrollView>
+    <View style={styles.quickLinksContainer}>
+      {data.map((item) => (
+        <MenuItem key={item.id} item={item} />
+      ))}
     </View>
   );
 };
 
+export default HomeMenuBar;
 
 const styles = StyleSheet.create({
-  menuBarBackground: {
-    width: "100%",
-    borderRadius: 8,
-    paddingTop: 8,
-    paddingBottom: 4,
-    marginBottom: 0,
-    paddingHorizontal: 15
-  },
-  container: {
-    width: "100%",
+  quickLinksContainer: {
     flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  quickLinkItem: {
     alignItems: "center",
   },
-  scrollContent: {
-    flexDirection: "row",
+  quickLinkIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 3,
   },
   icon: {
-    height: 25,
-    width: 25
+    width: 24,
+    height: 24,
   },
-  iconMore: {
-    height: 25,
-    width: 25,
-  },
-  iconWrap: {
-    height: 42,
-    width: 42,
-    borderRadius: 5,
-    marginBottom: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-
-  },
-  iconWrapMore: {
-    height: 42,
-    width: 42,
-    borderRadius: 10,
-    marginBottom: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-
-  },
-  singleItem: {
-    alignItems: "center",
-    width: (Width - 40) / 4.8,
-
-  },
-  itemSeparator: {
-    width: 8,
+  linkTitle: {
+    fontSize: 11,
+    fontFamily: fonts.medium,
+    marginTop: 8,
   },
 });
-export default HomeMenuBar;
