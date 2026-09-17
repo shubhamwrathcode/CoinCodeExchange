@@ -26,26 +26,11 @@ export const LatestNews = () => {
     }
   }, [dispatch, notificationRows.length]);
 
-  const displayItems =
-    notificationRows.length > 0
-      ? notificationRows.slice(0, 4)
-      : [
-          {
-            id: "1",
-            date: "05-25 04:05",
-            title: "Exclusive Soon Token Savings Promotions Launch",
-          },
-          {
-            id: "2",
-            date: "05-25 04:05",
-            title: "Complete KYC & Unlock All Crypto Trading Features",
-          },
-          {
-            id: "3",
-            date: "05-25 04:05",
-            title: "Earn Up To 12.5% APY On Staking Assets",
-          },
-        ];
+  const displayItems = notificationRows.slice(0, 4);
+
+  if (displayItems.length === 0) {
+    return null;
+  }
 
   const formatDate = (iso) => {
     if (!iso) return moment().format("MM-DD HH:mm");
