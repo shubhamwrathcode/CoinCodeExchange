@@ -1,29 +1,26 @@
 import React, { useMemo, useState } from "react";
 import { View, StyleSheet, TouchableOpacity } from "react-native";
 import FastImage from "react-native-fast-image";
+import { Search, User } from "lucide-react-native";
 import {
-  agceLogoName,
-  agceLogoNamelight,
-
-  bell_ic,
-  defaultPic,
-  headPhoneIcon,
+  bellIcon,
+  giftIcon,
+  gridIcon,
 } from "../helper/ImageAssets";
 import NavigationService from "../navigation/NavigationService";
-import { NOTIFICATION_SCREEN } from "../navigation/routes";
+import { NOTIFICATION_SCREEN, SEARCH_SCREEN } from "../navigation/routes";
 import { useAppSelector } from "../store/hooks";
 import { BASE_URL } from "../helper/Constants";
 import { useTheme } from "../hooks/useTheme";
-import { colors, lightTheme } from "../theme/colors";
+import { colors } from "../theme/colors";
+import { fonts } from "../theme/fonts";
+import { AppText, FOURTEEN, MEDIUM } from "../shared";
 import { appOperation } from "../appOperation";
 import { useFocusEffect } from "@react-navigation/native";
-
 
 const HeaderTop = () => {
   const { colors: themeColors, isDark } = useTheme();
   const userData = useAppSelector((state) => state.auth.userData);
-  const iconTint = isDark ? '#C1C1C1' : "#000000";
-  const titleColor = isDark ? themeColors.text : "#000000";
 
   const [serverAvatar, setServerAvatar] = useState(null);
 
@@ -34,7 +31,8 @@ const HeaderTop = () => {
         try {
           const resAvatar = await appOperation.customer.get_avatar_setting();
           if (active && resAvatar?.success) {
-            const fetchedAvatar = resAvatar.data?.avatar || resAvatar.data?.data?.avatar;
+            const fetchedAvatar =
+              resAvatar.data?.avatar || resAvatar.data?.data?.avatar;
             if (fetchedAvatar) setServerAvatar(fetchedAvatar);
           }
         } catch (err) {
@@ -42,73 +40,113 @@ const HeaderTop = () => {
         }
       };
       fetchAvatar();
-      return () => { active = false; };
+      return () => {
+        active = false;
+      };
     }, [])
   );
 
   const getFullAvatarUrl = (url) => {
     if (!url) return null;
-    if (url.startsWith('http')) return url;
-    if (url.startsWith('uploads/')) {
-      const baseUrl = BASE_URL.endsWith('/') ? BASE_URL : `${BASE_URL}/`;
+    if (url.startsWith("http")) return url;
+    if (url.startsWith("uploads/")) {
+      const baseUrl = BASE_URL.endsWith("/") ? BASE_URL : `${BASE_URL}/`;
       return `${baseUrl}${url}`;
     }
     return url;
   };
 
-  const finalAvatarUri = getFullAvatarUrl(serverAvatar || userData?.profilepicture);
-  // console.log(finalAvatarUri, '===uri');
+  const finalAvatarUri = getFullAvatarUrl(
+    serverAvatar || userData?.profilepicture
+  );
+
+  const boxBg = isDark ? colors.lightBlackLatest : "#F3F4F6";
+  const boxBorder = isDark ? "#1C1E22" : "#E5E7EB";
+  const mutedColor = colors.darkShadeColorText || "#9CA3AF";
 
   return (
-    <View style={[styles.headerBar,]}>
-      <View style={styles.sideSlot}>
-        <TouchableOpacity
-          onPress={() => NavigationService.navigate("ProfileDrawer")}
-          style={[styles.avatarContainer, {
-            borderColor: themeColors.border,
-            backgroundColor: lightTheme.input
-          }]}
-        >
+    <View style={styles.header}>
+      {/* Avatar (Left) */}
+      <TouchableOpacity
+        style={[
+          styles.avatar,
+          {
+            borderColor: boxBorder,
+            backgroundColor: boxBg,
+          },
+        ]}
+        onPress={() => NavigationService.navigate("ProfileDrawer")}
+        activeOpacity={0.8}
+      >
+        {finalAvatarUri ? (
           <FastImage
-            source={finalAvatarUri ? { uri: finalAvatarUri } : defaultPic}
+            source={{ uri: finalAvatarUri }}
             resizeMode="cover"
-            style={styles.avatar}
+            style={styles.avatarImage}
           />
-        </TouchableOpacity>
-      </View>
+        ) : (
+          <User color={mutedColor} size={20} />
+        )}
+      </TouchableOpacity>
 
-      <View style={styles.brandCenter}>
-        <FastImage
-          source={isDark ? agceLogoNamelight : agceLogoName}
-          resizeMode="contain"
-          style={styles.brandLogo}
-        />
+      {/* Search Bar (Center) */}
+      <TouchableOpacity
+        style={[
+          styles.searchContainer,
+          {
+            borderColor: boxBorder,
+            backgroundColor: boxBg,
+          },
+        ]}
+        onPress={() => NavigationService.navigate(SEARCH_SCREEN)}
+        activeOpacity={0.8}
+      >
+        <Search color={mutedColor} size={18} />
+        <AppText
+          type={FOURTEEN}
+          weight={MEDIUM}
+          style={[styles.searchPlaceholder, { color: mutedColor }]}
+        >
+          SOL/USDT
+        </AppText>
+      </TouchableOpacity>
 
-      </View>
-
-      <View style={[styles.sideSlot, styles.sideRight]}>
+      {/* Action Icons (Right) */}
+      <View style={styles.rightIcons}>
         <TouchableOpacity
-          onPress={() => NavigationService.navigate("Support")}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={styles.iconButton}
+          // onPress={() => NavigationService.navigate("ProfileDrawer")}
+          activeOpacity={0.7}
         >
           <FastImage
-            source={headPhoneIcon}
-            tintColor={iconTint}
-            resizeMode="contain"
+            source={gridIcon}
             style={styles.actionIcon}
+            resizeMode={FastImage.resizeMode.contain}
           />
         </TouchableOpacity>
+
         <TouchableOpacity
+          style={styles.iconButton}
+          // onPress={() => NavigationService.navigate("BuyPackage")}
+          activeOpacity={0.7}
+        >
+          <FastImage
+            source={giftIcon}
+            style={styles.actionIcon}
+            resizeMode={FastImage.resizeMode.contain}
+          />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.iconButton}
           onPress={() => NavigationService.navigate(NOTIFICATION_SCREEN)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          activeOpacity={0.7}
         >
           <FastImage
-            source={bell_ic}
-            tintColor={iconTint}
-            resizeMode="contain"
+            source={bellIcon}
             style={styles.actionIcon}
+            resizeMode={FastImage.resizeMode.contain}
           />
-
         </TouchableOpacity>
       </View>
     </View>
@@ -118,54 +156,53 @@ const HeaderTop = () => {
 export default HeaderTop;
 
 const styles = StyleSheet.create({
-  headerBar: {
-    width: "100%",
+  header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 5,
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  sideSlot: {
-    width: 96,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  sideRight: {
-    justifyContent: "flex-end",
-    gap: 18,
-  },
-  avatarContainer: {
-    width: 30,
-    height: 30,
-    borderRadius: 20,
-    overflow: "hidden",
-    alignItems: "center",
-    justifyContent: "center",
-
+    paddingTop: 10,
+    paddingBottom: 4,
+    backgroundColor: "transparent",
   },
   avatar: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    overflow: "hidden",
   },
-  brandCenter: {
+  avatarImage: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+  },
+  searchContainer: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    height: 40,
+    borderRadius: 20,
+    marginLeft: 10,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+  },
+  searchPlaceholder: {
+    marginLeft: 8,
+    fontFamily: fonts.medium,
+  },
+  rightIcons: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 12,
     gap: 8,
-    right: 10
   },
-  brandLogo: {
-    width: 107,
-    height: 26,
-  },
-  brandTitle: {
-    letterSpacing: 0.5,
+  iconButton: {
+    padding: 2,
   },
   actionIcon: {
-    width: 20,
-    height: 20,
+    width: 22,
+    height: 22,
   },
 });

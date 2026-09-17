@@ -84,6 +84,7 @@ import {
 import { getVersion } from "react-native-device-info";
 import { setLoading } from "../../slices/authSlice";
 import HeaderTop from "../../shared/components/HeaderTop";
+import AccountSetupProgress from "../../shared/components/AccountSetupProgress";
 import FastImage from "react-native-fast-image";
 import { KYC_STATUS_SCREEN, SEARCH_SCREEN, WALLET_SCREEN, DEPOSIT_COIN_SCREEN, NAVIGATION_AUTH_STACK, LOGIN_SCREEN } from "../../navigation/routes";
 import NavigationService from "../../navigation/NavigationService";
@@ -258,33 +259,7 @@ const Home = () => {
       >
         <View>
           <HeaderTop />
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => NavigationService.navigate(SEARCH_SCREEN)}
-            style={[
-              styles.homeSearchBar,
-              {
-                backgroundColor: isDark ? darkTheme.darkThemeInputColor : themeColors.input,
-                borderWidth: isDark ? StyleSheet.hairlineWidth : 0,
-                borderColor: themeColors.border,
-              },
-            ]}
-          >
-            <FastImage
-              source={searchIcon}
-              style={styles.homeSearchIcon}
-              resizeMode="contain"
-              tintColor={themeColors.secondaryText}
-            />
-            <AppText
-              numberOfLines={1}
-              type={TWELVE}
-              weight={MEDIUM}
-              style={[styles.homeSearchPlaceholder, { color: themeColors.secondaryText }]}
-            >
-              🔥 Trade Smart. Grow Faster.
-            </AppText>
-          </TouchableOpacity>
+          <AccountSetupProgress />
           <View
             style={{
               marginTop: 12,

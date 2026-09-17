@@ -57,7 +57,7 @@ const MarketRow = React.memo(({ item, favoriteArray, onPress, onToggleFavorite, 
       .toUpperCase() || "USDT";
   const pairLabel = ticker && ticker !== "—" ? `${ticker}/${quote}` : "—";
   const fullName = item?.base_currency_fullname || item?.base_currency_name || item?.base_currency || ticker;
-  const iconUri = item?.icon_path ? IMAGE_BASE_URL + item.icon_path : null;
+  const iconUri = item?.icon_path ? item.icon_path : null;
 
   if (isHomeTab) {
     const last = item?.buy_price ?? item?.last_price ?? item?.price ?? 0;

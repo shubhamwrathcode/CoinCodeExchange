@@ -441,6 +441,8 @@ export const passkeyIcon = require('../../assets/images/passkeyIcon.png');
 export const setPasswordImg = require('../../assets/images/setPasswordImg.png');
 export const verifyEmailImg = require('../../assets/images/verifyEmailImg.png');
 export const authUserImg = require('../../assets/images/authUserImg.png');
+export const gridIcon = require('../../assets/images/gridIcon.png');
+export const bellIcon = require('../../assets/images/bellIcon.png');
 
 
 

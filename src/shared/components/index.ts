@@ -6,3 +6,5 @@ export { default as TextLabel } from "./TextLabel";
 export { default as PrimaryButton } from "./PrimaryButton";
 export { default as ScreenToolbar } from "./ScreenToolbar";
 export { default as KeyboardScrollContainer } from "./KeyboardScrollContainer";
+export { default as AccountSetupProgress } from "./AccountSetupProgress";
+export { default as HeaderTop } from "./HeaderTop";
