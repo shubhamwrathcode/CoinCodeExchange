@@ -200,7 +200,7 @@ const CustomBottomTabBar = ({ state, descriptors, navigation }: any) => {
     [routes.HOME_SCREEN]: "Home",
     [routes.MARKET_SCREEN]: "Market",
     [routes.TRADE_SCREEN]: "Trade",
-    [routes.FUTURES_SCREEN]: "Future",
+    [routes.FUTURES_SCREEN]: "Earn",
     [routes.WALLET_SCREEN]: "Assets",
   };
 
@@ -948,7 +948,7 @@ function BottomNavigation() {
                   type={TEN}
                   style={[bottomTabStyles.tabLabel, { color: focused ? activeIcon : inactive }]}
                 >
-                  Future
+                  Earn
                 </AppText>
               </View>
             ),
