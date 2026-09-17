@@ -451,6 +451,7 @@ export const moreIcon = require('../../assets/images/moreIcon.png');
 export const event1 = require('../../assets/images/event1.png');
 export const landingpagedemo = require('../../assets/images/landingpagedemo.png');
 export const stakingHomeIcon = require('../../assets/images/stakingHomeIcon.png');
+export const newsImg = require('../../assets/images/newsImg.png');
 
 
 

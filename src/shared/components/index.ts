@@ -10,3 +10,4 @@ export { default as AccountSetupProgress } from "./AccountSetupProgress";
 export { default as HeaderTop } from "./HeaderTop";
 export { default as VerifyBanner } from "./VerifyBanner";
 export { default as EarnSection } from "./EarnSection";
+export { default as LatestNews } from "./LatestNews";
