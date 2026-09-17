@@ -1,61 +1,194 @@
-/* eslint-disable react-native/no-inline-styles */
-import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
-import { View, StyleSheet, Platform, ScrollView } from "react-native";
+import React, { useMemo, useState, useCallback, useRef } from "react";
+import { View, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import Animated, {
-  FadeIn,
-  FadeInDown,
   useAnimatedStyle,
-  useSharedValue,
   withTiming,
+  FadeIn,
 } from "react-native-reanimated";
-import { universalPaddingHorizontal } from "../../theme/dimens";
-import { useAppSelector } from "../../store/hooks";
-import Favourites from "../other/Favourites";
-import MarketList from "../other/MarketList";
-import { FuturesList } from "../other/FuturesMarket";
-import HomeCoinList from "./HomeCoinList";
-import NavigationService from "../../navigation/NavigationService";
-import { WALLET_SCREEN, MARKET_SCREEN, FUTURES_SCREEN, ADD_FAVOURITE_SCREEN, TRADE_SCREEN } from "../../navigation/routes";
-import TouchableOpacityView from "../../shared/components/TouchableOpacityView";
 import FastImage from "react-native-fast-image";
-import { AppText, Button, MEDIUM, SEMI_BOLD } from "../../shared";
-import { back_ic } from "../../helper/ImageAssets";
-import { useDispatch } from "react-redux";
-import { setBuyOrders, setSellOrders, setSpotSelectedPair, setFuturesSelectedPair } from "../../slices/homeSlice";
+import { ChevronRight, ChevronsUpDown } from "lucide-react-native";
+import { AppText } from "../../shared";
+import { useAppSelector, useAppDispatch } from "../../store/hooks";
+import { setBuyOrders, setSellOrders, setSpotSelectedPair } from "../../slices/homeSlice";
+import NavigationService from "../../navigation/NavigationService";
+import { MARKET_SCREEN, TRADE_SCREEN } from "../../navigation/routes";
 import { useTheme } from "../../hooks/useTheme";
+import { colors } from "../../theme/colors";
+import { fonts } from "../../theme/fonts";
+
+const TABS = [
+  { key: 0, label: "Spot" },
+  { key: 1, label: "Trending" },
+  { key: 2, label: "Hot" },
+  { key: 3, label: "New Listing" },
+  { key: 4, label: "Top Gainers" },
+];
+
+const formatPrice = (val) => {
+  if (val == null || val === "") return "0.00";
+  const num = Number(val);
+  if (!Number.isFinite(num)) return String(val);
+  if (num < 0.0001) return num.toFixed(6);
+  if (num < 1) return num.toFixed(4);
+  return num.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
+const TabItem = ({ tab, isActive, onPress, isDark }) => {
+  const animatedBgStyle = useAnimatedStyle(() => ({
+    backgroundColor: withTiming(isActive ? colors.cyan : "transparent", {
+      duration: 250,
+    }),
+  }));
+
+  const animatedTextStyle = useAnimatedStyle(() => ({
+    color: withTiming(
+      isActive
+        ? isDark
+          ? colors.white
+          : "#000000"
+        : colors.darkShadeColorText || "#9CA3AF",
+      { duration: 250 }
+    ),
+  }));
+
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
+      <Animated.View style={[styles.tabItem, animatedBgStyle]}>
+        <Animated.Text
+          style={[
+            styles.tabItemText,
+            animatedTextStyle,
+            { fontFamily: fonts.medium },
+          ]}
+        >
+          {tab.label}
+        </Animated.Text>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
+
+const CoinRowItem = React.memo(({ item, onPress, isDark, themeColors }) => {
+  const ticker =
+    String(
+      item?.base_currency || item?.base_currency_short_name || ""
+    ).toUpperCase() || "—";
+  const fullName =
+    item?.base_currency_fullname ||
+    item?.base_currency_name ||
+    item?.base_currency ||
+    ticker;
+  const iconUri = item?.icon_path ? item.icon_path : null;
+
+  const chg =
+    Number(item?.change_percentage ?? item?.changePercentage ?? item?.change) ||
+    0;
+  const isPositive = chg >= 0;
+  const changeColor = isPositive ? "#00C076" : "#FF4B4B";
+  const chgText = `${isPositive ? "+" : ""}${chg.toFixed(2)}%`;
+
+  const lastPrice = item?.buy_price ?? item?.last_price ?? item?.price ?? 0;
+  const usdPrice =
+    item?.usd_price ?? item?.sell_price ?? item?.usdt_price ?? lastPrice;
+
+  return (
+    <TouchableOpacity
+      style={styles.row}
+      activeOpacity={0.7}
+      onPress={() => onPress(item)}
+    >
+      {/* Left: Icon + Symbol & Name */}
+      <View style={styles.colLeft}>
+        {iconUri ? (
+          <FastImage
+            source={{ uri: iconUri }}
+            style={styles.coinIcon}
+            resizeMode={FastImage.resizeMode.contain}
+          />
+        ) : (
+          <View
+            style={[
+              styles.coinIcon,
+              styles.coinIconFallback,
+              { backgroundColor: isDark ? "#1E2024" : "#E5E7EB" },
+            ]}
+          >
+            <AppText
+              style={{
+                color: isDark ? colors.white : themeColors.text,
+                fontSize: 12,
+                fontFamily: fonts.bold,
+              }}
+            >
+              {ticker.charAt(0)}
+            </AppText>
+          </View>
+        )}
+        <View style={styles.symbolBlock}>
+          <AppText
+            style={[
+              styles.symbolText,
+              { color: isDark ? colors.white : themeColors.text },
+            ]}
+            numberOfLines={1}
+          >
+            {ticker}
+          </AppText>
+          <AppText
+            style={[
+              styles.nameText,
+              { color: colors.darkShadeColorText || "#9CA3AF" },
+            ]}
+            numberOfLines={1}
+          >
+            {fullName}
+          </AppText>
+        </View>
+      </View>
+
+      {/* Center: Price + USD Price */}
+      <View style={styles.colCenter}>
+        <AppText
+          style={[
+            styles.priceText,
+            { color: isDark ? colors.white : themeColors.text },
+          ]}
+          numberOfLines={1}
+        >
+          {formatPrice(lastPrice)}
+        </AppText>
+        <AppText
+          style={[
+            styles.usdPriceText,
+            { color: colors.darkShadeColorText || "#9CA3AF" },
+          ]}
+          numberOfLines={1}
+        >
+          ${formatPrice(usdPrice)}
+        </AppText>
+      </View>
+
+      {/* Right: 24h Change badge */}
+      <View style={styles.colRight}>
+        <View style={[styles.changeBadge, { backgroundColor: changeColor }]}>
+          <AppText style={styles.changeBadgeText}>{chgText}</AppText>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+});
+
+CoinRowItem.displayName = "CoinRowItem";
 
 const CoinList = React.memo(() => {
   const { colors: themeColors, isDark } = useTheme();
+  const dispatch = useAppDispatch();
   const coinPairs = useAppSelector((state) => state.home.coinPairs);
-  const futuresPairs = useAppSelector((state) => state.home.futuresPairs ?? []);
   const favoriteArray = useAppSelector((state) => state.home.favoriteArray);
-  const theme = useAppSelector((state) => state.auth.theme);
-  const dispatch = useDispatch();
-  // Web parity tabs: 0=Favorite, 1=Trending, 2=Hot, 3=New Listing, 4=Top Gainers
   const [activeTabList, setActiveTabList] = useState(0);
-  const prevTabRef = useRef(activeTabList);
-  const tabScrollRef = useRef(null);
-
-  const listAnimX = useSharedValue(0);
-  const listAnimOpacity = useSharedValue(1);
-  const [btnLoading, setBtnLoading] = useState(false);
-
-  const tabLayoutsRef = useRef({});
-
-  const tabs = useMemo(
-    () => [
-      { key: 0, label: "Spot" },
-      { key: 1, label: "Trending" },
-      { key: 2, label: "Hot" },
-      { key: 3, label: "New Listing" },
-      { key: 4, label: "Top Gainers" },
-    ],
-    []
-  );
-
-  const handleTabChange = useCallback((tab) => {
-    setActiveTabList(tab);
-  }, []);
 
   const normSym = useCallback((s) => String(s || "").trim().toUpperCase(), []);
   const toNum = useCallback((v) => {
@@ -63,36 +196,40 @@ const CoinList = React.memo(() => {
     return Number.isFinite(n) ? n : 0;
   }, []);
 
-  const pairVolumeNumber = useCallback((p) => {
-    return (
+  const pairVolumeNumber = useCallback(
+    (p) =>
       toNum(p?.volume_24h) ||
       toNum(p?.volume) ||
       toNum(p?.quote_volume) ||
-      0
-    );
-  }, [toNum]);
+      0,
+    [toNum]
+  );
 
   const pairListingTimeMs = useCallback((p) => {
     const dt = p?.createdAt || p?.created_at || p?.listing_time || p?.listedAt;
     const ms = dt ? Date.parse(dt) : NaN;
     if (Number.isFinite(ms)) return ms;
-    // fallback: ObjectId-ish ordering or numeric id
     const id = String(p?._id || p?.id || "");
     return id ? id.length : 0;
   }, []);
 
-  const spotChangeNumber = useCallback((p) => {
-    return toNum(p?.change_percentage ?? p?.changePercentage ?? p?.change);
-  }, [toNum]);
+  const spotChangeNumber = useCallback(
+    (p) => toNum(p?.change_percentage ?? p?.changePercentage ?? p?.change),
+    [toNum]
+  );
 
-  // Web: curated majors for Hot tab (fallback to volume list)
-  const HOT_BASE_ORDER = useMemo(() => ["BTC", "ETH", "BNB", "SOL", "XRP", "DOGE", "MATIC"], []);
+  const HOT_BASE_ORDER = useMemo(
+    () => ["BTC", "ETH", "BNB", "SOL", "XRP", "DOGE", "MATIC"],
+    []
+  );
+
   const pickPairForBase = useCallback(
     (pairs, base) => {
       const b = normSym(base);
-      // prefer USDT quote
       const usdt = pairs.find(
-        (p) => normSym(p?.base_currency) === b && normSym(p?.quote_currency) === "USDT"
+        (p) =>
+          normSym(p?.base_currency) === b &&
+          normSym(p?.quote_currency) === "USDT"
       );
       if (usdt) return usdt;
       return pairs.find((p) => normSym(p?.base_currency) === b);
@@ -100,28 +237,23 @@ const CoinList = React.memo(() => {
     [normSym]
   );
 
-  // Web: use USDT-quoted universe (fallback to all if none)
   const spotUsdtPairs = useMemo(() => {
     if (!coinPairs || coinPairs.length === 0) return [];
     const usdt = coinPairs.filter((p) => normSym(p?.quote_currency) === "USDT");
     return usdt.length >= 6 ? usdt : coinPairs;
   }, [coinPairs, normSym]);
 
-  // 0=Favourite, 1=Trending, 2=Hot, 3=New Listing, 4=Top Gainers
   const filterData = useMemo(() => {
     if (!spotUsdtPairs || spotUsdtPairs.length === 0) return [];
 
-    // Spot tab: all USDT pairs
     if (activeTabList === 0) {
       return [...spotUsdtPairs];
     }
-
-    // Trending: highest 24h volume
     if (activeTabList === 1) {
-      return [...spotUsdtPairs].sort((a, b) => pairVolumeNumber(b) - pairVolumeNumber(a));
+      return [...spotUsdtPairs].sort(
+        (a, b) => pairVolumeNumber(b) - pairVolumeNumber(a)
+      );
     }
-
-    // Hot: curated majors, fill remainder by trending
     if (activeTabList === 2) {
       const seen = new Set();
       const out = [];
@@ -134,7 +266,9 @@ const CoinList = React.memo(() => {
           out.push(p);
         }
       }
-      for (const p of [...spotUsdtPairs].sort((a, b) => pairVolumeNumber(b) - pairVolumeNumber(a))) {
+      for (const p of [...spotUsdtPairs].sort(
+        (a, b) => pairVolumeNumber(b) - pairVolumeNumber(a)
+      )) {
         if (out.length >= spotUsdtPairs.length) break;
         if (p?._id && seen.has(p._id)) continue;
         if (p?._id) seen.add(p._id);
@@ -143,283 +277,270 @@ const CoinList = React.memo(() => {
       }
       return out;
     }
-
-    // New Listing: newest createdAt/listing time
     if (activeTabList === 3) {
-      return [...spotUsdtPairs].sort((a, b) => pairListingTimeMs(b) - pairListingTimeMs(a));
+      return [...spotUsdtPairs].sort(
+        (a, b) => pairListingTimeMs(b) - pairListingTimeMs(a)
+      );
     }
-
-    // Top Gainers: highest positive change
     if (activeTabList === 4) {
-      return [...spotUsdtPairs].sort((a, b) => spotChangeNumber(b) - spotChangeNumber(a));
+      return [...spotUsdtPairs].sort(
+        (a, b) => spotChangeNumber(b) - spotChangeNumber(a)
+      );
     }
 
     return [...spotUsdtPairs];
-  }, [spotUsdtPairs, activeTabList, pairVolumeNumber, HOT_BASE_ORDER, pickPairForBase, pairListingTimeMs, spotChangeNumber, favoriteArray]);
+  }, [
+    spotUsdtPairs,
+    activeTabList,
+    pairVolumeNumber,
+    HOT_BASE_ORDER,
+    pickPairForBase,
+    pairListingTimeMs,
+    spotChangeNumber,
+  ]);
 
-  const fourItems = useMemo(
+  const displayItems = useMemo(
     () => (Array.isArray(filterData) ? filterData.slice(0, 10) : []),
     [filterData]
   );
 
-  const futuresFive = useMemo(
-    () => (Array.isArray(futuresPairs) ? futuresPairs.slice(0, 10) : []),
-    [futuresPairs]
+  const handleNavigate = useCallback(
+    (item) => {
+      dispatch(setSpotSelectedPair(item));
+      dispatch(setBuyOrders([]));
+      dispatch(setSellOrders([]));
+      NavigationService.navigate(TRADE_SCREEN, { coinDetail: item });
+    },
+    [dispatch]
   );
-
-  const handleNavigate = useCallback((item) => {
-    // Pre-set the selected pair and clear old order book in Redux BEFORE navigating.
-    // This prevents the race condition where Spot's useFocusEffect re-subscribes
-    // to the old pair's socket during the async gap before route.params takes effect.
-    dispatch(setSpotSelectedPair(item));
-    dispatch(setBuyOrders([]));
-    dispatch(setSellOrders([]));
-    NavigationService.navigate(TRADE_SCREEN, { coinDetail: item });
-  }, [dispatch]);
 
   const handleViewMore = useCallback(() => {
     const tab =
       activeTabList === 0
-        ? "Favourite"
+        ? "Spot"
         : activeTabList === 1
-          ? "Trending"
-          : activeTabList === 2
-            ? "Hot"
-            : activeTabList === 3
-              ? "New Listing"
-              : activeTabList === 4
-                ? "Top Gainers"
-                : "";
+        ? "Trending"
+        : activeTabList === 2
+        ? "Hot"
+        : activeTabList === 3
+        ? "New Listing"
+        : activeTabList === 4
+        ? "Top Gainers"
+        : "Spot";
     NavigationService.navigate(MARKET_SCREEN, { tab });
   }, [activeTabList]);
 
-
-
-  // animate list swipe + move selected indicator
-  useEffect(() => {
-    const prev = prevTabRef.current;
-    const dir = activeTabList > prev ? 1 : -1; // right -> left swipe feel
-    prevTabRef.current = activeTabList;
-
-    // list swipe
-    listAnimOpacity.value = 0.5;
-    listAnimX.value = dir * 24;
-    listAnimOpacity.value = withTiming(1, { duration: 180 });
-    listAnimX.value = withTiming(0, { duration: 220 });
-
-    const layout = tabLayoutsRef.current?.[String(activeTabList)];
-    if (layout) {
-      tabScrollRef.current?.scrollTo?.({
-        x: Math.max(0, layout.x - 60),
-        animated: true,
-      });
-    }
-  }, [activeTabList, listAnimOpacity, listAnimX]);
-
-  const listAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateX: listAnimX.value }],
-      opacity: listAnimOpacity.value,
-    };
-  });
+  const mutedColor = colors.darkShadeColorText || "#9CA3AF";
 
   return (
     <Animated.View
-      entering={FadeIn.duration(600)}
-      style={[styles.container, { marginBottom: 28 }]}
+      entering={FadeIn.duration(500)}
+      style={[
+        styles.container,
+        {
+          backgroundColor: isDark ? "#0F1012" : "#F9FAFB",
+          borderColor: isDark
+            ? "rgba(255, 255, 255, 0.05)"
+            : "rgba(0, 0, 0, 0.06)",
+        },
+      ]}
     >
-
-      {/* Single elevated card: Tabs + 4 items list (no scroll) + View More */}
-      <View style={[styles.elevatedCard, {}]}>
-        <Animated.View entering={FadeInDown.duration(400)}>
-          <ScrollView
-            ref={tabScrollRef}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.tabRow}
-          >
-            {tabs.map((t) => {
-              const active = activeTabList === t.key;
-              return (
-                <TouchableOpacityView
-                  key={String(t.key)}
-                  style={styles.tabPill}
-                  onPress={() => handleTabChange(t.key)}
-                  activeOpacity={0.8}
-                  onLayout={(e) => {
-                    const { x, width } = e.nativeEvent.layout;
-                    tabLayoutsRef.current[String(t.key)] = { x, w: width };
-                  }}
-                >
-                  <AppText
-                    weight={MEDIUM}
-                    style={[
-                      {
-                        fontSize: 16,
-                        color: active
-                          ? isDark
-                            ? themeColors.text
-                            : "#070808"
-                          : '#84888C',
-                      },
-                    ]}
-                  >
-                    {t.label}
-                  </AppText>
-                </TouchableOpacityView>
-              );
-            })}
-            <View style={{ width: 6 }} />
-          </ScrollView>
-        </Animated.View>
-
-        <View style={[styles.listWrap, activeTabList === 0 && (!favoriteArray || favoriteArray?.length === 0) ? { minHeight: 300 } : { minHeight: 0 }]}>
-          {activeTabList === 0 ? null : null}
-
-          <Animated.View style={listAnimatedStyle}>
-            <MarketList
-              filterData={fourItems}
-              onPress={handleNavigate}
-              scrollEnabled={false}
-              pairTypography="homeTab"
-              hideStar={true}
-              style={styles.marketListFixed}
+      {/* Tabs */}
+      <View style={styles.tabsWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsScroll}
+        >
+          {TABS.map((t) => (
+            <TabItem
+              key={t.key}
+              tab={t}
+              isActive={activeTabList === t.key}
+              onPress={() => setActiveTabList(t.key)}
+              isDark={isDark}
             />
-          </Animated.View>
+          ))}
+        </ScrollView>
+        <View style={styles.tabArrow}>
+          <ChevronRight color={mutedColor} size={16} />
         </View>
-
-        {activeTabList !== 0 && (
-          <TouchableOpacityView
-            style={styles.viewMoreRow}
-            onPress={handleViewMore}
-            activeOpacity={0.7}
-          >
-            <AppText style={[styles.viewMoreText, { color: themeColors.text }]}>
-              More →
-            </AppText>
-          </TouchableOpacityView>
-        )}
       </View>
-      {activeTabList === 0 && <View style={{ height: 20 }} />}
 
-      <Animated.View entering={FadeIn.duration(600).delay(200)}>
-        <HomeCoinList activeTabList={activeTabList} hideViewMore />
-      </Animated.View>
+      {/* Table Header */}
+      <View style={styles.headerRow}>
+        <AppText style={[styles.colLeftHeader, styles.headerLabel, { color: mutedColor }]}>
+          Symbol
+        </AppText>
+        <AppText style={[styles.colCenterHeader, styles.headerLabel, { color: mutedColor }]}>
+          Last Price
+        </AppText>
+        <View style={styles.colRightHeaderWrapper}>
+          <AppText style={[styles.headerLabel, { color: mutedColor, marginRight: 4 }]}>
+            24H Change
+          </AppText>
+          <ChevronsUpDown color={mutedColor} size={12} />
+        </View>
+      </View>
+
+      {/* Coin Rows List */}
+      <View style={styles.listContainer}>
+        {displayItems.map((item) => (
+          <CoinRowItem
+            key={item?._id || `${item?.base_currency}_${item?.quote_currency}`}
+            item={item}
+            onPress={handleNavigate}
+            isDark={isDark}
+            themeColors={themeColors}
+          />
+        ))}
+      </View>
+
+      {/* Footer */}
+      <TouchableOpacity
+        style={styles.footer}
+        activeOpacity={0.7}
+        onPress={handleViewMore}
+      >
+        <AppText style={[styles.viewMoreStyle, { color: colors.cyan }]}>
+          View More &gt;
+        </AppText>
+      </TouchableOpacity>
     </Animated.View>
   );
 });
 
 CoinList.displayName = "CoinList";
 
+export default CoinList;
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 12,
-    paddingTop: 0,
-    paddingBottom: universalPaddingHorizontal,
+    borderRadius: 20,
+    marginHorizontal: 16,
+    borderWidth: 1,
+    paddingTop: 16,
+    paddingBottom: 16,
+    marginBottom: 24,
   },
-  elevatedCard: {
-    padding: 2,
-    paddingTop: 4,
-    overflow: "visible",
-
-  },
-  listWrap: {
-    marginTop: 0,
-  },
-  marketListFixed: {
-    width: "100%",
-    padding: 0,
-  },
-  tabRow: {
+  tabsWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    position: "relative",
+    paddingRight: 16,
+    marginBottom: 12,
   },
-  tabPill: {
-    paddingHorizontal: 5,
+  tabsScroll: {
+    paddingHorizontal: 10,
+    alignItems: "center",
+  },
+  tabItem: {
     paddingVertical: 6,
-    borderRadius: 5,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    marginHorizontal: 3,
   },
-
-  tableHeader: {
+  tabItemText: {
+    fontSize: 12,
+  },
+  tabArrow: {
+    paddingLeft: 6,
+  },
+  headerRow: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 4,
-    paddingTop: 5,
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    marginBottom: 8,
   },
-  // tableHeaderText: {
-  //   fontSize: 11,
-  //   color: themeColors.secondaryText,
-  // },
+  colLeftHeader: {
+    width: "40%",
+  },
+  colCenterHeader: {
+    width: "30%",
+    textAlign: "left",
+  },
+  colRightHeaderWrapper: {
+    width: "30%",
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
+  headerLabel: {
+    fontSize: 10,
+    fontFamily: fonts.regular,
+  },
+  listContainer: {
+    minHeight: 100,
+  },
   row: {
     flexDirection: "row",
-    alignItems: "center",
-    // paddingVertical: 4,
-    paddingHorizontal: 4,
-  },
-  colSymbol: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  // iconCircle: {
-  //   width: 38,
-  //   height: 38,
-  //   borderRadius: 19,
-  //   alignItems: "center",
-  //   justifyContent: "center",
-  //   backgroundColor: themeColors.input,
-  //   overflow: "hidden",
-  // },
-  // coinName: {
-  //   fontSize: 13,
-  //   fontWeight: "700",
-  //   color: themeColors.text,
-  // },
-  // coinSym: {
-  //   marginTop: 0,
-  //   fontSize: 10,
-  //   color: themeColors.secondaryText,
-  // },
-  // priceMain: {
-  //   fontSize: 13,
-  //   fontWeight: "700",
-  //   color: themeColors.text,
-  // },
-  // priceSub: {
-  //   marginTop: 2,
-  //   fontSize: 10,
-  //   color: themeColors.secondaryText,
-  // },
-  changePill: {
-    minWidth: 70,
-    paddingHorizontal: 8,
-    height: 26,
-    borderRadius: 7,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  changeText: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  viewMoreRow: {
-    flexDirection: "row",
-    alignSelf: "center",
-    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
     paddingVertical: 10,
-    bottom: 10
+    alignItems: "center",
   },
-  viewMoreText: {
+  colLeft: {
+    width: "40%",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  coinIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    marginRight: 10,
+  },
+  coinIconFallback: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  symbolBlock: {
+    flex: 1,
+  },
+  symbolText: {
+    fontSize: 12,
+    fontFamily: fonts.bold,
+  },
+  nameText: {
+    fontSize: 11,
+    fontFamily: fonts.regular,
+    marginTop: 2,
+  },
+  colCenter: {
+    width: "30%",
+    alignItems: "flex-start",
+  },
+  priceText: {
+    fontSize: 12,
+    fontFamily: fonts.semiBold,
+  },
+  usdPriceText: {
+    fontSize: 11,
+    fontFamily: fonts.regular,
+    marginTop: 2,
+  },
+  colRight: {
+    width: "30%",
+    alignItems: "flex-end",
+  },
+  changeBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    minWidth: 70,
+    alignItems: "center",
+  },
+  changeBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontFamily: fonts.medium,
+  },
+  footer: {
+    alignItems: "center",
+    marginTop: 8,
+  },
+  viewMoreStyle: {
+    fontFamily: fonts.regular,
     fontSize: 13,
-  },
-  mainBtn: {
-    width: "100%",
-    height: 45,
+    textDecorationLine: "underline",
   },
 });
-
-export default CoinList;
