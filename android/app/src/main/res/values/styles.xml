@@ -1,0 +1,22 @@
+<resources>
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.EdgeToEdge">
+        <!-- React Native default -->
+        <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
+
+        <item name="colorPrimary">#FFFFFF</item>
+        <item name="colorPrimaryDark">#FFFFFF</item>
+        <item name="colorAccent">#D1AA67</item>
+
+        <item name="android:autofilledHighlight">@android:color/transparent</item>
+
+        <item name="android:datePickerDialogTheme">@style/CustomDatePickerTheme</item>
+    </style>
+
+    <style name="CustomDatePickerTheme" parent="Theme.AppCompat.Light.Dialog">
+        <item name="colorAccent">#D1AA67</item>
+        <item name="android:colorAccent">#D1AA67</item>
+        <item name="android:textColorPrimary">#000000</item>
+        <item name="android:textColorPrimaryInverse">#FFFFFF</item>
+    </style>
+</resources>

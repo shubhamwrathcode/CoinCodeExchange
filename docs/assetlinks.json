@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.coincode.exchange",
+      "sha256_cert_fingerprints": [
+        "0A:78:CC:CF:CF:AE:29:1B:FF:02:00:CE:3B:A4:25:7A:18:A2:54:EC:DD:56:3B:76:FE:99:06:25:44:90:22:C7",
+        "C5:D1:E4:67:C3:4B:A7:79:56:27:7E:84:B4:C2:A0:FD:71:06:A4:BC:14:89:60:22:0C:17:AD:9C:F1:92:10:EA"
+      ]
+    }
+  }
+]

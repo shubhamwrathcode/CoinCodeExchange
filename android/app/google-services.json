@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "79105712683",
+    "project_id": "Coincode-764f4",
+    "storage_bucket": "Coincode-764f4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:79105712683:android:cb9939137fb22b9ff6c06e",
+        "android_client_info": {
+          "package_name": "com.coincode.exchange"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "79105712683-v6luf6k1s2u1r0rmg6g6vqjgi1gov4m5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.coincode.exchange",
+            "certificate_hash": "8216898c956fc22f841bfb878cb19a5325506e14"
+          }
+        },
+        {
+          "client_id": "79105712683-trmuln9ls862v3amdlpn4uu2tam5n07d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8NZDOepngo8eKmjFmaASvcfgmerMqEW4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "79105712683-trmuln9ls862v3amdlpn4uu2tam5n07d.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

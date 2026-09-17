@@ -1,0 +1,91 @@
+iOS Passkey — host this file (no new APIs)
+
+Android passkey already works via:
+  https://arabglobal.ae/.well-known/assetlinks.json
+
+iOS needs the Apple equivalent on the SAME domain (rpId = arabglobal.ae).
+Do NOT create new passkey endpoints. Same auth/register/verify APIs stay.
+
+============================================================
+1. File name (NO .json extension)
+============================================================
+apple-app-site-association
+
+============================================================
+2. Live URL (must return JSON, not the website HTML)
+============================================================
+https://arabglobal.ae/.well-known/apple-app-site-association
+
+Also serve the Apple fallback:
+https://arabglobal.ae/apple-app-site-association
+
+============================================================
+3. Exact file contents
+============================================================
+{
+  "webcredentials": {
+    "apps": [
+      "S83T7H5Z7T.com.Coincode.exchange",
+      "35L2R5UU6Q.com.Coincode.exchange"
+    ]
+  }
+}
+
+Format is TEAMID.BUNDLEID
+S83T7H5Z7T = current Xcode signing team
+35L2R5UU6Q = extra Team ID already used in an older AASA draft
+Keep both so either signing team matches.
+
+============================================================
+4. HTTP rules (this is why iOS currently fails)
+============================================================
+- HTTPS
+- Body = JSON above, NEVER index.html / SPA fallback
+- Content-Type: application/json
+- No login / cookie / auth required
+- Prefer no redirect. If redirect exists, final body must still be this JSON.
+
+Current bug: the URL returns the arabglobal.ae homepage HTML, so iPhone
+rejects passkeys with "incoming request cannot be validated".
+
+============================================================
+5. Nginx example (SPA sites MUST exclude this path)
+============================================================
+location = /.well-known/apple-app-site-association {
+    default_type application/json;
+    add_header Content-Type application/json;
+    add_header Access-Control-Allow-Origin *;
+    try_files /apple-app-site-association =404;
+}
+
+location = /apple-app-site-association {
+    default_type application/json;
+    add_header Content-Type application/json;
+    add_header Access-Control-Allow-Origin *;
+}
+
+Do NOT let this fall through to:
+  try_files $uri /index.html;
+
+assetlinks.json works because it has a .json extension.
+This Apple file has NO extension, so SPA fallback currently swallows it.
+
+============================================================
+6. Pass if these are true
+============================================================
+curl -sI https://arabglobal.ae/.well-known/apple-app-site-association
+  → HTTP 200
+  → Content-Type: application/json
+
+curl -s https://arabglobal.ae/.well-known/apple-app-site-association
+  → starts with {"webcredentials"
+
+Browser should show JSON, not the exchange website.
+
+============================================================
+7. Backend API / origin
+============================================================
+No new passkey APIs.
+If origin is allowlisted, keep:
+  https://arabglobal.ae
+iOS native passkey uses that same origin (same as web/Android).

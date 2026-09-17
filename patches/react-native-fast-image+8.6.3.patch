@@ -1,0 +1,33 @@
+diff --git a/node_modules/react-native-fast-image/ios/FastImage/FFFastImageView.m b/node_modules/react-native-fast-image/ios/FastImage/FFFastImageView.m
+index f710081..bdd1738 100644
+--- a/node_modules/react-native-fast-image/ios/FastImage/FFFastImageView.m
++++ b/node_modules/react-native-fast-image/ios/FastImage/FFFastImageView.m
+@@ -72,13 +72,24 @@ - (void) setImageColor: (UIColor*)imageColor {
+ }
+ 
+ - (UIImage*) makeImage: (UIImage*)image withTint: (UIColor*)color {
++    if (image == nil || color == nil) {
++        return image;
++    }
++    if (@available(iOS 13.0, *)) {
++        return [image imageWithTintColor:color renderingMode:UIImageRenderingModeAlwaysOriginal];
++    }
++    CGSize size = image.size;
++    CGFloat scale = image.scale > 0 ? image.scale : 1.0;
++    if (size.width <= 0 || size.height <= 0) {
++        return image;
++    }
+     UIImage* newImage = [image imageWithRenderingMode: UIImageRenderingModeAlwaysTemplate];
+-    UIGraphicsBeginImageContextWithOptions(image.size, NO, newImage.scale);
++    UIGraphicsBeginImageContextWithOptions(size, NO, scale);
+     [color set];
+-    [newImage drawInRect: CGRectMake(0, 0, image.size.width, newImage.size.height)];
+-    newImage = UIGraphicsGetImageFromCurrentImageContext();
++    [newImage drawInRect: CGRectMake(0, 0, size.width, size.height)];
++    UIImage* tinted = UIGraphicsGetImageFromCurrentImageContext();
+     UIGraphicsEndImageContext();
+-    return newImage;
++    return tinted ?: image;
+ }
+ 
+ - (void) setImage: (UIImage*)image {

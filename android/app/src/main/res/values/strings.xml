@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Coincode</string>
+    <!-- Required for Android passkey: links app to assetlinks.json for WebAuthn/credential manager -->
+    <string name="asset_statements" translatable="false">[{\"include\": \"https://agce.wrathcode.com/.well-known/assetlinks.json\"}]</string>
+</resources>

@@ -1,0 +1,22 @@
+diff --git a/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewPropertyManager.kt b/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewPropertyManager.kt
+index 3fd6dd9..ca2c67b 100644
+--- a/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewPropertyManager.kt
++++ b/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewPropertyManager.kt
+@@ -20,7 +20,6 @@ import com.facebook.react.bridge.ReadableArray
+ import com.facebook.react.bridge.ReadableMap
+ import com.facebook.react.bridge.ReadableType
+ import com.facebook.react.views.text.ReactFontManager
+-import com.facebook.react.common.ReactConstants.UNSET
+ import com.facebook.react.util.RNLog
+ import java.lang.ref.WeakReference
+ import java.util.regex.Pattern
+@@ -28,6 +27,9 @@ import java.util.zip.ZipInputStream
+ import java.io.File
+ import java.io.FileInputStream
+ 
++// React Native 0.73.x does not expose ReactConstants.UNSET; use the legacy sentinel value.
++private const val UNSET = -1
++
+ /**
+  * Class responsible for applying the properties to the LottieView. The way react-native works makes
+  * it impossible to predict in which order properties will be set, also some of the properties of
