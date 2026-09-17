@@ -448,6 +448,8 @@ export const marginIcon = require('../../assets/images/marginIcon.png');
 export const walletIcon = require('../../assets/images/walletIcon.png');
 export const swapIcon = require('../../assets/images/swapIcon.png');
 export const moreIcon = require('../../assets/images/moreIcon.png');
+export const event1 = require('../../assets/images/event1.png');
+export const landingpagedemo = require('../../assets/images/landingpagedemo.png');
 
 
 

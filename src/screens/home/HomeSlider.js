@@ -1,276 +1,297 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import Carousel from "react-native-reanimated-carousel";
-import { Easing } from "react-native-reanimated";
-import { useAppSelector } from "../../store/hooks";
-import { Screen } from "../../theme/dimens";
-import {
-  connectwallet,
-  connectwallet1,
-  connectwallet2,
-  connectwallet3,
-  connectwallet4,
-  connectwallet5,
-} from "../../helper/ImageAssets";
+import React, { useState, useEffect, useRef } from "react";
+import { View, StyleSheet, TouchableOpacity, FlatList, Dimensions } from "react-native";
 import FastImage from "react-native-fast-image";
-import { AppText, ELEVEN, FOURTEEN, MEDIUM, NINE, SEMI_BOLD } from "../../shared";
-import { colors, darkTheme } from "../../theme/colors";
+import { AppText } from "../../shared";
+import { useTheme } from "../../hooks/useTheme";
+import { colors } from "../../theme/colors";
+import { fonts } from "../../theme/fonts";
+import {
+  event1,
+  verifyIdentity,
+  landingpagedemo,
+} from "../../helper/ImageAssets";
 import NavigationService from "../../navigation/NavigationService";
 import {
-  DEPOSIT_COIN_SCREEN,
+  KYC_STATUS_SCREEN,
   KYC_STEP_ONE_SCREEN,
   WALLET_SCREEN,
+  FUTURES_SCREEN,
+  REFER_AND_EARN_SCREEN,
 } from "../../navigation/routes";
-import { useTheme } from "../../hooks/useTheme";
 
-const SLIDER_HEIGHT = 84;
-const AUTO_PLAY_MS = 3600;
-const SCROLL_MS = 420;
+const { width: screenWidth } = Dimensions.get("window");
 
-const HomeSlider = ({ theme: themeProp }) => {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const carouselRef = useRef(null);
-  const { isDark: isDarkFromHook } = useTheme();
-  const isDark = themeProp === "Light" ? false : themeProp === "Dark" ? true : isDarkFromHook;
-  const userData = useAppSelector((state) => state.auth.userData);
-  const kycVerified = userData?.kycVerified != null ? Number(userData.kycVerified) : 0;
+const MOCK_EVENTS = [
+  {
+    id: "1",
+    title: "Connect Wallet & Unlock Crypto Trading",
+    image: event1,
+    screen: KYC_STEP_ONE_SCREEN,
+  },
+  {
+    id: "2",
+    title: "Complete KYC & Get Bonus Rewards",
+    image: verifyIdentity,
+    screen: KYC_STATUS_SCREEN,
+  },
+  {
+    id: "3",
+    title: "Deposit Crypto & Earn 10% APY",
+    image: landingpagedemo,
+    screen: WALLET_SCREEN,
+  },
+  {
+    id: "4",
+    title: "Invite Friends & Share Prize Pool",
+    image: landingpagedemo,
+    screen: REFER_AND_EARN_SCREEN,
+  },
+  {
+    id: "5",
+    title: "Trade Futures & Win BTC",
+    image: landingpagedemo,
+    screen: FUTURES_SCREEN,
+  },
+  {
+    id: "6",
+    title: "Exclusive Airdrop For New Users",
+    image: landingpagedemo,
+    screen: "Support",
+  },
+];
 
-  const carouselWidth = useMemo(() => Screen.Width - 30, []);
+const MULTIPLIER = 100;
+const INFINITE_EVENTS = Array(MULTIPLIER).fill(MOCK_EVENTS).flat();
+const START_INDEX = Math.floor(MULTIPLIER / 2) * MOCK_EVENTS.length;
 
-  const baseOptions = useMemo(
-    () => ({
-      vertical: false,
-      width: carouselWidth,
-      height: SLIDER_HEIGHT,
-    }),
-    [carouselWidth]
-  );
-
-  const bannerList = useMemo(() => {
-    const banners = [
-      {
-        index: 0,
-        banner_path: connectwallet,
-        title: `Connect Wallet & Unlock Crypto Trading`,
-        onPress: () => NavigationService.navigate(KYC_STEP_ONE_SCREEN),
-        isKyc: true,
-      },
-      {
-        index: 1,
-        banner_path: connectwallet1,
-        title: `Trade Smarter on the Next-Gen Crypto Exchange.`,
-        onPress: () => NavigationService.navigate(WALLET_SCREEN),
-      },
-      {
-        index: 2,
-        banner_path: connectwallet2,
-        title: `Secure Crypto Exchange for Modern Traders.`,
-        onPress: () => NavigationService.navigate(DEPOSIT_COIN_SCREEN),
-      },
-      {
-        index: 3,
-        banner_path: connectwallet3,
-        title: `Your Trusted Gateway to Cryptocurrency Trading.`,
-        onPress: () => NavigationService.navigate("Support"),
-      },
-      {
-        index: 4,
-        banner_path: connectwallet4,
-        title: `Global Crypto Exchange Built for Everyone.`,
-        onPress: () => NavigationService.navigate("Support"),
-      },
-      {
-        index: 5,
-        banner_path: connectwallet5,
-        title: `Powering the Next Generation of Crypto Traders.`,
-        onPress: () => NavigationService.navigate("Support"),
-      },
-    ];
-    return banners.filter((banner) => {
-      if (banner.isKyc) {
-        return kycVerified === 0 || kycVerified === 3;
-      }
-      return true;
-    });
-  }, [kycVerified]);
-
-  const slideCount = bannerList.length;
-  const dataKey = useMemo(() => bannerList.map((b) => b.index).join("-"), [bannerList]);
-  const themeKey = isDark ? "dark" : "light";
-
-  const windowSize = useMemo(() => {
-    if (slideCount <= 1) return 3;
-    return Math.min(7, Math.max(5, slideCount));
-  }, [slideCount]);
+const HomeSlider = () => {
+  const { colors: themeColors, isDark } = useTheme();
+  const [currentIndex, setCurrentIndex] = useState(START_INDEX);
+  const flatListRef = useRef(null);
 
   useEffect(() => {
-    if (slideCount <= 1) return undefined;
-    const id = setInterval(() => {
-      try {
-        carouselRef.current?.next?.({ animated: true });
-      } catch {
-        /* ignore */
-      }
-    }, AUTO_PLAY_MS);
-    return () => clearInterval(id);
-  }, [slideCount, themeKey]);
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => {
+        const nextIndex = prev + 1;
+        if (nextIndex >= INFINITE_EVENTS.length) return prev;
+        flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+        return nextIndex;
+      });
+    }, 3500);
 
-  const slideBg = isDark ? darkTheme.darkThemeInputColor : "#F7F7F7";
-  const cardBg = isDark ? "#2C2C2E" : "#F0F0F0";
-  const titleColor = isDark ? colors.white : "#111827";
-  const mutedColor = isDark ? "#8A8A93" : "#9ca3af";
-  const counterBg = isDark ? darkTheme.darkThemeInputColor : "#E5E7EB";
-  const counterColor = isDark ? colors.white : "#000";
+    return () => clearInterval(timer);
+  }, []);
 
-  const renderItem = useCallback(
-    ({ item }) => {
-      const total = slideCount || 1;
-      const current = Math.min(activeIndex + 1, total);
-      const totalColor = current === total ? counterColor : "#9CA3AF";
+  const handleScrollEnd = (e) => {
+    const newIndex = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
+    setCurrentIndex(newIndex);
+  };
 
-      return (
-        <View style={[styles.slideOuter, { backgroundColor: slideBg }]}>
-          <TouchableOpacity
-            style={styles.slideInner}
-            onPress={item?.onPress}
-            activeOpacity={0.9}
-          >
+  const getItemLayout = (_data, index) => ({
+    length: screenWidth,
+    offset: screenWidth * index,
+    index,
+  });
+
+  const renderItem = ({ item, index }) => {
+    const realIndex = index % MOCK_EVENTS.length;
+    return (
+      <View style={{ width: screenWidth }}>
+        <View
+          style={[
+            styles.container,
+            {
+              backgroundColor: isDark ? "#0F1012" : "#F9FAFB",
+              borderColor: isDark
+                ? "rgba(255, 255, 255, 0.05)"
+                : "rgba(0, 0, 0, 0.06)",
+            },
+          ]}
+        >
+          <View style={styles.imageContainer}>
             <FastImage
-              source={item?.banner_path}
-              style={styles.bannerImage}
-              resizeMode="contain"
+              source={item.image}
+              style={styles.image}
+              resizeMode={FastImage.resizeMode.contain}
             />
-
-            <View style={styles.textBlock}>
-              <AppText type={ELEVEN} weight={MEDIUM} style={{ color: mutedColor }} numberOfLines={1}>
+          </View>
+          <View style={styles.contentContainer}>
+            <View style={styles.headerRow}>
+              <AppText
+                style={{
+                  color: colors.cyan,
+                  fontSize: 12,
+                  fontFamily: fonts.semiBold,
+                }}
+              >
                 Events
               </AppText>
-              <AppText type={FOURTEEN} weight={SEMI_BOLD} numberOfLines={2} style={[styles.titleText, { color: titleColor }]}>
-                {item?.title}
-              </AppText>
-              <AppText type={NINE} numberOfLines={1} style={{ color: titleColor }}>
-                Explore now →
-              </AppText>
+              <View
+                style={[
+                  styles.badge,
+                  { backgroundColor: isDark ? "#1E2024" : "#E5E7EB" },
+                ]}
+              >
+                <AppText
+                  style={{
+                    color: isDark ? colors.white : themeColors.text,
+                    fontSize: 10,
+                    fontFamily: fonts.medium,
+                  }}
+                >
+                  {realIndex + 1}/{MOCK_EVENTS.length}
+                </AppText>
+              </View>
             </View>
 
-            <View style={[styles.counterBadge, { backgroundColor: counterBg }]}>
-              <Text numberOfLines={1}>
-                <Text style={[styles.counterCurrent, { color: counterColor }]}>{current}</Text>
-                <Text style={[styles.counterTotal, { color: totalColor }]}>{`/${total}`}</Text>
-              </Text>
+            <AppText
+              style={{
+                color: isDark ? colors.white : themeColors.text,
+                fontSize: 13,
+                fontFamily: fonts.bold,
+                marginTop: 8,
+                lineHeight: 18,
+                minHeight: 36,
+              }}
+              numberOfLines={2}
+            >
+              {item.title}
+            </AppText>
+
+            <View style={styles.footerRow}>
+              <View style={styles.pagination}>
+                {MOCK_EVENTS.map((_, dotIndex) => (
+                  <View
+                    key={dotIndex}
+                    style={[
+                      styles.dot,
+                      realIndex === dotIndex
+                        ? [styles.activeDot, { backgroundColor: colors.cyan }]
+                        : [
+                            styles.inactiveDot,
+                            {
+                              backgroundColor: isDark
+                                ? "#2A2C31"
+                                : "#D1D5DB",
+                            },
+                          ],
+                    ]}
+                  />
+                ))}
+              </View>
+
+              <TouchableOpacity
+                style={[styles.joinButton, { borderColor: colors.cyan }]}
+                activeOpacity={0.8}
+                onPress={() => {
+                  if (item.screen) {
+                    NavigationService.navigate(item.screen);
+                  }
+                }}
+              >
+                <AppText
+                  style={{
+                    color: colors.cyan,
+                    fontSize: 11,
+                    fontFamily: fonts.semiBold,
+                  }}
+                >
+                  Join Now
+                </AppText>
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
-        </View>
-      );
-    },
-    [slideCount, activeIndex, slideBg, mutedColor, titleColor, counterBg, counterColor]
-  );
-
-  if (slideCount === 0) {
-    return null;
-  }
-
-  return (
-    <>
-      <View
-        style={[
-          styles.card,
-          {
-            width: carouselWidth,
-            height: SLIDER_HEIGHT,
-            backgroundColor: cardBg,
-          },
-        ]}
-      >
-        <View style={styles.carouselHost}>
-          <Carousel
-            key={`${dataKey}-${themeKey}`}
-            ref={carouselRef}
-            {...baseOptions}
-            data={bannerList}
-            defaultIndex={Math.min(activeIndex, Math.max(0, slideCount - 1))}
-            renderItem={renderItem}
-            onSnapToItem={setActiveIndex}
-            loop={slideCount > 1}
-            enabled
-            pagingEnabled
-            autoPlay={false}
-            scrollAnimationDuration={SCROLL_MS}
-            windowSize={windowSize}
-            panGestureHandlerProps={{ activeOffsetX: [-12, 12] }}
-            withAnimation={{
-              type: "timing",
-              config: {
-                duration: SCROLL_MS,
-                easing: Easing.out(Easing.cubic),
-              },
-            }}
-          />
+          </View>
         </View>
       </View>
-    </>
+    );
+  };
+
+  return (
+    <View style={styles.wrapper}>
+      <FlatList
+        ref={flatListRef}
+        data={INFINITE_EVENTS}
+        renderItem={renderItem}
+        keyExtractor={(_, index) => index.toString()}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={handleScrollEnd}
+        initialScrollIndex={START_INDEX}
+        getItemLayout={getItemLayout}
+        onScrollBeginDrag={() => {}}
+      />
+    </View>
   );
 };
 
-const styles = StyleSheet.create({
-  card: {
-    alignSelf: "center",
-    marginBottom: 5,
+export default HomeSlider;
 
-    borderRadius: 12,
-    overflow: "hidden",
+const styles = StyleSheet.create({
+  wrapper: {
+    marginVertical: 4,
   },
-  carouselHost: {
+  container: {
+    flexDirection: "row",
+    backgroundColor: "#0F1012",
+    borderRadius: 20,
+    marginHorizontal: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.05)",
+  },
+  imageContainer: {
+    width: 90,
+    height: 90,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  image: {
     width: "100%",
-    alignSelf: "center",
+    height: "100%",
+  },
+  contentContainer: {
+    flex: 1,
     justifyContent: "center",
   },
-  slideOuter: {
-    flex: 1,
-    paddingRight: 10,
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  slideInner: {
-    flex: 1,
+  badge: {
+    backgroundColor: "#1E2024",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 12,
+  },
+  pagination: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    overflow: "hidden",
-    position: "relative",
+    gap: 6,
   },
-  bannerImage: {
-    width: 77,
-    height: 77,
+  dot: {
+    height: 6,
+    borderRadius: 3,
   },
-  textBlock: {
-    flex: 1,
-    paddingHorizontal: 10,
-    minWidth: 0,
+  activeDot: {
+    width: 18,
   },
-  titleText: {
-    flexShrink: 1,
+  inactiveDot: {
+    width: 6,
+    backgroundColor: "#2A2C31",
   },
-  counterBadge: {
-    position: "absolute",
-    right: 0,
-    bottom: 6,
-    minWidth: 40,
-    borderRadius: 5,
-
-    paddingVertical: 2,
-    paddingHorizontal: 5,
-    alignItems: "center",
-    flexShrink: 0,
-  },
-  counterCurrent: {
-    fontSize: 11,
-
-    fontWeight: "600",
-  },
-  counterTotal: {
-    fontSize: 11,
-    fontWeight: "600",
+  joinButton: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
   },
 });
-
-export default HomeSlider;
