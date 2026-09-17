@@ -319,14 +319,14 @@ const CoinList = React.memo(() => {
       activeTabList === 0
         ? "Spot"
         : activeTabList === 1
-        ? "Trending"
-        : activeTabList === 2
-        ? "Hot"
-        : activeTabList === 3
-        ? "New Listing"
-        : activeTabList === 4
-        ? "Top Gainers"
-        : "Spot";
+          ? "Trending"
+          : activeTabList === 2
+            ? "Hot"
+            : activeTabList === 3
+              ? "New Listing"
+              : activeTabList === 4
+                ? "Top Gainers"
+                : "Spot";
     NavigationService.navigate(MARKET_SCREEN, { tab });
   }, [activeTabList]);
 
@@ -338,7 +338,7 @@ const CoinList = React.memo(() => {
       style={[
         styles.container,
         {
-          backgroundColor: isDark ? "#0F1012" : "#F9FAFB",
+          backgroundColor: isDark ? colors.lightBlackLatest : "#F9FAFB",
           borderColor: isDark
             ? "rgba(255, 255, 255, 0.05)"
             : "rgba(0, 0, 0, 0.06)",
@@ -435,9 +435,9 @@ const styles = StyleSheet.create({
   },
   tabItem: {
     paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    marginHorizontal: 3,
+    paddingHorizontal: 8,
+    borderRadius: 5,
+    // marginHorizontal: 3,
   },
   tabItemText: {
     fontSize: 12,

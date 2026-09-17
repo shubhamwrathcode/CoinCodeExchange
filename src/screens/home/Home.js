@@ -86,6 +86,7 @@ import { setLoading } from "../../slices/authSlice";
 import HeaderTop from "../../shared/components/HeaderTop";
 import AccountSetupProgress from "../../shared/components/AccountSetupProgress";
 import VerifyBanner from "../../shared/components/VerifyBanner";
+import EarnSection from "../../shared/components/EarnSection";
 import FastImage from "react-native-fast-image";
 import { KYC_STATUS_SCREEN, SEARCH_SCREEN, WALLET_SCREEN, DEPOSIT_COIN_SCREEN, NAVIGATION_AUTH_STACK, LOGIN_SCREEN } from "../../navigation/routes";
 import NavigationService from "../../navigation/NavigationService";
@@ -335,6 +336,8 @@ const Home = () => {
         <View style={{ marginTop: 12 }}>
           {showCoinSkeleton ? <CoinListSkeleton /> : <CoinList />}
         </View>
+
+        <EarnSection />
 
 
       </ScrollView>

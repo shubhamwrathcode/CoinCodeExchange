@@ -604,7 +604,7 @@ const Welcome = () => {
                           </AppText>
                         </View>
                         <View style={styles.changeCol}>
-                          <View style={[styles.changePillCoin, { backgroundColor: isUp ? "#06C168" : "#F6465D" }]}>
+                          <View style={[styles.changePillCoin, { backgroundColor: isUp ? colors.green : colors.red }]}>
                             <AppText style={styles.changeText} weight={SEMI_BOLD} numberOfLines={1}>
                               {isUp ? "+" : "-"}{chgText}
                             </AppText>
