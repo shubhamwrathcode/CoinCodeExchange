@@ -106,8 +106,9 @@ const HeaderTop = () => {
           type={FOURTEEN}
           weight={MEDIUM}
           style={[styles.searchPlaceholder, { color: mutedColor }]}
+          numberOfLines={1}
         >
-          SOL/USDT
+          Search Coin, Market...
         </AppText>
       </TouchableOpacity>
 
