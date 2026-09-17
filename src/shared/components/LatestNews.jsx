@@ -6,7 +6,11 @@ import { AppText } from "..";
 import { useTheme } from "../../hooks/useTheme";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/fonts";
-import { newsImg } from "../../helper/ImageAssets";
+import {
+  newsImg,
+  NO_NOTIFICATION_ICON,
+  NO_NOTIFICATION_ICON_LIGHT,
+} from "../../helper/ImageAssets";
 import NavigationService from "../../navigation/NavigationService";
 import { NOTIFICATION_SCREEN } from "../../navigation/routes";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
@@ -27,10 +31,6 @@ export const LatestNews = () => {
   }, [dispatch, notificationRows.length]);
 
   const displayItems = notificationRows.slice(0, 4);
-
-  if (displayItems.length === 0) {
-    return null;
-  }
 
   const formatDate = (iso) => {
     if (!iso) return moment().format("MM-DD HH:mm");
@@ -76,44 +76,64 @@ export const LatestNews = () => {
         </TouchableOpacity>
       </View>
 
-      {/* List */}
-      <View style={styles.list}>
-        {displayItems.map((news, idx) => {
-          const dateStr = news.createdAt || news.created_at || news.date;
-          const titleStr =
-            news.title || news.message || "New Notification Available";
-          return (
-            <TouchableOpacity
-              key={news._id || news.id || String(idx)}
-              style={styles.newsItem}
-              activeOpacity={0.7}
-              onPress={() => NavigationService.navigate(NOTIFICATION_SCREEN)}
-            >
-              <AppText
-                style={{
-                  color: colors.darkShadeColorText || "#9CA3AF",
-                  fontSize: 12,
-                  fontFamily: fonts.regular,
-                }}
+      {/* List or Empty State */}
+      {displayItems.length > 0 ? (
+        <View style={styles.list}>
+          {displayItems.map((news, idx) => {
+            const dateStr = news.createdAt || news.created_at || news.date;
+            const titleStr =
+              news.title || news.message || "New Notification Available";
+            return (
+              <TouchableOpacity
+                key={news._id || news.id || String(idx)}
+                style={styles.newsItem}
+                activeOpacity={0.7}
+                onPress={() => NavigationService.navigate(NOTIFICATION_SCREEN)}
               >
-                {formatDate(dateStr)}
-              </AppText>
-              <AppText
-                style={{
-                  color: isDark ? colors.white : themeColors.text,
-                  fontSize: 12,
-                  fontFamily: fonts.regular,
-                  flex: 1,
-                  marginLeft: 12,
-                }}
-                numberOfLines={1}
-              >
-                {titleStr}
-              </AppText>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+                <AppText
+                  style={{
+                    color: colors.darkShadeColorText || "#9CA3AF",
+                    fontSize: 12,
+                    fontFamily: fonts.regular,
+                  }}
+                >
+                  {formatDate(dateStr)}
+                </AppText>
+                <AppText
+                  style={{
+                    color: isDark ? colors.white : themeColors.text,
+                    fontSize: 12,
+                    fontFamily: fonts.regular,
+                    flex: 1,
+                    marginLeft: 12,
+                  }}
+                  numberOfLines={1}
+                >
+                  {titleStr}
+                </AppText>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      ) : (
+        <View style={styles.emptyContainer}>
+          <FastImage
+            source={isDark ? NO_NOTIFICATION_ICON : NO_NOTIFICATION_ICON_LIGHT}
+            style={styles.emptyImage}
+            resizeMode={FastImage.resizeMode.contain}
+          />
+          <AppText
+            style={{
+              color: colors.darkShadeColorText || "#9CA3AF",
+              fontSize: 13,
+              fontFamily: fonts.regular,
+              marginTop: 6,
+            }}
+          >
+            No notifications yet
+          </AppText>
+        </View>
+      )}
     </View>
   );
 };
@@ -141,5 +161,15 @@ const styles = StyleSheet.create({
   newsItem: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 18,
+  },
+  emptyImage: {
+    width: 60,
+    height: 60,
+    opacity: 0.85,
   },
 });
