@@ -57,9 +57,8 @@ const Favourites = ({
   const [btnLoading, setBtnLoading] = useState(false);
   const [processingId, setProcessingId] = useState(null);
 
-  const [favouriteCoins, setFavouriteCoins] = useState(from === "home" ? [] : (favoriteArray || []));
+  const [favouriteCoins, setFavouriteCoins] = useState(favoriteArray || []);
   const [stabilizedList, setStabilizedList] = useState([]);
-  const hasAutoSelectedHome = useRef(false);
   const isFocused = useIsFocused();
 
   const search = propsSearch || "";
@@ -133,17 +132,10 @@ const Favourites = ({
   const renderData = from === "home" ? displayData : (isSelectionMode ? displayData : stabilizedList);
 
   useEffect(() => {
-    if (!hasAutoSelectedHome.current && displayData.length > 0 && from === "home") {
-      setFavouriteCoins(displayData.map((p) => p._id));
-      hasAutoSelectedHome.current = true;
-    }
-  }, [displayData, from]);
-
-  useEffect(() => {
-    if (favoriteArray && from !== "home") {
+    if (favoriteArray) {
       setFavouriteCoins(favoriteArray);
     }
-  }, [favoriteArray, from]);
+  }, [favoriteArray]);
 
   useEffect(() => {
     if (isFocused) {
@@ -269,9 +261,10 @@ const Favourites = ({
               style={styles.starTouch}
             >
               <Star
-                color="#FFD700"
+                color={isSelected ? "#FFD700" : (isDark ? "#8E9AA7" : "#9CA3AF")}
                 fill={isSelected ? "#FFD700" : "transparent"}
                 size={16}
+                strokeWidth={1.8}
               />
             </TouchableOpacity>
           </View>
