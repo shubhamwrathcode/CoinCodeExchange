@@ -151,15 +151,20 @@ const Favourites = ({
     });
   }, [displayData]);
 
-  const handleUnselectCoin = useCallback((coinId) => {
-    setFavouriteCoins((prev) => {
-      if (prev.includes(coinId)) {
-        return prev.filter((id) => id !== coinId);
-      } else {
-        return [...prev, coinId];
-      }
-    });
-  }, []);
+  const handleToggleFavorite = useCallback(
+    (coinId) => {
+      if (!coinId) return;
+      setFavouriteCoins((prev) => {
+        if (prev.includes(coinId)) {
+          return prev.filter((id) => id !== coinId);
+        } else {
+          return [...prev, coinId];
+        }
+      });
+      dispatch(addToFavorites({ pair_id: coinId }));
+    },
+    [dispatch]
+  );
 
   const handleNavigate = useCallback((item) => {
     if (onPress) {
@@ -193,7 +198,7 @@ const Favourites = ({
 
   const renderCard = useCallback(
     ({ item, index }) => {
-      const isSelected = favouriteCoins.includes(item._id);
+      const isSelected = favoriteArray.includes(item._id) || favouriteCoins.includes(item._id);
       const sym = String(item?.base_currency || "").toUpperCase();
       const quote = String(item?.quote_currency || "").toUpperCase();
       const pairText = `${sym}/${quote}`;
@@ -256,7 +261,7 @@ const Favourites = ({
             </View>
 
             <TouchableOpacity
-              onPress={() => handleUnselectCoin(item._id)}
+              onPress={() => handleToggleFavorite(item._id)}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={styles.starTouch}
             >
