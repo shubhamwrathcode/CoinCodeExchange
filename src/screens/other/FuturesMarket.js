@@ -1,44 +1,57 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { View, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
-import { AppText, ELEVEN, SEMI_BOLD, TWELVE } from "../../shared";
-import { useAppSelector } from "../../store/hooks";
+import { AppText, ELEVEN, FOURTEEN, MEDIUM, SEMI_BOLD, TWELVE } from "../../shared";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { colors } from "../../theme/colors";
 import NavigationService from "../../navigation/NavigationService";
 import { FUTURES_SCREEN } from "../../navigation/routes";
 import { toFixedFive, toFixedThree } from "../../helper/utility";
 import FastImage from "react-native-fast-image";
-import { Coin, tetherIcon, bitcoinIcon, bnbIcon, NO_NOTIFICATION_ICON, NO_NOTIFICATION_ICON_LIGHT } from "../../helper/ImageAssets";
+import { Star } from "lucide-react-native";
+import { Coin, tetherIcon, bitcoinIcon, bnbIcon, NO_NOTIFICATION_ICON, NO_NOTIFICATION_ICON_LIGHT, back_ic } from "../../helper/ImageAssets";
 import { IMAGE_BASE_URL } from "../../helper/Constants";
 import { buildCoinImageUri } from "../../helper/coinIconUrl";
 import { useTheme } from "../../hooks/useTheme";
+import { addToFavorites } from "../../actions/homeActions";
 
-const QUOTE_OPTIONS = [
-  { key: "All", label: "All", icon: Coin },
-  { key: "USDT", label: "USDT", icon: tetherIcon },
-  { key: "BTC", label: "BTC", icon: bitcoinIcon },
-  { key: "ETH", label: "ETH", icon: Coin },
-  { key: "BNB", label: "BNB", icon: bnbIcon },
-];
-const TYPE_OPTIONS = [
-  { key: "All", label: "All" },
-  { key: "Gainers", label: "Gainers" },
-  { key: "Losers", label: "Losers" },
-  { key: "Trending", label: "Trending" },
-];
+const getCoinBadgeBg = (sym = "") => {
+  const upper = sym.toUpperCase();
+  if (upper.includes("BTC")) return "#F7931A";
+  if (upper.includes("ETH")) return "#627EEA";
+  if (upper.includes("BNB")) return "#F3BA2F";
+  if (upper.includes("SOL")) return "#14F195";
+  if (upper.includes("MEGA")) return "#E84142";
+  if (upper.includes("ZAMA")) return "#FFD700";
+  if (upper.includes("USDT") || upper.includes("USD")) return "#26A17B";
+  if (upper.includes("XRP")) return "#23292F";
+  if (upper.includes("DOGE")) return "#C2A633";
+  if (upper.includes("ADA")) return "#0033AD";
+  return "#00E5FF";
+};
 
-const FuturesMarket = ({ search }) => {
+const FuturesMarket = ({ search, hideStar = false }) => {
+  const dispatch = useAppDispatch();
   const { colors: themeColors, isDark } = useTheme();
   const futuresPairData = useAppSelector((state) => state.home.futuresPairs || []) || [];
+  const favoriteArray = useAppSelector((state) => state.home.favoriteArray || []);
   const [quoteCurrency, setQuoteCurrency] = useState("USDT");
   const [filterType, setFilterType] = useState("All");
+
+  const handleToggleFavorite = useCallback(
+    (id) => {
+      if (!id) return;
+      dispatch(addToFavorites({ pair_id: id }));
+    },
+    [dispatch]
+  );
 
   const filterFuturesData = useMemo(() => {
     let data = Array.isArray(futuresPairData) ? [...futuresPairData] : [];
     if (search) {
       const s = search.toLowerCase();
       data = data.filter((item) => {
-        const base = (item?.short_name || item?.base_asset || item?.symbol || '').toLowerCase();
-        const name = (item?.name || item?.pair_name || '').toLowerCase();
+        const base = (item?.short_name || item?.base_asset || item?.symbol || "").toLowerCase();
+        const name = (item?.name || item?.pair_name || "").toLowerCase();
         return base.includes(s) || name.includes(s);
       });
     }
@@ -66,24 +79,28 @@ const FuturesMarket = ({ search }) => {
     if (item) {
       NavigationService.navigate(FUTURES_SCREEN, {
         screen: "Futures",
-        params: { coin: item, pair: item, coinDetail: item }
+        params: { coin: item, pair: item, coinDetail: item },
       });
     }
   };
 
-  const chipBg = (selected) => (selected ? themeColors.card : "transparent");
-  const chipTextColor = (selected) => (selected ? themeColors.text : themeColors.secondaryText);
-  const chipBorder = (selected) => (selected ? themeColors.border : "transparent");
-
   return (
     <View style={styles.container}>
-    
-
       {filterFuturesData?.length > 0 ? (
-        <FuturesList data={filterFuturesData} onPress={handleNavigate} />
+        <FuturesList
+          data={filterFuturesData}
+          onPress={handleNavigate}
+          favoriteArray={favoriteArray}
+          onToggleFavorite={handleToggleFavorite}
+          hideStar={hideStar}
+        />
       ) : (
         <View style={styles.empty}>
-          <FastImage source={isDark ? NO_NOTIFICATION_ICON : NO_NOTIFICATION_ICON_LIGHT} resizeMode="contain" style={{ width: 100, height: 100 }} />
+          <FastImage
+            source={isDark ? NO_NOTIFICATION_ICON : NO_NOTIFICATION_ICON_LIGHT}
+            resizeMode="contain"
+            style={{ width: 100, height: 100 }}
+          />
           <AppText type={TWELVE} style={{ color: themeColors.secondaryText }}>
             No futures data at the moment.
           </AppText>
@@ -93,61 +110,141 @@ const FuturesMarket = ({ search }) => {
   );
 };
 
-export const FuturesList = ({ data, onPress }) => {
+export const FuturesList = ({ data, onPress, favoriteArray = [], onToggleFavorite, hideStar = false }) => {
   const { colors: themeColors, isDark } = useTheme();
+
   return (
     <View style={styles.list}>
+      {/* Table Header */}
+      <View style={styles.tableHeader}>
+        <View style={styles.headerCellName}>
+          <AppText weight={MEDIUM} type={TWELVE} style={{ color: "#9CA3AF" }}>
+            Name / Vol ⌵
+          </AppText>
+        </View>
+
+        <View style={styles.headerCellPrice}>
+          <AppText weight={MEDIUM} type={TWELVE} style={{ color: "#9CA3AF", textAlign: "right" }}>
+            Last Price
+          </AppText>
+          <View style={styles.sortArrowCol}>
+            <FastImage source={back_ic} style={styles.arrowUp} resizeMode="contain" tintColor="#9CA3AF" />
+            <FastImage source={back_ic} style={styles.arrowDown} resizeMode="contain" tintColor="#9CA3AF" />
+          </View>
+        </View>
+
+        <View style={styles.headerCellChg}>
+          <AppText weight={MEDIUM} type={TWELVE} style={{ color: "#9CA3AF", textAlign: "right" }}>
+            24h Change
+          </AppText>
+          <View style={[styles.sortArrowCol, { marginRight: hideStar ? 0 : 28 }]}>
+            <FastImage source={back_ic} style={styles.arrowUp} resizeMode="contain" tintColor="#9CA3AF" />
+            <FastImage source={back_ic} style={styles.arrowDown} resizeMode="contain" tintColor="#9CA3AF" />
+          </View>
+        </View>
+      </View>
+
+      {/* Rows */}
       {data.map((item, index) => {
-        const baseAsset = item?.short_name || item?.base_asset || (item?.symbol ? item.symbol.split('USDT')[0].split('_')[0].split('/')[0].replace('-PERP', '') : 'BTC');
-        const marginAsset = item?.margin_asset || item?.quote_asset || item?.quote_currency || 'USDT';
+        const baseAsset =
+          item?.short_name ||
+          item?.base_asset ||
+          (item?.symbol
+            ? item.symbol.split("USDT")[0].split("_")[0].split("/")[0].replace("-PERP", "")
+            : "BTC");
+        const marginAsset = item?.margin_asset || item?.quote_asset || item?.quote_currency || "USDT";
+        const fullName = item?.name || item?.pair_name || item?.base_currency_fullname || baseAsset;
         const price = Number(item?.last_price ?? item?.price ?? item?.mark_price ?? item?.buy_price ?? item?.close ?? item?.c ?? 0);
+        const priceStr = price > 1 ? price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 3 }) : price.toFixed(4);
         const changePercent = Number(item?.change_percentage ?? item?.price_change_percent_24h ?? item?.price_change_24h ?? item?.change ?? item?.P ?? 0);
         const isPositive = changePercent >= 0;
+        const chgText = `${isPositive ? "+" : ""}${changePercent.toFixed(2)}%`;
         const vol = Number(item?.volume ?? item?.volume_24h ?? item?.quote_volume ?? item?.v ?? item?.q ?? 0);
+        const formattedVol =
+          vol >= 1e9
+            ? `$${(vol / 1e9).toFixed(2)}B`
+            : vol >= 1e6
+            ? `$${(vol / 1e6).toFixed(2)}M`
+            : vol > 0
+            ? `$${toFixedThree(vol)}`
+            : `$0.00`;
 
-        const iconUri = buildCoinImageUri(item) || (item?.icon_path ? `${String(IMAGE_BASE_URL || '').replace(/\/+$/, '')}/${String(item.icon_path).replace(/^\/+/, '')}` : null);
-        const iconSource = iconUri ? { uri: iconUri } : Coin;
+        const iconUri = buildCoinImageUri(item) || (item?.icon_path ? `${String(IMAGE_BASE_URL || "").replace(/\/+$/, "")}/${String(item.icon_path).replace(/^\/+/, "")}` : null);
+        const isFavorite = favoriteArray.includes(item?._id);
 
         return (
           <TouchableOpacity
             key={item?._id || item?.symbol || index}
-            style={[styles.row, { borderBottomColor: isDark ? themeColors.border : '#EDEDEE' }]}
+            style={[styles.row, { borderBottomColor: isDark ? "rgba(255,255,255,0.04)" : themeColors.border }]}
             onPress={() => onPress(item)}
             activeOpacity={0.7}
           >
+            {/* Left Col: Coin Logo + Name / Vol */}
             <View style={styles.nameCol}>
               <View style={styles.nameRow}>
-                <View style={[styles.iconWrap, { backgroundColor: themeColors.card }]}>
-                  <FastImage
-                    source={iconSource}
-                    resizeMode="contain"
-                    style={styles.coinIconImg}
-                  />
-                </View>
+                {iconUri ? (
+                  <FastImage source={{ uri: iconUri }} resizeMode="contain" style={styles.coinIcon} />
+                ) : (
+                  <View style={[styles.coinIcon, { backgroundColor: getCoinBadgeBg(baseAsset), justifyContent: "center", alignItems: "center" }]}>
+                    <AppText style={{ color: "#FFF", fontSize: 13, fontWeight: "700" }}>{baseAsset.substring(0, 1)}</AppText>
+                  </View>
+                )}
                 <View style={styles.nameBlock}>
                   <View style={styles.symbolRow}>
-                    <AppText type={TWELVE} weight={SEMI_BOLD} style={{ color: themeColors.text }} numberOfLines={1}>
-                      {baseAsset}/{marginAsset}
+                    <AppText numberOfLines={1} weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text }}>
+                      {fullName}
                     </AppText>
-                    <View style={[styles.perpBadge, { backgroundColor: isDark ? themeColors.card : '#F0F0F0' }]}>
-                      <AppText type={ELEVEN} style={{ color: themeColors.secondaryText }}>Perp</AppText>
+                    <View style={[styles.perpBadge, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#F0F0F0" }]}>
+                      <AppText type={ELEVEN} style={{ color: themeColors.secondaryText, fontSize: 10 }}>
+                        Perp
+                      </AppText>
                     </View>
                   </View>
-                  <AppText type={ELEVEN} style={[styles.volText, { color: themeColors.secondaryText }]} numberOfLines={1}>
-                    Vol {toFixedThree(vol)}
+                  <AppText numberOfLines={1} weight={MEDIUM} type={ELEVEN} style={{ color: "#9CA3AF", marginTop: 2 }}>
+                    {baseAsset}/{marginAsset} • {formattedVol}
                   </AppText>
                 </View>
               </View>
             </View>
+
+            {/* Middle Col: Price */}
             <View style={styles.priceCol}>
-              <AppText type={TWELVE} weight={SEMI_BOLD} style={[styles.priceText, { color: themeColors.text }]}>
-                {toFixedFive(price)}
+              <AppText numberOfLines={1} weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text, textAlign: "right" }}>
+                {priceStr}
               </AppText>
-              <View style={[styles.chgPill, isPositive ? styles.chgPillGreen : styles.chgPillRed]}>
-                <AppText type={ELEVEN} weight={SEMI_BOLD} style={styles.chgPillText}>
-                  {isPositive ? "+" : ""}{toFixedThree(changePercent)}%
-                </AppText>
+              <AppText numberOfLines={1} weight={MEDIUM} type={ELEVEN} style={{ color: "#9CA3AF", marginTop: 2, textAlign: "right" }}>
+                ${priceStr}
+              </AppText>
+            </View>
+
+            {/* Right Col: 24h Change Pill + Star */}
+            <View style={styles.chgAndStarCol}>
+              <View
+                style={[
+                  styles.changePill,
+                  { backgroundColor: isPositive ? "rgba(0, 200, 83, 0.15)" : "rgba(255, 59, 48, 0.15)" },
+                ]}
+              >
+                <Text numberOfLines={1} style={[styles.changeText, { color: isPositive ? "#00C853" : "#FF3B30" }]}>
+                  {chgText}
+                </Text>
               </View>
+
+              {!hideStar && onToggleFavorite && (
+                <TouchableOpacity
+                  onPress={() => onToggleFavorite(item?._id)}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={styles.starBtnRight}
+                >
+                  <Star
+                    color={isFavorite ? "#FFD700" : colors.stardisablecolor}
+                    fill={isFavorite ? "#FFD700" : "transparent"}
+                    size={18}
+                    strokeWidth={1.8}
+                  />
+                </TouchableOpacity>
+              )}
             </View>
           </TouchableOpacity>
         );
@@ -157,83 +254,132 @@ export const FuturesList = ({ data, onPress }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, minHeight: 0, marginTop: 4, paddingBottom: 12 },
-  filterRow: { marginBottom: 4, maxHeight: 36 },
-  filterScroll: {
+  container: {
+    flex: 1,
+    minHeight: 0,
+    marginTop: 4,
+    paddingBottom: 12,
+  },
+  tableHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 2,
-  },
-  filterScrollType: {
-    gap: 3,
     paddingHorizontal: 12,
-  },
-  chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  chipWithIcon: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-  },
-  chipIcon: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-  },
-  list: { paddingBottom: 24, paddingHorizontal: 4, paddingTop: 2 },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    minHeight: 40,
+    borderBottomColor: "transparent",
   },
-  nameCol: { flex: 1, minWidth: 0, justifyContent: "center" },
-  nameRow: { flexDirection: "row", alignItems: "center", gap: 5 },
-  nameBlock: { flex: 1, minWidth: 0 },
-  symbolRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  volText: { marginTop: 1 },
-  priceCol: { flex: 1, minWidth: 0, alignItems: "flex-end", justifyContent: "center" },
-  priceText: { textAlign: "right" },
-  chgPill: {
-    minWidth: 64,
-    paddingVertical: 3,
-    paddingHorizontal: 6,
-    borderRadius: 5,
+  headerCellName: {
+    flex: 1.35,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+  },
+  headerCellPrice: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
+  headerCellChg: {
+    flex: 1.15,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
+  sortArrowCol: {
+    flexDirection: "column",
+    alignItems: "center",
+    marginLeft: 3,
+  },
+  arrowUp: {
+    width: 6,
+    height: 6,
+    transform: [{ rotate: "90deg" }],
+    marginBottom: -2,
+  },
+  arrowDown: {
+    width: 6,
+    height: 6,
+    transform: [{ rotate: "270deg" }],
     marginTop: 2,
   },
-  chgPillRed: { backgroundColor: colors.red },
-  chgPillGreen: { backgroundColor: colors.green },
-  chgPillText: { color: colors.white },
-  iconWrap: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    overflow: "hidden",
+  list: {
+    paddingBottom: 24,
   },
-  coinIconImg: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  nameCol: {
+    flex: 1.35,
+    minWidth: 0,
+    justifyContent: "center",
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  coinIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    overflow: "hidden",
+    marginRight: 10,
+  },
+  nameBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
+  symbolRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   perpBadge: {
-    marginLeft: 2,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 8,
+    marginLeft: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  priceCol: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: "flex-end",
+    justifyContent: "center",
+    paddingRight: 6,
+  },
+  chgAndStarCol: {
+    flex: 1.15,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    minWidth: 0,
+  },
+  changePill: {
+    minWidth: 64,
+    height: 28,
+    borderRadius: 6,
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 6,
   },
-  empty: { flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 40 },
+  changeText: {
+    fontWeight: "600",
+    fontSize: 12,
+  },
+  starBtnRight: {
+    padding: 4,
+    marginLeft: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  empty: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
 });
 
 export default FuturesMarket;
