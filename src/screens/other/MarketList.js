@@ -85,7 +85,7 @@ const MarketRow = React.memo(
             <View style={styles.nameBlock}>
               <AppText numberOfLines={1} weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text }}>
                 {ticker}
-                {!isCryptos && quote ? (
+                {quote ? (
                   <AppText weight={MEDIUM} style={{ color: "#9CA3AF", fontSize: 11 }}>
                     /{quote}
                   </AppText>
