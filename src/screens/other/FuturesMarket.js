@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback } from "react";
-import { View, StyleSheet, TouchableOpacity, ScrollView, Text, FlatList } from "react-native";
+import { View, StyleSheet, TouchableOpacity, ScrollView, Text, FlatList, Image } from "react-native";
 import { AppText, ELEVEN, FOURTEEN, MEDIUM, SEMI_BOLD, TWELVE } from "../../shared";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { colors } from "../../theme/colors";
@@ -110,48 +110,6 @@ const FuturesMarket = ({ search, hideStar = false }) => {
   );
 };
 
-const CoinIcon = React.memo(({ item, ticker }) => {
-  const [hasError, setHasError] = useState(false);
-  const uri = useMemo(
-    () =>
-      buildCoinImageUri(item) ||
-      (item?.icon_path
-        ? `${String(IMAGE_BASE_URL || "").replace(/\/+$/, "")}/${String(item.icon_path).replace(/^\/+/, "")}`
-        : null),
-    [item]
-  );
-
-  if (!uri || hasError) {
-    return (
-      <View
-        style={[
-          styles.coinIcon,
-          {
-            backgroundColor: getCoinBadgeBg(ticker),
-            justifyContent: "center",
-            alignItems: "center",
-          },
-        ]}
-      >
-        <AppText style={{ color: "#FFF", fontSize: 13, fontWeight: "700" }}>
-          {ticker.substring(0, 1)}
-        </AppText>
-      </View>
-    );
-  }
-
-  return (
-    <FastImage
-      source={{ uri, priority: FastImage.priority.normal }}
-      resizeMode={FastImage.resizeMode.contain}
-      style={styles.coinIcon}
-      onError={() => setHasError(true)}
-    />
-  );
-});
-
-CoinIcon.displayName = "CoinIcon";
-
 const FuturesRow = React.memo(
   ({ item, isFavorite, onPress, onToggleFavorite, hideStar }) => {
     const { colors: themeColors, isDark } = useTheme();
@@ -170,6 +128,15 @@ const FuturesRow = React.memo(
     const isPositive = changePercent >= 0;
     const chgText = `${isPositive ? "+" : ""}${changePercent.toFixed(2)}%`;
 
+    const rawIcon = item?.icon_path || item?.icon_url || item?.icon;
+    const iconUri = rawIcon
+      ? String(rawIcon).startsWith("http")
+        ? rawIcon
+        : String(rawIcon).startsWith("//")
+        ? `https:${rawIcon}`
+        : `https://agcx-data-storage-s3-uae.s3.me-central-1.amazonaws.com/${String(rawIcon).replace(/^\/+/, "")}`
+      : null;
+
     return (
       <TouchableOpacity
         style={[styles.row, { borderBottomColor: isDark ? "rgba(255,255,255,0.04)" : themeColors.border }]}
@@ -179,7 +146,13 @@ const FuturesRow = React.memo(
         {/* Left Col: Coin Logo + Name / Vol */}
         <View style={styles.nameCol}>
           <View style={styles.nameRow}>
-            <CoinIcon item={item} ticker={baseAsset} />
+            {iconUri ? (
+              <Image source={{ uri: iconUri }} resizeMode="contain" style={styles.coinIcon} />
+            ) : (
+              <View style={[styles.coinIcon, { backgroundColor: getCoinBadgeBg(baseAsset), justifyContent: "center", alignItems: "center" }]}>
+                <AppText style={{ color: "#FFF", fontSize: 13, fontWeight: "700" }}>{baseAsset.substring(0, 1)}</AppText>
+              </View>
+            )}
             <View style={styles.nameBlock}>
               <View style={styles.symbolRow}>
                 <AppText numberOfLines={1} weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text }}>
