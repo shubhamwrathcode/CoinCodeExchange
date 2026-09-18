@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback } from "react";
-import { View, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import { View, StyleSheet, TouchableOpacity, ScrollView, Text } from "react-native";
 import { AppText, ELEVEN, FOURTEEN, MEDIUM, SEMI_BOLD, TWELVE } from "../../shared";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { colors } from "../../theme/colors";
@@ -194,9 +194,9 @@ export const FuturesList = ({ data, onPress, favoriteArray = [], onToggleFavorit
                     <AppText numberOfLines={1} weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text }}>
                       {baseAsset}
                       {marginAsset ? (
-                        <AppText weight={MEDIUM} style={{ color: "#9CA3AF", fontSize: 11 }}>
+                        <Text style={{ color: "#9CA3AF", fontSize: 11, fontWeight: "500" }}>
                           /{marginAsset}
-                        </AppText>
+                        </Text>
                       ) : null}
                     </AppText>
                     <View style={[styles.perpBadge, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#F0F0F0" }]}>
