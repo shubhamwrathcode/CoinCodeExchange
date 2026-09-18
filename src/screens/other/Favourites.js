@@ -261,7 +261,7 @@ const Favourites = ({
               style={styles.starTouch}
             >
               <Star
-                color={isSelected ? "#FFD700" : (isDark ? "#8E9AA7" : "#9CA3AF")}
+                color={isSelected ? "#FFD700" : colors.stardisablecolor}
                 fill={isSelected ? "#FFD700" : "transparent"}
                 size={16}
                 strokeWidth={1.8}

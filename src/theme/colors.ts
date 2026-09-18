@@ -6,6 +6,7 @@ export const colors = {
   black: '#000000',
   mainBg: '#000000',
   cyan: '#0AA8C5',
+  stardisablecolor: "#4A5565",
   darkShadeColorText: '#6A7282',
   transparent: 'transparent',
   buttonBg: '#303237',
