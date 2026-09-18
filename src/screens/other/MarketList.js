@@ -83,16 +83,14 @@ const MarketRow = React.memo(
               </View>
             )}
             <View style={styles.nameBlock}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <AppText numberOfLines={1} weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text }}>
-                  {ticker}
-                </AppText>
+              <AppText numberOfLines={1} weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text }}>
+                {ticker}
                 {!isCryptos && quote ? (
-                  <AppText numberOfLines={1} weight={MEDIUM} style={{ color: "#9CA3AF", fontSize: 11, marginLeft: 1 }}>
+                  <AppText weight={MEDIUM} style={{ color: "#9CA3AF", fontSize: 11 }}>
                     /{quote}
                   </AppText>
                 ) : null}
-              </View>
+              </AppText>
               <AppText numberOfLines={1} weight={MEDIUM} type={ELEVEN} style={{ color: "#9CA3AF", marginTop: 2 }}>
                 {fullName}
               </AppText>

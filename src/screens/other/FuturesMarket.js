@@ -193,9 +193,11 @@ export const FuturesList = ({ data, onPress, favoriteArray = [], onToggleFavorit
                   <View style={styles.symbolRow}>
                     <AppText numberOfLines={1} weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text }}>
                       {baseAsset}
-                    </AppText>
-                    <AppText numberOfLines={1} weight={MEDIUM} style={{ color: "#9CA3AF", fontSize: 11, marginLeft: 1 }}>
-                      /{marginAsset}
+                      {marginAsset ? (
+                        <AppText weight={MEDIUM} style={{ color: "#9CA3AF", fontSize: 11 }}>
+                          /{marginAsset}
+                        </AppText>
+                      ) : null}
                     </AppText>
                     <View style={[styles.perpBadge, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#F0F0F0" }]}>
                       <AppText type={ELEVEN} style={{ color: themeColors.secondaryText, fontSize: 10 }}>
