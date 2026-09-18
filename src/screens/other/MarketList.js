@@ -12,6 +12,7 @@ import {
 } from "../../helper/ImageAssets";
 import { useAppSelector } from "../../store/hooks";
 import { toFixedFive, toFixedThree } from "../../helper/utility";
+import { Star } from "lucide-react-native";
 import { colors } from "../../theme/colors";
 import { IMAGE_BASE_URL } from "../../helper/Constants";
 import { useTheme } from "../../hooks/useTheme";
@@ -77,11 +78,11 @@ const MarketRow = React.memo(({ item, favoriteArray, onPress, onToggleFavorite, 
           <View style={styles.nameRowHomeTab}>
             {!hideStar && (
               <TouchableOpacity onPress={() => onToggleFavorite(item?._id)} activeOpacity={0.7} style={styles.starBtnHomeTab}>
-                <FastImage
-                  source={isFavorite ? starFillIcon : favUnCheck}
-                  resizeMode="contain"
-                  style={styles.starIcon}
-                  tintColor={isFavorite ? colors.startintcolor : colors.stardisablecolor}
+                <Star
+                  color={isFavorite ? "#FFD700" : colors.stardisablecolor}
+                  fill={isFavorite ? "#FFD700" : "transparent"}
+                  size={16}
+                  strokeWidth={1.8}
                 />
               </TouchableOpacity>
             )}
@@ -143,11 +144,11 @@ const MarketRow = React.memo(({ item, favoriteArray, onPress, onToggleFavorite, 
         <View style={styles.nameRow}>
           {!hideStar && (
             <TouchableOpacity onPress={() => onToggleFavorite(item?._id)} activeOpacity={0.7} style={styles.starBtn}>
-              <FastImage
-                source={isFavorite ? starFillIcon : favUnCheck}
-                resizeMode="contain"
-                style={styles.starIcon}
-                tintColor={isFavorite ? colors.startintcolor : colors.stardisablecolor}
+              <Star
+                color={isFavorite ? "#FFD700" : colors.stardisablecolor}
+                fill={isFavorite ? "#FFD700" : "transparent"}
+                size={16}
+                strokeWidth={1.8}
               />
             </TouchableOpacity>
           )}

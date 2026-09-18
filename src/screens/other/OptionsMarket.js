@@ -7,6 +7,7 @@ import NavigationService from "../../navigation/NavigationService";
 import { FUTURES_SCREEN, NAVIGATION_AUTH_STACK, LOGIN_SCREEN } from "../../navigation/routes";
 import { showError } from "../../helper/logger";
 import FastImage from "react-native-fast-image";
+import { Star } from "lucide-react-native";
 import { NO_NOTIFICATION_ICON, NO_NOTIFICATION_ICON_LIGHT, downIcon, starIcon, starFillIcon } from "../../helper/ImageAssets";
 import { useTheme } from "../../hooks/useTheme";
 import { useIsFocused } from "@react-navigation/native";
@@ -86,11 +87,11 @@ const OptionContractItem = React.memo(({ item, themeColors, isDark, onPress, ico
       <View style={styles.nameCol}>
         <View style={styles.nameRow}>
           <TouchableOpacity onPress={() => onToggleFavorite(item?._id)} activeOpacity={0.7} style={{ padding: 4, marginRight: 4 }}>
-            <FastImage
-              source={isFavorite ? starFillIcon : starIcon}
-              style={{ width: 14, height: 14 }}
-              tintColor={isFavorite ? colors.startintcolor : themeColors.secondaryText}
-              resizeMode="contain"
+            <Star
+              color={isFavorite ? "#FFD700" : colors.stardisablecolor}
+              fill={isFavorite ? "#FFD700" : "transparent"}
+              size={15}
+              strokeWidth={1.8}
             />
           </TouchableOpacity>
           <FastImage
