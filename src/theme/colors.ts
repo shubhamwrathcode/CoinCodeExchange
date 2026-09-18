@@ -84,9 +84,9 @@ export const colors = {
   buyButtonColor: "#00C076",
   sellButtonColor: "#E03934",
   blueThemeColor: '#1e56f5',
-  starColor: "#0AA8C5",
-  startintcolor: "#0AA8C5",
-  stardisablecolor: '#e9e9e9'
+  starColor: "#FFD700",
+  startintcolor: "#FFD700",
+  stardisablecolor: '#4A5565'
 
 };
 

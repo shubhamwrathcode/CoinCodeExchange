@@ -98,6 +98,7 @@ const Toolbar = ({
             source={isFavorite ? starFillIcon : starIcon}
             resizeMode="contain"
             style={styles.star}
+            tintColor={isFavorite ? colors.starColor : colors.stardisablecolor}
           />
         </TouchableOpacityView>
       )}
