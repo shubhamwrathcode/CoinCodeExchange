@@ -1,27 +1,62 @@
 import React, { useMemo, useCallback, useState, useRef, useEffect } from "react";
-import { FlatList, StyleSheet, Text, TouchableOpacity, View, Dimensions, ActivityIndicator } from "react-native";
+import {
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  Dimensions,
+  ActivityIndicator,
+} from "react-native";
 import { useIsFocused } from "@react-navigation/native";
 import FastImage from "react-native-fast-image";
+import { Star, Plus, ChevronRight } from "lucide-react-native";
 import { useDispatch } from "react-redux";
 
 import { AppText, BOLD, Button, FOURTEEN, MEDIUM, SEMI_BOLD, TWELVE } from "../../shared";
-import { coinActive, coinInActive, favCheck } from "../../helper/ImageAssets";
 import { addToFavorites } from "../../actions/homeActions";
 import { useAppSelector } from "../../store/hooks";
-import MarketList from "./MarketList";
-import { ADD_FAVOURITE_SCREEN, LOGIN_SCREEN, WALLET_SCREEN, MARKET_SCREEN } from "../../navigation/routes";
+import { ADD_FAVOURITE_SCREEN, LOGIN_SCREEN, TRADE_SCREEN, WALLET_SCREEN } from "../../navigation/routes";
 import { NO_NOTIFICATION_ICON, NO_NOTIFICATION_ICON_LIGHT } from "../../helper/ImageAssets";
 import NavigationService from "../../navigation/NavigationService";
 import { colors } from "../../theme/colors";
+import { fonts } from "../../theme/fonts";
 import { toFixedFive, toFixedThree } from "../../helper/utility";
 import { useTheme } from "../../hooks/useTheme";
+import MiniChart from "../../shared/components/MiniChart";
 
-const Favourites = ({ style, from, coinPairs: propsCoinPairs, search: propsSearch = "", isLoggedIn = true, isSelectionModeForce = false, subCategory = "All", onPress }) => {
+const { width } = Dimensions.get("window");
+const CARD_WIDTH = (width - 45) / 2;
+
+const getCoinBadgeBg = (sym = "") => {
+  const upper = sym.toUpperCase();
+  if (upper.includes("BTC")) return "#F7931A";
+  if (upper.includes("ETH")) return "#627EEA";
+  if (upper.includes("BNB")) return "#F3BA2F";
+  if (upper.includes("SOL")) return "#14F195";
+  if (upper.includes("MEGA")) return "#E84142";
+  if (upper.includes("ZAMA")) return "#FFD700";
+  if (upper.includes("USDT") || upper.includes("USD")) return "#26A17B";
+  if (upper.includes("XRP")) return "#23292F";
+  if (upper.includes("DOGE")) return "#C2A633";
+  if (upper.includes("ADA")) return "#0033AD";
+  return "#00E5FF";
+};
+
+const Favourites = ({
+  style,
+  from,
+  coinPairs: propsCoinPairs,
+  search: propsSearch = "",
+  isLoggedIn = true,
+  isSelectionModeForce = false,
+  subCategory = "All",
+  onPress,
+}) => {
   const dispatch = useDispatch();
   const { colors: themeColors, isDark } = useTheme();
   const theme = isDark ? "Dark" : "Light";
   const userData = useAppSelector((state) => state.auth.userData);
-  const favoriteArray = useAppSelector((state) => state.home.favoriteArray);
+  const favoriteArray = useAppSelector((state) => state.home.favoriteArray || []);
   const [btnLoading, setBtnLoading] = useState(false);
   const [processingId, setProcessingId] = useState(null);
 
@@ -81,48 +116,45 @@ const Favourites = ({ style, from, coinPairs: propsCoinPairs, search: propsSearc
   const isSelectionMode = isSelectionModeForce || !favoriteArray || favoriteArray?.length === 0;
 
   const displayData = useMemo(() => {
-    // If it's the fallback (no favorites yet), show exactly 6 trending coins
     if (isTrendingFallback) {
       return trendingPairs.slice(0, 6);
     }
 
-    // On home screen, always limit to 6 (favorites padded by trending)
     if (from === "home") {
       if (favFilteredData.length >= 6) {
         return favFilteredData.slice(0, 6);
       } else {
-        const favIds = new Set(favFilteredData.map(p => p?._id));
-        const padding = trendingPairs.filter(p => !favIds.has(p?._id));
+        const favIds = new Set(favFilteredData.map((p) => p?._id));
+        const padding = trendingPairs.filter((p) => !favIds.has(p?._id));
         return [...favFilteredData, ...padding].slice(0, 6);
       }
     }
 
-    // On Market screen/Manage Favourites, show full data
     return isSelectionMode ? filterPairData : favFilteredData;
   }, [from, isSelectionMode, isTrendingFallback, trendingPairs, filterPairData, favFilteredData]);
 
   const renderData = from === "home" ? displayData : (isSelectionMode ? displayData : stabilizedList);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!hasAutoSelectedHome.current && displayData.length > 0 && from === "home") {
-      setFavouriteCoins(displayData.map(p => p._id));
+      setFavouriteCoins(displayData.map((p) => p._id));
       hasAutoSelectedHome.current = true;
     }
   }, [displayData, from]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (favoriteArray && from !== "home") {
       setFavouriteCoins(favoriteArray);
     }
   }, [favoriteArray, from]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isFocused) {
       setStabilizedList(displayData);
     }
   }, [isFocused, displayData]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setStabilizedList((prev) => {
       const newItems = displayData.filter((item) => !prev.find((p) => p._id === item._id));
       if (newItems.length === 0) return prev;
@@ -130,7 +162,7 @@ const Favourites = ({ style, from, coinPairs: propsCoinPairs, search: propsSearc
     });
   }, [displayData]);
 
-  const handleUnselectCoin = (coinId) => {
+  const handleUnselectCoin = useCallback((coinId) => {
     setFavouriteCoins((prev) => {
       if (prev.includes(coinId)) {
         return prev.filter((id) => id !== coinId);
@@ -138,99 +170,170 @@ const Favourites = ({ style, from, coinPairs: propsCoinPairs, search: propsSearc
         return [...prev, coinId];
       }
     });
-  };
+  }, []);
 
-  const handleNavigate = (item) => {
+  const handleNavigate = useCallback((item) => {
     if (onPress) {
       onPress(item);
     } else {
-      NavigationService.navigate(WALLET_SCREEN, { coinDetail: item });
+      NavigationService.navigate(TRADE_SCREEN, { coinDetail: item });
     }
-  };
+  }, [onPress]);
 
-  const renderFavoriteRow = useCallback(({ item, index }) => {
-    const isCard = from === "home";
-    const isSelected = favouriteCoins.includes(item._id);
-    const sym = String(item?.base_currency || '').toUpperCase();
-    const quote = String(item?.quote_currency || '').toUpperCase();
-    const change = Number(item?.change_percentage) || 0;
-    const isPositive = change >= 0;
-    const pctStr = `${isPositive ? '+' : ''}${change.toFixed(2)}%`;
-    const iconUri = item?.icon_path ? item.icon_path : null;
-    const priceStr = `$${Number(item?.last_price || item?.buy_price || 0).toFixed(2)}`;
+  const renderCoinIcon = (item, sym) => {
+    const iconUri = item?.icon_path || null;
+    const initial = sym.substring(0, 1).toUpperCase();
+    const bgColor = getCoinBadgeBg(sym);
+
+    if (iconUri) {
+      return (
+        <FastImage
+          source={{ uri: iconUri }}
+          style={styles.coinIconImg}
+          resizeMode={FastImage.resizeMode.contain}
+        />
+      );
+    }
 
     return (
-      <TouchableOpacity
-        style={[
-          isCard ? styles.card : styles.listRow,
-          {
-            backgroundColor: theme === "Dark" ? "#1E2329" : (isCard ? "#F7F7F7" : "transparent"),
-            marginRight: isCard ? (index % 2 === 0 ? 2 : 0) : 0,
-            marginLeft: isCard ? (index % 2 === 0 ? 0 : 2) : 0,
-            width: isCard ? '100%' : '100%',
-          }
-        ]}
-        onPress={() => handleUnselectCoin(item._id)}
-        activeOpacity={0.8}
-      >
-        <View style={isCard ? styles.cardTop : styles.rowContent}>
-          <View style={styles.cardInfo}>
-            {iconUri ? (
-              <FastImage source={{ uri: iconUri }} style={styles.cardIcon} resizeMode="contain" />
-            ) : (
-              <View style={[styles.cardIcon, { backgroundColor: '#ddd', borderRadius: 10 }]} />
-            )}
-            <View>
-              <AppText weight={MEDIUM} style={[styles.cardSym, { color: themeColors.text }]}>
-                {sym}<AppText style={{ color: '#9CA3AF', fontSize: 12 }}>/{quote}</AppText>
-              </AppText>
-              {!isCard && (
-                <AppText numberOfLines={1} style={{ color: '#9CA3AF', fontSize: 11, maxWidth: 100 }}>
-                  {item?.base_currency_fullname || item?.base_currency_name || sym}
+      <View style={[styles.coinIconBadge, { backgroundColor: bgColor }]}>
+        <AppText style={styles.coinIconText}>{initial}</AppText>
+      </View>
+    );
+  };
+
+  const renderCard = useCallback(
+    ({ item, index }) => {
+      const isSelected = favouriteCoins.includes(item._id);
+      const sym = String(item?.base_currency || "").toUpperCase();
+      const quote = String(item?.quote_currency || "").toUpperCase();
+      const pairText = `${sym}/${quote}`;
+      const fullName =
+        item?.base_currency_fullname ||
+        item?.base_currency_name ||
+        item?.name ||
+        sym;
+
+      const change = Number(item?.change_percentage) || 0;
+      const isPositive = change >= 0;
+      const pctStr = `${isPositive ? "+" : ""}${change.toFixed(2)}%`;
+      const changeColor = isPositive ? "#00C853" : "#FF3B30";
+
+      const rawPrice = Number(item?.last_price || item?.buy_price || item?.price || 0);
+      const priceStr =
+        rawPrice > 1
+          ? rawPrice.toLocaleString("en-US", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : rawPrice.toFixed(4);
+
+      return (
+        <TouchableOpacity
+          style={[
+            styles.card,
+            {
+              backgroundColor: isDark ? "#0F1012" : "#FFFFFF",
+              borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : themeColors.border,
+            },
+          ]}
+          onPress={() => handleNavigate(item)}
+          activeOpacity={0.8}
+        >
+          {/* Card Header */}
+          <View style={styles.cardHeader}>
+            <View style={styles.coinInfo}>
+              {renderCoinIcon(item, sym)}
+              <View style={{ marginLeft: 8, flex: 1 }}>
+                <AppText
+                  style={[
+                    styles.pairText,
+                    { color: isDark ? colors.white : themeColors.text },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {pairText}
                 </AppText>
-              )}
+                <AppText
+                  style={[
+                    styles.nameText,
+                    { color: colors.darkShadeColorText || "#9CA3AF" },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {fullName}
+                </AppText>
+              </View>
             </View>
+
+            <TouchableOpacity
+              onPress={() => handleUnselectCoin(item._id)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={styles.starTouch}
+            >
+              <Star
+                color="#FFD700"
+                fill={isSelected ? "#FFD700" : "transparent"}
+                size={16}
+              />
+            </TouchableOpacity>
           </View>
 
-          {!isCard && (
-            <View style={{ flex: 1, alignItems: 'flex-end', marginRight: 15 }}>
-              <AppText weight={SEMI_BOLD} style={{ color: themeColors.text, fontSize: 13 }}>{priceStr}</AppText>
-              <AppText style={{ color: '#9CA3AF', fontSize: 10 }}>${toFixedThree(item?.usd_price || 0)}</AppText>
-            </View>
-          )}
+          {/* MiniChart */}
+          <View style={styles.chartContainer}>
+            <MiniChart
+              data={item?.chart_data || item?.sparkline}
+              isPositive={isPositive}
+              seed={item?._id || sym}
+              width={CARD_WIDTH - 20}
+              height={26}
+            />
+          </View>
 
-          {!isCard && (
-            <View style={[styles.listChgPill, { backgroundColor: isPositive ? "#2DBE7E" : "#EF4444" }]}>
-              <Text style={styles.listChgText}>{pctStr}</Text>
+          {/* Card Footer */}
+          <View style={styles.cardFooter}>
+            <View
+              style={[
+                styles.changeBadge,
+                {
+                  backgroundColor: isPositive
+                    ? "rgba(0, 200, 83, 0.15)"
+                    : "rgba(255, 59, 48, 0.15)",
+                },
+              ]}
+            >
+              <AppText style={[styles.changeText, { color: changeColor }]}>
+                {pctStr}
+              </AppText>
             </View>
-          )}
+            <AppText
+              style={[
+                styles.priceText,
+                { color: isDark ? colors.white : themeColors.text },
+              ]}
+            >
+              {priceStr}
+            </AppText>
+          </View>
+        </TouchableOpacity>
+      );
+    },
+    [favouriteCoins, isDark, themeColors, handleNavigate, handleUnselectCoin]
+  );
 
-          {isCard && (
-            <View>
-              {processingId === item._id ? (
-                <ActivityIndicator size="small" color={isDark ? "#fff" : "#000"} />
-              ) : isSelected ? (
-                <FastImage source={favCheck} style={styles.cardCheck} resizeMode="contain" />
-              ) : (
-                <View style={[styles.cardCheckEmpty, { borderColor: isDark ? '#555' : '#D1D5DB' }]} />
-              )}
-            </View>
-          )}
-        </View>
-        {isCard && (
-          <AppText
-            weight={MEDIUM}
-            style={[
-              styles.cardPct,
-              { color: isPositive ? colors.green : colors.red }
-            ]}
-          >
-            {pctStr}
-          </AppText>
-        )}
-      </TouchableOpacity>
-    );
-  }, [favouriteCoins, theme, themeColors, handleUnselectCoin, isDark, processingId]);
+  const handleAddFavouritesAction = async () => {
+    const toAdd = (favouriteCoins || []).filter((id) => !favoriteArray.includes(id));
+    if (toAdd.length > 0) {
+      setBtnLoading(true);
+      const promises = toAdd.map((id, idx) => {
+        const isLast = idx === toAdd.length - 1;
+        return dispatch(addToFavorites({ pair_id: id }, !isLast ? true : false));
+      });
+      await Promise.all(promises);
+      setBtnLoading(false);
+    }
+    NavigationService.navigate(ADD_FAVOURITE_SCREEN);
+  };
 
   if (!isLoggedIn && from !== "home") {
     return (
@@ -244,8 +347,8 @@ const Favourites = ({ style, from, coinPairs: propsCoinPairs, search: propsSearc
             onPress={() => NavigationService.navigate(LOGIN_SCREEN)}
           >
             Sign in
-          </AppText>
-          {" "}to manage and view your favorite coins from Spot.
+          </AppText>{" "}
+          to manage and view your favorite coins from Spot.
         </AppText>
       </View>
     );
@@ -271,79 +374,188 @@ const Favourites = ({ style, from, coinPairs: propsCoinPairs, search: propsSearc
     );
   }
 
-  if (isSelectionMode && !isSelectionModeForce && from !== "home") {
-    return (
-      <View style={styles.emptyContainer}>
-        <FastImage
-          source={isDark ? NO_NOTIFICATION_ICON : NO_NOTIFICATION_ICON_LIGHT}
-          style={styles.emptyIcon}
-          resizeMode="contain"
-        />
-        <AppText style={[styles.emptyText, { color: themeColors.secondaryText }]}>
-          You haven't added any favorites yet.
-        </AppText>
-        <Button
-          children="Add Favourites"
-          containerStyle={styles.emptyBtn}
-          onPress={() => NavigationService.navigate(ADD_FAVOURITE_SCREEN)}
-        />
-      </View>
-    );
-  }
-
   return (
-    <View style={style}>
-      <View style={{ paddingHorizontal: from === "home" ? 0 : 5, marginTop: from === "home" ? 15 : 15, }}>
-        {from === "home" ? (
-          <View>
-            <View style={[styles.columnWrapper, { flexWrap: 'wrap', flexDirection: 'row' }]}>
-              {(displayData || []).filter((item) => item?._id).slice(0, 6).map((item, index) => (
-                <View key={item._id} style={{ width: '49%', marginBottom: 6 }}>
-                  {renderFavoriteRow({ item, index })}
+    <View style={[styles.container, style]}>
+      {from === "home" ? (
+        <View style={styles.contentWrap}>
+          <View style={styles.columnWrapper}>
+            {(displayData || [])
+              .filter((item) => item?._id)
+              .slice(0, 6)
+              .map((item, index) => (
+                <View key={item._id} style={{ width: CARD_WIDTH, marginBottom: 12 }}>
+                  {renderCard({ item, index })}
                 </View>
               ))}
-            </View>
-            {from === "home" && (favouriteCoins || []).length > 0 && (
-              <View style={{ marginTop: 20, marginBottom: 5 }}>
-                <Button
-                  loading={btnLoading}
-                  children="Add to Favourite"
-                  containerStyle={styles.mainBtn}
-                  onPress={async () => {
-                    const toAdd = (favouriteCoins || []).filter(id => !favoriteArray.includes(id));
-                    if (toAdd.length === 0) return;
-
-                    setBtnLoading(true);
-                    // Use Promise.all to wait for all additions
-                    const promises = toAdd.map((id, idx) => {
-                      const isLast = idx === toAdd.length - 1;
-                      return dispatch(addToFavorites({ pair_id: id }, !isLast ? true : false));
-                    });
-                    await Promise.all(promises);
-                    setBtnLoading(false);
-                  }}
-                />
-              </View>
-            )}
           </View>
-        ) : (
-          <FlatList
-            data={(renderData || []).filter((item) => item?._id)}
-            keyExtractor={(item) => item._id}
-            renderItem={renderFavoriteRow}
-            numColumns={1}
-            scrollEnabled={true}
-            contentContainerStyle={{ paddingBottom: 20 }}
-            ListFooterComponent={null}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </View>
+
+          <View style={styles.addButtonContainer}>
+            <TouchableOpacity
+              style={[styles.addButton, { backgroundColor: colors.cyan }]}
+              onPress={handleAddFavouritesAction}
+              activeOpacity={0.85}
+              disabled={btnLoading}
+            >
+              {btnLoading ? (
+                <ActivityIndicator size="small" color="#000" />
+              ) : (
+                <View style={styles.addIconContainer}>
+                  <Plus color={colors.black} size={16} strokeWidth={3} />
+                </View>
+              )}
+              <AppText style={styles.addButtonText}>Add Favourites</AppText>
+              <View style={{ flex: 1 }} />
+              <ChevronRight color={colors.white} size={24} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <FlatList
+          data={(renderData || []).filter((item) => item?._id)}
+          keyExtractor={(item) => item._id}
+          renderItem={renderCard}
+          numColumns={2}
+          columnWrapperStyle={styles.listColumnWrapper}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListFooterComponent={
+            <View style={styles.addButtonContainer}>
+              <TouchableOpacity
+                style={[styles.addButton, { backgroundColor: colors.cyan }]}
+                onPress={() => NavigationService.navigate(ADD_FAVOURITE_SCREEN)}
+                activeOpacity={0.85}
+              >
+                <View style={styles.addIconContainer}>
+                  <Plus color={colors.black} size={16} strokeWidth={3} />
+                </View>
+                <AppText style={styles.addButtonText}>Add Favourites</AppText>
+                <View style={{ flex: 1 }} />
+                <ChevronRight color={colors.white} size={24} />
+              </TouchableOpacity>
+            </View>
+          }
+        />
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  contentWrap: {
+    paddingHorizontal: 15,
+    paddingTop: 12,
+  },
+  listContent: {
+    paddingHorizontal: 15,
+    paddingTop: 12,
+    paddingBottom: 90,
+  },
+  columnWrapper: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  listColumnWrapper: {
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  card: {
+    width: CARD_WIDTH,
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  coinInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: 4,
+  },
+  coinIconImg: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+  },
+  coinIconBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  coinIconText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontFamily: fonts.bold,
+  },
+  pairText: {
+    fontSize: 12,
+    fontFamily: fonts.bold,
+  },
+  nameText: {
+    fontSize: 9,
+    fontFamily: fonts.regular,
+    marginTop: 2,
+  },
+  starTouch: {
+    padding: 2,
+  },
+  chartContainer: {
+    marginVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  changeBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  changeText: {
+    fontSize: 9,
+    fontFamily: fonts.medium,
+  },
+  priceText: {
+    fontSize: 12,
+    fontFamily: fonts.bold,
+  },
+  addButtonContainer: {
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  addButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 25,
+  },
+  addIconContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  addButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontFamily: fonts.semiBold,
+    marginLeft: 10,
+  },
   emptyWrap: {
     justifyContent: "center",
     alignItems: "center",
@@ -368,73 +580,6 @@ const styles = StyleSheet.create({
   emptyBtn: {
     width: 150,
     height: 40,
-  },
-  columnWrapper: {
-    justifyContent: "space-between",
-  },
-  listRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#333",
-  },
-  rowContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  card: {
-    borderRadius: 12,
-    padding: 12,
-  },
-  cardTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  cardInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  cardIcon: {
-    width: 24,
-    height: 24,
-    marginRight: 8,
-  },
-  cardSym: {
-    fontSize: 14,
-  },
-  cardCheck: {
-    width: 17,
-    height: 17
-  },
-  cardCheckEmpty: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
-    borderWidth: 1,
-  },
-  cardPct: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  mainBtn: {
-    width: "100%",
-    height: 45,
-  },
-  listChgPill: {
-    minWidth: 75,
-    paddingHorizontal: 8,
-    height: 28,
-    borderRadius: 6,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  listChgText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "700",
   },
 });
 
