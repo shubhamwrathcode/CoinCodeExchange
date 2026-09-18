@@ -220,9 +220,9 @@ const Favourites = ({
       const priceStr =
         rawPrice > 1
           ? rawPrice.toLocaleString("en-US", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })
           : rawPrice.toFixed(4);
 
       return (
