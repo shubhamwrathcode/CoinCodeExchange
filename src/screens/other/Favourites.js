@@ -312,7 +312,7 @@ const Favourites = ({
         </TouchableOpacity>
       );
     },
-    [favouriteCoins, isDark, themeColors, handleNavigate, handleUnselectCoin]
+    [favoriteArray, favouriteCoins, isDark, themeColors, handleNavigate, handleToggleFavorite]
   );
 
   const handleAddFavouritesAction = async () => {
