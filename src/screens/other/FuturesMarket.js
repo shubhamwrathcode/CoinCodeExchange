@@ -329,6 +329,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
+    paddingRight: 11,
   },
   headerCellChg: {
     flex: 1.15,
@@ -401,7 +402,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     alignItems: "flex-end",
     justifyContent: "center",
-    paddingRight: 6,
+    paddingRight: 11,
   },
   chgAndStarCol: {
     flex: 1.15,
