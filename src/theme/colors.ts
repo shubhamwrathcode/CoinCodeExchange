@@ -86,7 +86,6 @@ export const colors = {
   blueThemeColor: '#1e56f5',
   starColor: "#FFD700",
   startintcolor: "#FFD700",
-  stardisablecolor: '#4A5565'
 
 };
 

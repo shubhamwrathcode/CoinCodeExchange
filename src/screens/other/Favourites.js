@@ -13,7 +13,7 @@ import { Star, Plus, ChevronRight } from "lucide-react-native";
 import { useDispatch } from "react-redux";
 
 import { AppText, BOLD, Button, FOURTEEN, MEDIUM, SEMI_BOLD, TWELVE } from "../../shared";
-import { addToFavorites } from "../../actions/homeActions";
+import { addToFavorites, getFavoriteArray } from "../../actions/homeActions";
 import { useAppSelector } from "../../store/hooks";
 import { ADD_FAVOURITE_SCREEN, LOGIN_SCREEN, TRADE_SCREEN, WALLET_SCREEN } from "../../navigation/routes";
 import { NO_NOTIFICATION_ICON, NO_NOTIFICATION_ICON_LIGHT } from "../../helper/ImageAssets";
@@ -55,6 +55,7 @@ const Favourites = ({
   const userData = useAppSelector((state) => state.auth.userData);
   const favoriteArray = useAppSelector((state) => state.home.favoriteArray || []);
   const [btnLoading, setBtnLoading] = useState(false);
+  const isAddingRef = useRef(false);
   const [processingId, setProcessingId] = useState(null);
 
   const [favouriteCoins, setFavouriteCoins] = useState(favoriteArray || []);
@@ -316,15 +317,34 @@ const Favourites = ({
   );
 
   const handleAddFavouritesAction = async () => {
-    const toAdd = (favouriteCoins || []).filter((id) => !favoriteArray.includes(id));
+    if (isAddingRef.current || btnLoading) return;
+
+    let toAdd = (favouriteCoins || []).filter((id) => !favoriteArray.includes(id));
+    if (toAdd.length === 0) {
+      toAdd = (displayData || [])
+        .filter((item) => item?._id && !favoriteArray.includes(item._id))
+        .map((item) => item._id);
+    }
+    if (toAdd.length === 0) {
+      toAdd = (displayData || []).filter((item) => item?._id).map((item) => item._id);
+    }
     if (toAdd.length === 0) return;
-    setBtnLoading(true);
-    const promises = toAdd.map((id, idx) => {
-      const isLast = idx === toAdd.length - 1;
-      return dispatch(addToFavorites({ pair_id: id }, !isLast ? true : false));
-    });
-    await Promise.all(promises);
-    setBtnLoading(false);
+
+    try {
+      isAddingRef.current = true;
+      setBtnLoading(true);
+
+      for (let i = 0; i < toAdd.length; i++) {
+        const id = toAdd[i];
+        await dispatch(addToFavorites({ pair_id: id }, true));
+      }
+      await dispatch(getFavoriteArray());
+    } catch (e) {
+      console.error("Error adding favourites:", e);
+    } finally {
+      setBtnLoading(false);
+      isAddingRef.current = false;
+    }
   };
 
   if (!isLoggedIn && from !== "home") {
