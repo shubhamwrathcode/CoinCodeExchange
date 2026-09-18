@@ -29,9 +29,8 @@ const getCoinBadgeBg = (sym = "") => {
 };
 
 const MarketRow = React.memo(
-  ({ item, favoriteArray, onPress, onToggleFavorite, hideStar, isCryptos }) => {
+  ({ item, isFavorite, onPress, onToggleFavorite, hideStar, isCryptos }) => {
     const { colors: themeColors, isDark } = useTheme();
-    const isFavorite = favoriteArray?.includes(item?._id);
 
     const handlePress = useCallback(() => onPress(item), [item, onPress]);
 
@@ -152,7 +151,7 @@ const MarketRow = React.memo(
       prevProps.item?.last_price === nextProps.item?.last_price &&
       prevProps.item?.sell_price === nextProps.item?.sell_price &&
       prevProps.item?.change_percentage === nextProps.item?.change_percentage &&
-      prevProps.favoriteArray?.includes(prevProps.item?._id) === nextProps.favoriteArray?.includes(nextProps.item?._id) &&
+      prevProps.isFavorite === nextProps.isFavorite &&
       prevProps.hideStar === nextProps.hideStar
     );
   }
@@ -173,7 +172,8 @@ const MarketList = React.memo(
   }) => {
     const { colors: themeColors, isDark } = useTheme();
     const favoriteArrayFromRedux = useAppSelector((state) => state.home.favoriteArray);
-    const favoriteArray = propsFavoriteArray || favoriteArrayFromRedux;
+    const favoriteArray = propsFavoriteArray || favoriteArrayFromRedux || [];
+    const favoriteSet = useMemo(() => new Set(favoriteArray), [favoriteArray]);
 
     const handleAddFav = useCallback(
       (id) => {
@@ -189,7 +189,7 @@ const MarketList = React.memo(
         return (
           <MarketRow
             item={item}
-            favoriteArray={favoriteArray}
+            isFavorite={favoriteSet.has(item?._id)}
             onPress={onPress}
             onToggleFavorite={handleAddFav}
             hideStar={hideStar}
@@ -197,10 +197,21 @@ const MarketList = React.memo(
           />
         );
       },
-      [favoriteArray, onPress, handleAddFav, hideStar, isCryptos]
+      [favoriteSet, onPress, handleAddFav, hideStar, isCryptos]
     );
 
-    const renderHeader = () => {
+    const keyExtractor = useCallback((item, index) => item?._id || item?.symbol || String(index), []);
+
+    const getItemLayout = useCallback(
+      (_, index) => ({
+        length: 56,
+        offset: 56 * index,
+        index,
+      }),
+      []
+    );
+
+    const renderHeader = useCallback(() => {
       return (
         <View style={styles.tableHeader}>
           <View style={styles.headerCellName}>
@@ -230,7 +241,7 @@ const MarketList = React.memo(
           </View>
         </View>
       );
-    };
+    }, [hideStar]);
 
     if (!filterData || filterData.length === 0) {
       return (
@@ -251,12 +262,17 @@ const MarketList = React.memo(
       <View style={[styles.container, style]}>
         <FlatList
           data={filterData}
-          keyExtractor={(item) => item?._id || item?.symbol || String(Math.random())}
+          keyExtractor={keyExtractor}
           renderItem={renderItem}
           ListHeaderComponent={renderHeader}
           scrollEnabled={scrollEnabled}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
+          getItemLayout={getItemLayout}
         />
       </View>
     );
