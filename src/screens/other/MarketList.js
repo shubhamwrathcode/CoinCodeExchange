@@ -44,18 +44,18 @@ const MarketRow = React.memo(
       vol >= 1e9
         ? `$${(vol / 1e9).toFixed(2)}B`
         : vol >= 1e6
-        ? `$${(vol / 1e6).toFixed(2)}M`
-        : vol > 0
-        ? `$${toFixedThree(vol)}`
-        : `${ticker} • $0.00`;
+          ? `$${(vol / 1e6).toFixed(2)}M`
+          : vol > 0
+            ? `$${toFixedThree(vol)}`
+            : `${ticker} • $0.00`;
 
     const rawPrice = Number(item?.last_price ?? item?.buy_price ?? item?.price ?? 0);
     const priceStr =
       rawPrice > 1
         ? rawPrice.toLocaleString("en-US", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 3,
-          })
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 3,
+        })
         : rawPrice.toFixed(4);
 
     const subPrice = Number(item?.sell_price ?? item?.usd_price ?? item?.usdt_price ?? 0);
@@ -186,6 +186,7 @@ const MarketList = React.memo(
 
     const renderItem = useCallback(
       ({ item }) => {
+        console.log(item, '===item crypto')
         return (
           <MarketRow
             item={item}

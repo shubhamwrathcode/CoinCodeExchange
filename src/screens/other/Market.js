@@ -158,9 +158,9 @@ const Market = () => {
     }
   }, [isFocused, subscribeToMarket, unsubscribeFromMarket]);
 
-  // Fallback: if market:update didn't send futures_pairs, request from futures socket (same as Futures trading screen)
+  // Load futures pairs on mount if not already populated
   useEffect(() => {
-    if (activeTab !== "USD_M_FUTURES" || (futuresPairs && futuresPairs.length > 0)) return;
+    if (futuresPairs && futuresPairs.length > 0) return;
 
     futureSocketService.connect();
     const payload = { message: "futures", userId: userData?._id ?? "" };
@@ -186,7 +186,7 @@ const Market = () => {
       futureSocketService.off("message", handleMessage);
       futureSocketService.offConnect(requestFutures);
     };
-  }, [activeTab, dispatch, userData?._id, futuresPairs?.length]);
+  }, [dispatch, userData?._id, futuresPairs?.length]);
 
   const showSearch = true;
 
@@ -251,6 +251,44 @@ const Market = () => {
     return out;
   }, [coinPairs, hotPairsChart]);
 
+  const allFavoritePairs = useMemo(() => {
+    if (!favoriteArray || favoriteArray.length === 0) return [];
+    const favSet = new Set(favoriteArray);
+    const spotFavs = (coinPairs || [])
+      .filter((p) => favSet.has(p?._id))
+      .map((p) => ({ ...p, isFutures: false }));
+    const futuresFavs = (futuresPairs || [])
+      .filter((p) => favSet.has(p?._id))
+      .map((p) => ({
+        ...p,
+        isFutures: true,
+        base_currency: p.base_currency || p.base_asset || p.short_name,
+        quote_currency: p.quote_currency || p.quote_asset || p.margin_asset || "USDT",
+        base_currency_fullname: p.base_currency_fullname || p.name || p.pair_name || p.base_asset,
+      }));
+
+    const seen = new Set();
+    const result = [];
+    for (const p of [...spotFavs, ...futuresFavs]) {
+      if (p?._id && !seen.has(p._id)) {
+        seen.add(p._id);
+        result.push(p);
+      }
+    }
+    return result;
+  }, [coinPairs, futuresPairs, favoriteArray]);
+
+  const handleFavoritePress = useCallback((item) => {
+    if (item?.isFutures || (futuresPairs || []).some((fp) => fp?._id === item?._id)) {
+      NavigationService.navigate(FUTURES_SCREEN, {
+        screen: "Futures",
+        params: { coin: item, pair: item, coinDetail: item },
+      });
+    } else {
+      NavigationService.navigate(TRADE_SCREEN, { coinDetail: item });
+    }
+  }, [futuresPairs]);
+
   const handleToggleFavorite = (id) => {
     if (!userData) {
       showError("Please login first to add favorites");
@@ -259,8 +297,6 @@ const Market = () => {
     }
     dispatch(addToFavorites({ pair_id: id }));
   };
-
-
 
   return (
     <AppSafeAreaView style={{ backgroundColor: themeColors.background }}>
@@ -306,10 +342,10 @@ const Market = () => {
                         onPress={() => NavigationService.navigate(NAVIGATION_AUTH_STACK, { screen: LOGIN_SCREEN })}
                       />
                     </View>
-                  ) : favoriteArray?.length > 0 ? (
+                  ) : allFavoritePairs?.length > 0 ? (
                     <MarketList
-                      filterData={coinPairs.filter(p => favoriteArray.includes(p._id))}
-                      onPress={(item) => NavigationService.navigate(TRADE_SCREEN, { coinDetail: item })}
+                      filterData={allFavoritePairs}
+                      onPress={handleFavoritePress}
                       onToggleFavorite={handleToggleFavorite}
                       favoriteArray={favoriteArray}
                       hideStar={false}
