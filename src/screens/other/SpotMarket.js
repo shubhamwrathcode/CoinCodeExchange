@@ -59,7 +59,7 @@ const SpotMarket = ({ coinPairs, search = "", subCategory = "All", hideStar = tr
 export default SpotMarket;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, minHeight: 0, marginTop: 4, paddingBottom: 12 },
+  container: { flex: 1, minHeight: 0, marginTop: 4 },
   filterRow: { marginBottom: 4, maxHeight: 36 },
   filterScroll: {
     flexDirection: "row",

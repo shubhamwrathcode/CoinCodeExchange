@@ -294,6 +294,7 @@ export const FuturesList = ({ data, onPress, favoriteArray = [], onToggleFavorit
         renderItem={renderItem}
         ListHeaderComponent={renderHeader}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={5}
@@ -309,7 +310,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
     marginTop: 4,
-    paddingBottom: 12,
   },
   tableHeader: {
     flexDirection: "row",
@@ -354,7 +354,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   list: {
-    paddingBottom: 24,
+    flex: 1,
+  },
+  listContent: {
+    paddingBottom: 100,
   },
   row: {
     flexDirection: "row",

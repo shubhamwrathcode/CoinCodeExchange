@@ -57,7 +57,7 @@ const CryptosMarket = ({ coinPairs, search = "", subCategory = "All", hideStar =
   };
 
   return (
-    <View style={{ flex: 1, minHeight: 0, marginTop: 4, paddingBottom: 12 }}>
+    <View style={{ flex: 1, minHeight: 0, marginTop: 4 }}>
       <MarketList
         filterData={rows}
         onPress={handleNavigate}
