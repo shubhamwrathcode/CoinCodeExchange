@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { FlatList, StyleSheet, Text, TouchableOpacity, View, Dimensions, Image } from "react-native";
+import { SvgUri } from "react-native-svg";
 import { AppText, BOLD, ELEVEN, FOURTEEN, MEDIUM, NORMAL, SEMI_BOLD, TEN, THIRTEEN, TWELVE } from "../../shared";
 import FastImage from "react-native-fast-image";
 import { Star } from "lucide-react-native";
@@ -28,6 +29,58 @@ const getCoinBadgeBg = (sym = "") => {
   return "#00E5FF";
 };
 
+const CoinIcon = React.memo(({ item, ticker }) => {
+  const iconUri = item?.icon_path || item?.icon_url;
+  const isSvg = useMemo(() => {
+    if (!iconUri) return false;
+    const lower = String(iconUri).toLowerCase();
+    return lower.endsWith(".svg") || lower.includes("fireblocks.io");
+  }, [iconUri]);
+
+  const [useFallback, setUseFallback] = useState(false);
+  const [useSvgFallback, setUseSvgFallback] = useState(false);
+
+  console.log(`[MARKET_ICON] ${ticker} => uri: "${iconUri}", isSvg: ${isSvg}, fallback: ${useFallback}`);
+
+  if (!iconUri || useFallback) {
+    return (
+      <View style={[styles.coinIcon, { backgroundColor: getCoinBadgeBg(ticker), justifyContent: "center", alignItems: "center" }]}>
+        <AppText style={{ color: "#FFF", fontSize: 13, fontWeight: "700" }}>{ticker?.substring(0, 1)}</AppText>
+      </View>
+    );
+  }
+
+  if (isSvg || useSvgFallback) {
+    return (
+      <View style={[styles.coinIcon, { justifyContent: "center", alignItems: "center", overflow: "hidden" }]}>
+        <SvgUri
+          uri={iconUri}
+          width={36}
+          height={36}
+          onError={(err) => {
+            console.log(`[SVG_URI_ERROR] ${ticker} => ${iconUri}`, err);
+            setUseFallback(true);
+          }}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <Image
+      source={{ uri: iconUri }}
+      resizeMode="contain"
+      style={styles.coinIcon}
+      onError={(e) => {
+        console.log(`[IMAGE_LOAD_ERROR] ${ticker} => ${iconUri}`, e?.nativeEvent);
+        setUseSvgFallback(true);
+      }}
+    />
+  );
+});
+
+CoinIcon.displayName = "CoinIcon";
+
 const MarketRow = React.memo(
   ({ item, isFavorite, onPress, onToggleFavorite, hideStar, isCryptos }) => {
     const { colors: themeColors, isDark } = useTheme();
@@ -39,6 +92,7 @@ const MarketRow = React.memo(
     const fullName = item?.base_currency_fullname || item?.base_currency_name || item?.name || ticker;
 
     const iconUri = item?.icon_path || item?.icon_url;
+    console.log("MARKET_ROW_ICON:", { symbol: ticker, icon_path: item?.icon_path, iconUri });
 
     const vol = Number(item?.volume_24h ?? item?.volume ?? item?.quote_volume ?? item?.total_volume ?? 0);
     const formattedVol =
@@ -75,13 +129,7 @@ const MarketRow = React.memo(
         {/* Left Col: Coin Logo + Name / Vol */}
         <View style={styles.nameCol}>
           <View style={styles.nameRow}>
-            {iconUri ? (
-              <Image source={{ uri: iconUri }} resizeMode="contain" style={styles.coinIcon} />
-            ) : (
-              <View style={[styles.coinIcon, { backgroundColor: getCoinBadgeBg(ticker), justifyContent: "center", alignItems: "center" }]}>
-                <AppText style={{ color: "#FFF", fontSize: 13, fontWeight: "700" }}>{ticker.substring(0, 1)}</AppText>
-              </View>
-            )}
+            <CoinIcon item={item} ticker={ticker} />
             <View style={styles.nameBlock}>
               <AppText numberOfLines={1} weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text }}>
                 {ticker}

@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useCallback } from "react";
 import { View, StyleSheet, TouchableOpacity, ScrollView, Text, FlatList, Image } from "react-native";
+import { SvgUri } from "react-native-svg";
 import { AppText, ELEVEN, FOURTEEN, MEDIUM, SEMI_BOLD, TWELVE } from "../../shared";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { colors } from "../../theme/colors";
@@ -28,6 +29,58 @@ const getCoinBadgeBg = (sym = "") => {
   if (upper.includes("ADA")) return "#0033AD";
   return "#00E5FF";
 };
+
+const FuturesCoinIcon = React.memo(({ item, ticker }) => {
+  const iconUri = item?.icon_path || item?.icon_url;
+  const isSvg = useMemo(() => {
+    if (!iconUri) return false;
+    const lower = String(iconUri).toLowerCase();
+    return lower.endsWith(".svg") || lower.includes("fireblocks.io");
+  }, [iconUri]);
+
+  const [useFallback, setUseFallback] = useState(false);
+  const [useSvgFallback, setUseSvgFallback] = useState(false);
+
+  console.log(`[FUTURES_ICON] ${ticker} => uri: "${iconUri}", isSvg: ${isSvg}, fallback: ${useFallback}`);
+
+  if (!iconUri || useFallback) {
+    return (
+      <View style={[styles.coinIcon, { backgroundColor: getCoinBadgeBg(ticker), justifyContent: "center", alignItems: "center" }]}>
+        <AppText style={{ color: "#FFF", fontSize: 13, fontWeight: "700" }}>{ticker?.substring(0, 1)}</AppText>
+      </View>
+    );
+  }
+
+  if (isSvg || useSvgFallback) {
+    return (
+      <View style={[styles.coinIcon, { justifyContent: "center", alignItems: "center", overflow: "hidden" }]}>
+        <SvgUri
+          uri={iconUri}
+          width={36}
+          height={36}
+          onError={(err) => {
+            console.log(`[FUTURES_SVG_ERROR] ${ticker} => ${iconUri}`, err);
+            setUseFallback(true);
+          }}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <Image
+      source={{ uri: iconUri }}
+      resizeMode="contain"
+      style={styles.coinIcon}
+      onError={(e) => {
+        console.log(`[FUTURES_IMAGE_ERROR] ${ticker} => ${iconUri}`, e?.nativeEvent);
+        setUseSvgFallback(true);
+      }}
+    />
+  );
+});
+
+FuturesCoinIcon.displayName = "FuturesCoinIcon";
 
 const FuturesMarket = ({ search, hideStar = false }) => {
   const dispatch = useAppDispatch();
@@ -139,13 +192,7 @@ const FuturesRow = React.memo(
         {/* Left Col: Coin Logo + Name / Vol */}
         <View style={styles.nameCol}>
           <View style={styles.nameRow}>
-            {iconUri ? (
-              <Image source={{ uri: iconUri }} resizeMode="contain" style={styles.coinIcon} />
-            ) : (
-              <View style={[styles.coinIcon, { backgroundColor: getCoinBadgeBg(baseAsset), justifyContent: "center", alignItems: "center" }]}>
-                <AppText style={{ color: "#FFF", fontSize: 13, fontWeight: "700" }}>{baseAsset.substring(0, 1)}</AppText>
-              </View>
-            )}
+            <FuturesCoinIcon item={item} ticker={baseAsset} />
             <View style={styles.nameBlock}>
               <View style={styles.symbolRow}>
                 <AppText numberOfLines={1} weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text }}>
