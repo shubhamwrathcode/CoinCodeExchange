@@ -319,16 +319,14 @@ const Favourites = ({
 
   const handleAddFavouritesAction = async () => {
     const toAdd = (favouriteCoins || []).filter((id) => !favoriteArray.includes(id));
-    if (toAdd.length > 0) {
-      setBtnLoading(true);
-      const promises = toAdd.map((id, idx) => {
-        const isLast = idx === toAdd.length - 1;
-        return dispatch(addToFavorites({ pair_id: id }, !isLast ? true : false));
-      });
-      await Promise.all(promises);
-      setBtnLoading(false);
-    }
-    NavigationService.navigate(ADD_FAVOURITE_SCREEN);
+    if (toAdd.length === 0) return;
+    setBtnLoading(true);
+    const promises = toAdd.map((id, idx) => {
+      const isLast = idx === toAdd.length - 1;
+      return dispatch(addToFavorites({ pair_id: id }, !isLast ? true : false));
+    });
+    await Promise.all(promises);
+    setBtnLoading(false);
   };
 
   if (!isLoggedIn && from !== "home") {
