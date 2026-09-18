@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
@@ -20,9 +20,11 @@ export const MiniChart = ({
   data,
   isPositive = true,
   seed = 0,
-  width = 80,
-  height = 25,
+  width: propWidth,
+  height = 28,
 }) => {
+  const [layoutWidth, setLayoutWidth] = useState(0);
+  const width = propWidth || layoutWidth || 120;
   const color = isPositive ? '#00C853' : '#FF3B30';
 
   const chartData = React.useMemo(() => {
@@ -42,7 +44,7 @@ export const MiniChart = ({
   }, [data, isPositive, seed]);
 
   const generatePath = () => {
-    if (!chartData || chartData.length === 0) return '';
+    if (!chartData || chartData.length === 0 || width <= 0) return '';
     const max = Math.max(...chartData);
     const min = Math.min(...chartData);
     const range = max - min || 1;
@@ -60,17 +62,25 @@ export const MiniChart = ({
   };
 
   return (
-    <View style={[styles.container, { width, height }]}>
-      <Svg width={width} height={height}>
-        <Path
-          d={generatePath()}
-          fill="none"
-          stroke={color}
-          strokeWidth="1.8"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-      </Svg>
+    <View
+      style={[styles.container, { height, width: propWidth || '100%' }]}
+      onLayout={(e) => {
+        const w = e.nativeEvent.layout.width;
+        if (w > 0 && w !== layoutWidth) setLayoutWidth(w);
+      }}
+    >
+      {width > 0 && (
+        <Svg width={width} height={height}>
+          <Path
+            d={generatePath()}
+            fill="none"
+            stroke={color}
+            strokeWidth="2"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+        </Svg>
+      )}
     </View>
   );
 };
@@ -79,6 +89,7 @@ const styles = StyleSheet.create({
   container: {
     justifyContent: 'center',
     alignItems: 'center',
+    width: '100%',
   },
 });
 

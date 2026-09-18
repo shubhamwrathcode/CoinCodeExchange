@@ -24,9 +24,6 @@ import { toFixedFive, toFixedThree } from "../../helper/utility";
 import { useTheme } from "../../hooks/useTheme";
 import MiniChart from "../../shared/components/MiniChart";
 
-const { width } = Dimensions.get("window");
-const CARD_WIDTH = (width - 45) / 2;
-
 const getCoinBadgeBg = (sym = "") => {
   const upper = sym.toUpperCase();
   if (upper.includes("BTC")) return "#F7931A";
@@ -244,7 +241,7 @@ const Favourites = ({
           <View style={styles.cardHeader}>
             <View style={styles.coinInfo}>
               {renderCoinIcon(item, sym)}
-              <View style={{ marginLeft: 8, flex: 1 }}>
+              <View style={{ marginLeft: 6, flex: 1 }}>
                 <AppText
                   style={[
                     styles.pairText,
@@ -285,8 +282,7 @@ const Favourites = ({
               data={item?.chart_data || item?.sparkline}
               isPositive={isPositive}
               seed={item?._id || sym}
-              width={CARD_WIDTH - 20}
-              height={26}
+              height={28}
             />
           </View>
 
@@ -383,7 +379,7 @@ const Favourites = ({
               .filter((item) => item?._id)
               .slice(0, 6)
               .map((item, index) => (
-                <View key={item._id} style={{ width: CARD_WIDTH, marginBottom: 12 }}>
+                <View key={item._id} style={styles.cardCol}>
                   {renderCard({ item, index })}
                 </View>
               ))}
@@ -445,12 +441,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentWrap: {
-    paddingHorizontal: 15,
-    paddingTop: 12,
+    paddingTop: 8,
   },
   listContent: {
-    paddingHorizontal: 15,
-    paddingTop: 12,
+    paddingTop: 8,
     paddingBottom: 90,
   },
   columnWrapper: {
@@ -458,12 +452,16 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "space-between",
   },
+  cardCol: {
+    width: "48.5%",
+    marginBottom: 10,
+  },
   listColumnWrapper: {
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   card: {
-    width: CARD_WIDTH,
+    width: "100%",
     borderRadius: 12,
     padding: 10,
     borderWidth: 1,
@@ -509,9 +507,10 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   chartContainer: {
-    marginVertical: 12,
+    marginVertical: 10,
     alignItems: "center",
     justifyContent: "center",
+    width: "100%",
   },
   cardFooter: {
     flexDirection: "row",
