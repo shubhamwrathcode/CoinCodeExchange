@@ -38,14 +38,7 @@ const MarketRow = React.memo(
     const quote = String(item?.quote_currency || item?.quote_currency_short_name || item?.pay_currency || "").trim().toUpperCase() || "USDT";
     const fullName = item?.base_currency_fullname || item?.base_currency_name || item?.name || ticker;
 
-    const rawIcon = item?.icon_path || item?.icon_url || item?.icon;
-    const iconUri = rawIcon
-      ? String(rawIcon).startsWith("http")
-        ? rawIcon
-        : String(rawIcon).startsWith("//")
-        ? `https:${rawIcon}`
-        : `https://agcx-data-storage-s3-uae.s3.me-central-1.amazonaws.com/${String(rawIcon).replace(/^\/+/, "")}`
-      : null;
+    const iconUri = item?.icon_path || item?.icon_url;
 
     const vol = Number(item?.volume_24h ?? item?.volume ?? item?.quote_volume ?? item?.total_volume ?? 0);
     const formattedVol =

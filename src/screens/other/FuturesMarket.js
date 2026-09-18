@@ -128,14 +128,7 @@ const FuturesRow = React.memo(
     const isPositive = changePercent >= 0;
     const chgText = `${isPositive ? "+" : ""}${changePercent.toFixed(2)}%`;
 
-    const rawIcon = item?.icon_path || item?.icon_url || item?.icon;
-    const iconUri = rawIcon
-      ? String(rawIcon).startsWith("http")
-        ? rawIcon
-        : String(rawIcon).startsWith("//")
-        ? `https:${rawIcon}`
-        : `https://agcx-data-storage-s3-uae.s3.me-central-1.amazonaws.com/${String(rawIcon).replace(/^\/+/, "")}`
-      : null;
+    const iconUri = item?.icon_path || item?.icon_url;
 
     return (
       <TouchableOpacity
