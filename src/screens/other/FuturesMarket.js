@@ -110,6 +110,48 @@ const FuturesMarket = ({ search, hideStar = false }) => {
   );
 };
 
+const CoinIcon = React.memo(({ item, ticker }) => {
+  const [hasError, setHasError] = useState(false);
+  const uri = useMemo(
+    () =>
+      buildCoinImageUri(item) ||
+      (item?.icon_path
+        ? `${String(IMAGE_BASE_URL || "").replace(/\/+$/, "")}/${String(item.icon_path).replace(/^\/+/, "")}`
+        : null),
+    [item]
+  );
+
+  if (!uri || hasError) {
+    return (
+      <View
+        style={[
+          styles.coinIcon,
+          {
+            backgroundColor: getCoinBadgeBg(ticker),
+            justifyContent: "center",
+            alignItems: "center",
+          },
+        ]}
+      >
+        <AppText style={{ color: "#FFF", fontSize: 13, fontWeight: "700" }}>
+          {ticker.substring(0, 1)}
+        </AppText>
+      </View>
+    );
+  }
+
+  return (
+    <FastImage
+      source={{ uri, priority: FastImage.priority.normal }}
+      resizeMode={FastImage.resizeMode.contain}
+      style={styles.coinIcon}
+      onError={() => setHasError(true)}
+    />
+  );
+});
+
+CoinIcon.displayName = "CoinIcon";
+
 const FuturesRow = React.memo(
   ({ item, isFavorite, onPress, onToggleFavorite, hideStar }) => {
     const { colors: themeColors, isDark } = useTheme();
@@ -128,8 +170,6 @@ const FuturesRow = React.memo(
     const isPositive = changePercent >= 0;
     const chgText = `${isPositive ? "+" : ""}${changePercent.toFixed(2)}%`;
 
-    const iconUri = buildCoinImageUri(item) || (item?.icon_path ? `${String(IMAGE_BASE_URL || "").replace(/\/+$/, "")}/${String(item.icon_path).replace(/^\/+/, "")}` : null);
-
     return (
       <TouchableOpacity
         style={[styles.row, { borderBottomColor: isDark ? "rgba(255,255,255,0.04)" : themeColors.border }]}
@@ -139,13 +179,7 @@ const FuturesRow = React.memo(
         {/* Left Col: Coin Logo + Name / Vol */}
         <View style={styles.nameCol}>
           <View style={styles.nameRow}>
-            {iconUri ? (
-              <FastImage source={{ uri: iconUri }} resizeMode="contain" style={styles.coinIcon} />
-            ) : (
-              <View style={[styles.coinIcon, { backgroundColor: getCoinBadgeBg(baseAsset), justifyContent: "center", alignItems: "center" }]}>
-                <AppText style={{ color: "#FFF", fontSize: 13, fontWeight: "700" }}>{baseAsset.substring(0, 1)}</AppText>
-              </View>
-            )}
+            <CoinIcon item={item} ticker={baseAsset} />
             <View style={styles.nameBlock}>
               <View style={styles.symbolRow}>
                 <AppText numberOfLines={1} weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text }}>

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { FlatList, StyleSheet, Text, TouchableOpacity, View, Dimensions } from "react-native";
 import { AppText, BOLD, ELEVEN, FOURTEEN, MEDIUM, NORMAL, SEMI_BOLD, TEN, THIRTEEN, TWELVE } from "../../shared";
 import FastImage from "react-native-fast-image";
@@ -12,6 +12,7 @@ import { useAppSelector } from "../../store/hooks";
 import { toFixedFive, toFixedThree } from "../../helper/utility";
 import { colors } from "../../theme/colors";
 import { useTheme } from "../../hooks/useTheme";
+import { buildCoinImageUri } from "../../helper/coinIconUrl";
 
 const getCoinBadgeBg = (sym = "") => {
   const upper = sym.toUpperCase();
@@ -28,6 +29,41 @@ const getCoinBadgeBg = (sym = "") => {
   return "#00E5FF";
 };
 
+const CoinIcon = React.memo(({ item, ticker }) => {
+  const [hasError, setHasError] = useState(false);
+  const uri = useMemo(() => buildCoinImageUri(item), [item]);
+
+  if (!uri || hasError) {
+    return (
+      <View
+        style={[
+          styles.coinIcon,
+          {
+            backgroundColor: getCoinBadgeBg(ticker),
+            justifyContent: "center",
+            alignItems: "center",
+          },
+        ]}
+      >
+        <AppText style={{ color: "#FFF", fontSize: 13, fontWeight: "700" }}>
+          {ticker.substring(0, 1)}
+        </AppText>
+      </View>
+    );
+  }
+
+  return (
+    <FastImage
+      source={{ uri, priority: FastImage.priority.normal }}
+      resizeMode={FastImage.resizeMode.contain}
+      style={styles.coinIcon}
+      onError={() => setHasError(true)}
+    />
+  );
+});
+
+CoinIcon.displayName = "CoinIcon";
+
 const MarketRow = React.memo(
   ({ item, isFavorite, onPress, onToggleFavorite, hideStar, isCryptos }) => {
     const { colors: themeColors, isDark } = useTheme();
@@ -37,7 +73,6 @@ const MarketRow = React.memo(
     const ticker = String(item?.base_currency || item?.base_currency_short_name || "").toUpperCase() || "—";
     const quote = String(item?.quote_currency || item?.quote_currency_short_name || item?.pay_currency || "").trim().toUpperCase() || "USDT";
     const fullName = item?.base_currency_fullname || item?.base_currency_name || item?.name || ticker;
-    const iconUri = item?.icon_path ? item.icon_path : null;
 
     const vol = Number(item?.volume_24h ?? item?.volume ?? item?.quote_volume ?? item?.total_volume ?? 0);
     const formattedVol =
@@ -74,13 +109,7 @@ const MarketRow = React.memo(
         {/* Left Col: Coin Logo + Name / Vol */}
         <View style={styles.nameCol}>
           <View style={styles.nameRow}>
-            {iconUri ? (
-              <FastImage source={{ uri: iconUri }} resizeMode="contain" style={styles.coinIcon} />
-            ) : (
-              <View style={[styles.coinIcon, { backgroundColor: getCoinBadgeBg(ticker), justifyContent: "center", alignItems: "center" }]}>
-                <AppText style={{ color: "#FFF", fontSize: 13, fontWeight: "700" }}>{ticker.substring(0, 1)}</AppText>
-              </View>
-            )}
+            <CoinIcon item={item} ticker={ticker} />
             <View style={styles.nameBlock}>
               <AppText numberOfLines={1} weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text }}>
                 {ticker}
