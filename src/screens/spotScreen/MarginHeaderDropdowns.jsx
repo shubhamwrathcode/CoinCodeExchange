@@ -127,9 +127,9 @@ const MarginHeaderDropdowns = ({
         style={[
           styles.dropdown,
           {
-            backgroundColor: isDark ? colors.lightBlackLatest : lightTheme.input,
+            backgroundColor: isDark ? darkTheme.darkThemeInputColor : '#F7F7F7',
             flex: 1,
-            borderRadius: 10,
+            borderRadius: 8,
             borderWidth: 0.8,
             paddingVertical: 6,
             paddingHorizontal: 12,
@@ -157,9 +157,9 @@ const MarginHeaderDropdowns = ({
         style={[
           styles.dropdown,
           {
-            backgroundColor: isDark ? colors.lightBlackLatest : lightTheme.input,
+            backgroundColor: isDark ? darkTheme.darkThemeInputColor : '#F7F7F7',
             width: 75,
-            borderRadius: 10,
+            borderRadius: 8,
             borderWidth: 0.8,
             paddingVertical: 6,
             paddingHorizontal: 12,

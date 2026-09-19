@@ -52,6 +52,7 @@ import {
   add,
   checkIc,
   downIcon,
+  historyIcon,
   INFO,
   limitTrade,
   market_ic,
@@ -4466,7 +4467,7 @@ const Spot = () => {
                   style={[
                     styles.tabContainer,
                     {
-                      backgroundColor: isDark ? "#161719" : "#F3F4F6",
+                      backgroundColor: isDark ? darkTheme.darkThemeInputColor : "#F3F4F6",
                       borderColor: isDark ? darkTheme.inputBorder : themeColors.border,
                       borderWidth: 0.8,
                       borderRadius: 20,
@@ -4587,7 +4588,7 @@ const Spot = () => {
                     style={[
                       styles.dropdown,
                       {
-                        backgroundColor: isDark ? '#161719' : '#F7F7F7',
+                        backgroundColor: isDark ? darkTheme.darkThemeInputColor : '#F7F7F7',
                         borderColor: isDark ? darkTheme.inputBorder : themeColors.border,
                         flex: 1,
                         borderRadius: 8,
@@ -4632,7 +4633,9 @@ const Spot = () => {
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
-                      backgroundColor: isDark ? "#161719" : "#F7F7F7",
+                      backgroundColor: isDark ? darkTheme.darkThemeInputColor : "#F7F7F7",
+                      borderColor: isDark ? darkTheme.inputBorder : themeColors.border,
+                      borderWidth: 0.8,
                       borderRadius: 8,
                       height: 36,
                     }}
@@ -4698,7 +4701,9 @@ const Spot = () => {
                       style={{
                         flexDirection: "row",
                         alignItems: "center",
-                        backgroundColor: isDark ? "#161719" : "#F7F7F7",
+                        backgroundColor: isDark ? darkTheme.darkThemeInputColor : "#F7F7F7",
+                        borderColor: isDark ? darkTheme.inputBorder : themeColors.border,
+                        borderWidth: 0.8,
                         borderRadius: 8,
                         height: 36,
                       }}
@@ -4737,7 +4742,9 @@ const Spot = () => {
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
-                      backgroundColor: isDark ? "#161719" : "#F7F7F7",
+                      backgroundColor: isDark ? darkTheme.darkThemeInputColor : "#F7F7F7",
+                      borderColor: isDark ? darkTheme.inputBorder : themeColors.border,
+                      borderWidth: 0.8,
                       borderRadius: 8,
                       height: 36,
                     }}
@@ -4816,7 +4823,9 @@ const Spot = () => {
                       style={{
                         flexDirection: "row",
                         alignItems: "center",
-                        backgroundColor: isDark ? "#161719" : "#F7F7F7",
+                        backgroundColor: isDark ? darkTheme.darkThemeInputColor : "#F7F7F7",
+                        borderColor: isDark ? darkTheme.inputBorder : themeColors.border,
+                        borderWidth: 0.8,
                         borderRadius: 8,
                         height: 36,
                       }}
@@ -5336,6 +5345,28 @@ const Spot = () => {
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
+
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() => NavigationService.navigate("Trade_History", { activeTab: activeTab === 3 ? 1 : 0 })}
+                      style={{
+                        paddingLeft: 10,
+                        paddingRight: 2,
+                        paddingVertical: 4,
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Trade History"
+                    >
+                      <FastImage
+                        source={historyIcon}
+                        style={{ width: 18, height: 18 }}
+                        resizeMode="contain"
+                        tintColor={isDark ? colors.white : colors.black}
+                      />
+                    </TouchableOpacity>
                   </View>
                 )}
 
