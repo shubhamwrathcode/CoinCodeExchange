@@ -1,4 +1,4 @@
-import React, { useMemo, useState, memo } from "react";
+import React, { useMemo, useState, useEffect, memo } from "react";
 import {
   FlatList,
   StyleSheet,
@@ -8,16 +8,118 @@ import {
   View,
 } from "react-native";
 import FastImage from "react-native-fast-image";
+import { SvgXml } from "react-native-svg";
 import { colors } from "../../theme/colors";
-import { toFixedFive, toFixedThree } from "../../helper/utility";
+import { toFixedFive, toFixedThree, buildCoinIconUri } from "../../helper/utility";
 import { useTheme } from "../../hooks/useTheme";
-import { IMAGE_BASE_URL } from "../../helper/Constants";
 import { searchIcon, closeIcon, starIcon, starFillIcon } from "../../helper/ImageAssets";
 import { useAppSelector } from "../../store/hooks";
 import { useDispatch } from "react-redux";
 import { addToFavorites } from "../../actions/homeActions";
 
 const TABS = ["Favourites", "USDT", "BTC", "BNB", "ETH"];
+
+const getCoinBadgeBg = (sym = "") => {
+  const upper = String(sym).toUpperCase();
+  if (upper.includes("BTC")) return "#F7931A";
+  if (upper.includes("ETH")) return "#627EEA";
+  if (upper.includes("BNB")) return "#F3BA2F";
+  if (upper.includes("SOL")) return "#14F195";
+  if (upper.includes("MEGA")) return "#E84142";
+  if (upper.includes("ZAMA")) return "#FFD700";
+  if (upper.includes("USDT") || upper.includes("USD")) return "#26A17B";
+  if (upper.includes("XRP")) return "#23292F";
+  if (upper.includes("DOGE")) return "#C2A633";
+  if (upper.includes("ADA")) return "#0033AD";
+  if (upper.includes("HBAR")) return "#222222";
+  return "#00E5FF";
+};
+
+const coinIconCache = new Map();
+
+const ModalCoinIcon = memo(({ iconUri, ticker, searchBarBg }) => {
+  const [iconState, setIconState] = useState(() => {
+    if (!iconUri) return { status: "fallback" };
+    if (coinIconCache.has(iconUri)) return coinIconCache.get(iconUri);
+    return { status: "loading" };
+  });
+
+  useEffect(() => {
+    if (!iconUri) {
+      setIconState({ status: "fallback" });
+      return;
+    }
+
+    if (coinIconCache.has(iconUri)) {
+      setIconState(coinIconCache.get(iconUri));
+      return;
+    }
+
+    let isMounted = true;
+    const lower = String(iconUri).toLowerCase();
+
+    if (lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".webp")) {
+      const res = { status: "image" };
+      coinIconCache.set(iconUri, res);
+      if (isMounted) setIconState(res);
+      return;
+    }
+
+    fetch(iconUri)
+      .then((response) => response.text())
+      .then((text) => {
+        if (text && typeof text === "string" && (text.includes("<svg") || text.trim().startsWith("<?xml") || text.includes("<path"))) {
+          const res = { status: "svg", xml: text };
+          coinIconCache.set(iconUri, res);
+          if (isMounted) setIconState(res);
+        } else {
+          const res = { status: "image" };
+          coinIconCache.set(iconUri, res);
+          if (isMounted) setIconState(res);
+        }
+      })
+      .catch(() => {
+        const res = { status: "image" };
+        coinIconCache.set(iconUri, res);
+        if (isMounted) setIconState(res);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [iconUri]);
+
+  if (!iconUri || iconState.status === "fallback") {
+    return (
+      <View style={[styles.coinIcon, { backgroundColor: getCoinBadgeBg(ticker), justifyContent: "center", alignItems: "center" }]}>
+        <Text style={{ color: "#FFF", fontSize: 13, fontWeight: "700" }}>{ticker?.substring(0, 1) || "•"}</Text>
+      </View>
+    );
+  }
+
+  if (iconState.status === "svg" && iconState.xml) {
+    return (
+      <View style={[styles.coinIcon, { justifyContent: "center", alignItems: "center", overflow: "hidden" }]}>
+        <SvgXml
+          xml={iconState.xml}
+          width={30}
+          height={30}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <FastImage
+      source={{ uri: iconUri }}
+      resizeMode="contain"
+      style={styles.coinIcon}
+      onError={() => setIconState({ status: "fallback" })}
+    />
+  );
+});
+
+ModalCoinIcon.displayName = "ModalCoinIcon";
 
 const FuturePairRow = memo(({
   item,
@@ -36,8 +138,19 @@ const FuturePairRow = memo(({
   const price = item?.last_price ?? item?.buy_price;
   const priceStr = price != null ? toFixedFive(price) : "—";
   const changeStr = `${sign}${toFixedThree(changeVal)}%`;
-  const iconUri = item?.icon_path ? `${IMAGE_BASE_URL}${item.icon_path}` : null;
-  const base = item?.base_asset || item?.short_name || "—";
+  const base = item?.base_asset || item?.short_name || item?.base_currency || "—";
+  const ticker = String(base).toUpperCase();
+  const rawIcon =
+    item?.icon_path ||
+    item?.icon ||
+    item?.base_currency_icon ||
+    item?.currency_icon ||
+    item?.icon_url ||
+    item?.image ||
+    item?.logo ||
+    item?.coin_icon ||
+    item?.base_asset_icon;
+  const iconUri = buildCoinIconUri(rawIcon);
   const quote = item?.margin_asset || item?.quote_asset || "";
   const subtitle = `$${priceStr}${item?.price_change_24h ? ` · ${item.price_change_24h}` : ""}`;
 
@@ -63,11 +176,7 @@ const FuturePairRow = memo(({
             tintColor={isFavorite ? colors.starColor : subTextColor}
           />
         </TouchableOpacity>
-        {iconUri ? (
-          <FastImage source={{ uri: iconUri }} resizeMode="cover" style={styles.coinIcon} />
-        ) : (
-          <View style={[styles.coinIcon, { backgroundColor: searchBarBg }]} />
-        )}
+        <ModalCoinIcon iconUri={iconUri} ticker={ticker} searchBarBg={searchBarBg} />
         <View style={styles.pairBlock}>
           <Text style={[styles.pairLine, { color: textColor }]} numberOfLines={1}>
             {base}

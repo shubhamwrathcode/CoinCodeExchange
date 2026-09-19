@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform, Share } from 'react-native';
-import { USER_TOKEN_KEY, USER_REFRESH_TOKEN_KEY } from './Constants';
+import { USER_TOKEN_KEY, USER_REFRESH_TOKEN_KEY, IMAGE_BASE_URL } from './Constants';
 import { appOperation } from '../appOperation';
 import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import Clipboard from '@react-native-community/clipboard';
@@ -433,4 +433,13 @@ export function transformCurrencyDataWithDistribution(data: any[]) {
   }, {});
 
   return Object.values(grouped);
+}
+
+export function buildCoinIconUri(iconPath: any): string | null {
+  const raw = iconPath === undefined || iconPath === null ? "" : String(iconPath).trim();
+  if (!raw) return null;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const base = String(IMAGE_BASE_URL || "").replace(/\/+$/, "");
+  const path = raw.startsWith("/") ? raw : `/${raw}`;
+  return `${base}${path}`;
 }

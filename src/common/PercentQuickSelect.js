@@ -26,121 +26,67 @@ const PercentQuickSelect = ({
   activeValue,
   onSelect,
   theme = "Dark",
+  color = "#00C853",
 }) => {
   const [trackWidth, setTrackWidth] = useState(0);
-
-  const palette = useMemo(
-    () => (theme === "Light" ? lightTheme : darkTheme),
-    [theme]
-  );
-
-  const handleTrackLayout = (e) => {
-    const { width } = e.nativeEvent.layout;
-    setTrackWidth(width);
-  };
-
-  const trackBg = palette.themeElevationColor;
-  const trackBorder = palette.themeBorderColor;
-  const activeFill = colors.spotTradeBuy;
-  const markerEmptyFill = palette.input;
-  const markerEmptyBorder = palette.themeBorderColor;
-  const markerFilledFill = colors.spotTradeBuy;
-  const markerFilledBorder = colors.spotTradeBuy;
-  const labelDefault = palette.secondaryText;
-  const labelActive = palette.text;
 
   const effectiveActive =
     activeValue !== undefined && activeValue !== null && activeValue !== ""
       ? Number(activeValue)
       : 0;
 
-  const barLength = Math.max(0, (trackWidth || 0) - 2 * BAR_INSET);
-  const fillWidth =
-    trackWidth &&
-      !Number.isNaN(effectiveActive) &&
-      effectiveActive >= 0 &&
-      effectiveActive <= 100
-      ? (effectiveActive / 100) * barLength
-      : 0;
+  const handleTrackLayout = (e) => {
+    const { width } = e.nativeEvent.layout;
+    setTrackWidth(width);
+  };
+
+  const activeColor = color || "#00C853";
+  const inactiveColor = "#8E8E93";
+  const trackBg = "#2C2C2E";
+
+  const fillPercentage = Math.max(0, Math.min(100, effectiveActive));
 
   return (
     <View style={styles.sliderContainer}>
       <View style={styles.trackWrapper} onLayout={handleTrackLayout}>
-        <View
-          style={[
-            styles.track,
-            {
-              top: TRACK_TOP,
-              left: BAR_INSET,
-              right: BAR_INSET,
-              backgroundColor: trackBg,
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: trackBorder,
-            },
-          ]}
-        />
-        <View
-          style={[
-            styles.activeTrack,
-            {
-              top: TRACK_TOP,
-              left: BAR_INSET,
-              width: Math.max(fillWidth, 0),
-              backgroundColor: activeFill,
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: activeFill,
-            },
-          ]}
-        />
-        <View style={styles.markersAndLabelsRow}>
-          {options.map((value) => {
-            const isSelected = effectiveActive === value;
-            const isInFilledRange = effectiveActive >= value;
-            const size = MARKER_SIZE;
-            return (
-              <TouchableOpacity
-                key={value}
-                onPress={() => onSelect(value)}
-                activeOpacity={0.8}
-                style={styles.column}
-                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-              >
-                <View
-                  style={[
-                    styles.rhombusOuter,
-                    { width: size, height: size },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.rhombus,
-                      {
-                        width: size - 1,
-                        height: size - 1,
-                        backgroundColor: isInFilledRange
-                          ? markerFilledFill
-                          : markerEmptyFill,
-                        borderWidth: StyleSheet.hairlineWidth,
-                        borderColor: isInFilledRange
-                          ? markerFilledBorder
-                          : markerEmptyBorder,
-                      },
-                    ]}
-                  />
-                </View>
-                <AppText
-                  type={TEN}
-                  style={[
-                    styles.labelText,
-                    { color: isSelected ? labelActive : labelDefault },
-                    isSelected && styles.labelTextActive,
-                  ]}
-                >
-                  {value}%
-                </AppText>
-              </TouchableOpacity>
-            );
-          })}
+        <View style={[styles.track, { backgroundColor: trackBg }]}>
+          <View
+            style={[
+              styles.fill,
+              {
+                backgroundColor: activeColor,
+                width: `${fillPercentage}%`,
+              },
+            ]}
+          />
+        </View>
+        <View style={styles.dots}>
+          {options.map((p) => (
+            <TouchableOpacity
+              key={p}
+              activeOpacity={0.8}
+              style={[
+                styles.dot,
+                { backgroundColor: p <= effectiveActive ? activeColor : inactiveColor },
+              ]}
+              onPress={() => onSelect && onSelect(p)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            />
+          ))}
+        </View>
+        <View style={styles.labels}>
+          {options.map((p) => (
+            <AppText
+              key={p}
+              style={{
+                fontSize: 10,
+                color: p <= effectiveActive ? activeColor : inactiveColor,
+                fontWeight: p === effectiveActive ? "600" : "400",
+              }}
+            >
+              {p}%
+            </AppText>
+          ))}
         </View>
       </View>
     </View>
@@ -150,46 +96,37 @@ const PercentQuickSelect = ({
 const styles = StyleSheet.create({
   sliderContainer: {
     width: "100%",
-    marginTop: 0,
-    marginBottom: 0,
+    marginVertical: 4,
   },
   trackWrapper: {
-    minHeight: TRACK_WRAPPER_HEIGHT,
-    paddingHorizontal: Math.max(4, Math.ceil(MARKER_SIZE / 2)),
+    width: "100%",
+    position: "relative",
   },
   track: {
-    height: TRACK_HEIGHT,
-    borderRadius: TRACK_HEIGHT / 2,
+    height: 2,
+    width: "100%",
     position: "absolute",
+    top: 3,
+    borderRadius: 1,
   },
-  activeTrack: {
-    position: "absolute",
-    height: TRACK_HEIGHT,
-    borderRadius: TRACK_HEIGHT / 2,
+  fill: {
+    height: "100%",
+    borderRadius: 1,
   },
-  markersAndLabelsRow: {
+  dots: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    paddingTop: MARKER_ROW_PADDING_TOP,
+    width: "100%",
   },
-  column: {
-    alignItems: "center",
-    justifyContent: "flex-start",
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  rhombusOuter: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  rhombus: {
-    transform: [{ rotate: "45deg" }],
-  },
-  labelText: {
-    marginTop: 2,
-    fontSize: 9,
-  },
-  labelTextActive: {
-    fontWeight: "600",
+  labels: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 6,
   },
 });
 

@@ -473,13 +473,13 @@ const TradeHistory = ({ route }) => {
       <Toolbar isSecond title={"History"} style={{ width: "58%", backgroundColor: "transparent" }} />
 
       <View style={[styles.tabBar, { borderBottomColor: memoizedTheme?.themeBorderColor ?? "#EEEEEE" }]}>
-        <TouchableOpacity onPress={() => setActiveTab(0)} style={[styles.tab, activeTab === 0 && { borderBottomColor: isDark ? colors.white : colors.buttonBg, borderBottomWidth: 2 }]}>
+        <TouchableOpacity onPress={() => setActiveTab(0)} style={[styles.tab, activeTab === 0 && { borderBottomColor: (colors.cyanTheme || "#0AA8C5"), borderBottomWidth: 2 }]}>
           <AppText weight={SEMI_BOLD} style={[styles.tabText, { color: activeTab === 0 ? (memoizedTheme?.text ?? "#000000") : (memoizedTheme?.secondaryText ?? "#8E8E93"), fontSize: 15 }]}>Open Orders</AppText>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => setActiveTab(1)} style={[styles.tab, activeTab === 1 && { borderBottomColor: isDark ? colors.white : colors.buttonBg, borderBottomWidth: 2 }]}>
+        <TouchableOpacity onPress={() => setActiveTab(1)} style={[styles.tab, activeTab === 1 && { borderBottomColor: (colors.cyanTheme || "#0AA8C5"), borderBottomWidth: 2 }]}>
           <AppText weight={SEMI_BOLD} style={[styles.tabText, { color: activeTab === 1 ? (memoizedTheme?.text ?? "#000000") : (memoizedTheme?.secondaryText ?? "#8E8E93"), fontSize: 15 }]}>Orders</AppText>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => setActiveTab(2)} style={[styles.tab, activeTab === 2 && { borderBottomColor: isDark ? colors.white : colors.buttonBg, borderBottomWidth: 2 }]}>
+        <TouchableOpacity onPress={() => setActiveTab(2)} style={[styles.tab, activeTab === 2 && { borderBottomColor: (colors.cyanTheme || "#0AA8C5"), borderBottomWidth: 2 }]}>
           <AppText weight={SEMI_BOLD} style={[styles.tabText, { color: activeTab === 2 ? (memoizedTheme?.text ?? "#000000") : (memoizedTheme?.secondaryText ?? "#8E8E93"), fontSize: 15 }]}>Trades</AppText>
         </TouchableOpacity>
       </View>

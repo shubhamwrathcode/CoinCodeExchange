@@ -49,6 +49,8 @@ import {
   favUnCheck,
   favCheck,
   NO_NOTIFICATION_ICON,
+  RectangleGreen,
+  RectangleRed,
 } from "../../helper/ImageAssets";
 import { toFixedFive, toFixedThree, twoFixedTwo } from "../../helper/utility";
 import { useAppSelector } from "../../store/hooks";
@@ -416,11 +418,12 @@ const DepthRow = React.memo(({ bid, ask, bidFillPct, askFillPct, themeColors, is
 
 
 
-const FutureChartScreen = () => {
+const FutureChartScreen = ({ route: routeProp, isEmbedded = false, onTradePress } = {}) => {
   const dispatch = useDispatch();
   const { colors: themeColors, theme, isDark } = useTheme();
   const navigation = useNavigation();
-  const route = useRoute();
+  const routeHook = useRoute();
+  const route = routeProp || routeHook || { params: {} };
   const tradeType = route.params?.tradeType || "Spot";
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
@@ -1296,21 +1299,28 @@ const FutureChartScreen = () => {
 
     return (
       <View style={{ paddingHorizontal: 12 }}>
-        <View style={[styles.ratioIndicatorBar, { gap: 6 }]}>
-          <View style={{ justifyContent: "flex-start", flexShrink: 0 }}>
-            <AppText numberOfLines={1} weight={SEMI_BOLD} style={{ color: "#38B781", fontSize: 13 }}>
-              B {bidPct.toFixed(2)}%
-            </AppText>
+        {/* Spread / Ratio Bar with RectangleGreen and RectangleRed */}
+        <View style={{ flexDirection: "row", alignItems: "center", paddingVertical: 6, marginTop: 4 }}>
+          <AppText weight={SEMI_BOLD} style={{ color: "#38B781", fontSize: 13, marginRight: 8 }}>
+            {`B ${bidPct.toFixed(2)}%`}
+          </AppText>
+          <View style={{ flex: 1, flexDirection: "row", height: 10, gap: 5, alignItems: "center" }}>
+            <FastImage
+              source={RectangleGreen}
+              style={{ flex: Math.max(0.05, bidPct / 100), height: 10 }}
+              resizeMode="stretch"
+              tintColor={'#38B781'}
+            />
+            <FastImage
+              source={RectangleRed}
+              style={{ flex: Math.max(0.05, (100 - bidPct) / 100), height: 10 }}
+              resizeMode="stretch"
+              tintColor={'#ED4E4E'}
+            />
           </View>
-          <View style={[styles.ratioIndicatorTrack, { flex: 1 }]}>
-            <View style={[styles.ratioIndicatorFill, { width: `${bidPct}%`, backgroundColor: "#38B781", borderTopLeftRadius: 2, borderBottomLeftRadius: 2 }]} />
-            <View style={[styles.ratioIndicatorFill, { flex: 1, backgroundColor: "#ED4E4E", borderTopRightRadius: 2, borderBottomRightRadius: 2 }]} />
-          </View>
-          <View style={{ justifyContent: "flex-end", flexShrink: 0 }}>
-            <AppText numberOfLines={1} weight={SEMI_BOLD} style={{ color: "#ED4E4E", fontSize: 13 }}>
-              {(100 - bidPct).toFixed(2)}% S
-            </AppText>
-          </View>
+          <AppText weight={SEMI_BOLD} style={{ color: "#ED4E4E", fontSize: 13, marginLeft: 8 }}>
+            {`${(100 - bidPct).toFixed(2)}% S`}
+          </AppText>
         </View>
 
         {/* Column Headers */}
@@ -1426,6 +1436,10 @@ const FutureChartScreen = () => {
 
   const goToSpotTradeSide = useCallback(
     (side) => {
+      if (isEmbedded && onTradePress) {
+        onTradePress(side);
+        return;
+      }
       navigation.navigate({
         name: routes.NAVIGATION_BOTTOM_TAB_STACK,
         params: {
@@ -1437,82 +1451,82 @@ const FutureChartScreen = () => {
         },
       });
     },
-    [navigation, tradeType, mergedPair]
+    [isEmbedded, mergedPair, navigation, onTradePress, tradeType]
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.background, paddingTop: insets.top }]}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={bg} />
+    <View style={[styles.container, { backgroundColor: themeColors.background, paddingTop: isEmbedded ? 0 : insets.top }]}>
+      {!isEmbedded && <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={bg} />}
 
-      <View style={[styles.header, { backgroundColor: themeColors.background }]}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.7}>
-            <FastImage
-              source={back_ic}
-              style={styles.backIcon}
-              resizeMode="contain"
-              tintColor={themeColors.text}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerPairRow}
-            onPress={() => pairSheetRef.current?.open()}
-            activeOpacity={0.75}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <AppText
-              weight={SEMI_BOLD}
-              numberOfLines={1}
-              style={[styles.headerTitle, { color: themeColors.text }]}
+      {!isEmbedded && (
+        <View style={[styles.header, { backgroundColor: themeColors.background }]}>
+          <View style={styles.headerLeft}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.7}>
+              <FastImage
+                source={back_ic}
+                style={styles.backIcon}
+                resizeMode="contain"
+                tintColor={themeColors.text}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.headerPairRow}
+              onPress={() => pairSheetRef.current?.open()}
+              activeOpacity={0.75}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              {pairBase}/{pairQuote}
-            </AppText>
-            <FastImage
-              source={downIcon}
-              style={styles.headerChevron}
-              resizeMode="contain"
-              tintColor={themeColors.text}
-            />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            onPress={toggleFavorite}
-            style={styles.headerIconBtn}
-            activeOpacity={0.7}
-            disabled={favLoading}
-          >
-            {favLoading ? (
-              <ActivityIndicator size="small" color={isFav ? "#FFD700" : themeColors.text} />
-            ) : (
-              isFav ? (
-                <FastImage
-                  source={starFillIcon}
-                  style={styles.headerIcon}
-                  resizeMode="contain"
-                />
+              <AppText
+                weight={SEMI_BOLD}
+                numberOfLines={1}
+                style={[styles.headerTitle, { color: themeColors.text }]}
+              >
+                {pairBase}/{pairQuote}
+              </AppText>
+              <FastImage
+                source={downIcon}
+                style={styles.headerChevron}
+                resizeMode="contain"
+                tintColor={themeColors.text}
+              />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              onPress={toggleFavorite}
+              style={styles.headerIconBtn}
+              activeOpacity={0.7}
+              disabled={favLoading}
+            >
+              {favLoading ? (
+                <ActivityIndicator size="small" color={isFav ? "#FFD700" : themeColors.text} />
               ) : (
-                <FastImage
-                  source={favUnCheck}
-                  style={styles.headerIcon}
-                  resizeMode="contain"
-                  tintColor={'#EAEDF0'}
-                />
-              )
-
-
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onNotificationPress} style={styles.headerIconBtn} activeOpacity={0.7}>
-            <FastImage
-              source={bell_ic}
-              style={styles.headerIcon}
-              resizeMode="contain"
-              tintColor={themeColors.text}
-            />
-          </TouchableOpacity>
+                isFav ? (
+                  <FastImage
+                    source={starFillIcon}
+                    style={styles.headerIcon}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <FastImage
+                    source={favUnCheck}
+                    style={styles.headerIcon}
+                    resizeMode="contain"
+                    tintColor={'#EAEDF0'}
+                  />
+                )
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onNotificationPress} style={styles.headerIconBtn} activeOpacity={0.7}>
+              <FastImage
+                source={bell_ic}
+                style={styles.headerIcon}
+                resizeMode="contain"
+                tintColor={themeColors.text}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      )}
 
       <View style={styles.body}>
         <ScrollView
@@ -1525,54 +1539,61 @@ const FutureChartScreen = () => {
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled
         >
-          <View style={[styles.statsStrip, { borderBottomColor: themeColors.themeBorderColor, paddingVertical: 14 }]}>
+          <View style={[styles.statsStrip, { borderBottomColor: themeColors.themeBorderColor, paddingVertical: 12 }]}>
             <View style={styles.statsMainRow}>
-              {/* Left Column */}
-              <View style={[styles.statsLeftCol, { justifyContent: "space-between" }]}>
-                <View>
-                  <AppText weight={MEDIUM} style={[styles.statMainPriceHuge, { color: tickColor }]} numberOfLines={1}>
-                    {stripDisplayPrice != null && stripDisplayPrice !== "" ? formatPriceComma(stripDisplayPrice) : "—"}
+              {/* Left Column: Big Price, Subtitle (USD + change%), and Badges */}
+              <View style={styles.statsLeftCol}>
+                <AppText weight={BOLD} style={{ fontSize: 28, color: tickColor, letterSpacing: -0.5 }} numberOfLines={1}>
+                  {stripDisplayPrice != null && stripDisplayPrice !== "" ? formatPriceComma(stripDisplayPrice) : "—"}
+                </AppText>
+
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }}>
+                  <AppText weight={MEDIUM} style={{ fontSize: 13, color: isDark ? "#FFFFFF" : themeColors.text }}>
+                    {stripDisplayPrice != null && stripDisplayPrice !== "" ? `≈ $${formatWithCommas(toFixedThree(Number(stripDisplayPrice)))}` : "—"}
                   </AppText>
-
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 6 }}>
-                    <AppText type={FOURTEEN} style={{ color: themeColors.text, opacity: 0.8 }}>
-                      {stripDisplayPrice != null && stripDisplayPrice !== "" ? `≈ $${formatWithCommas(toFixedThree(Number(stripDisplayPrice)))}` : "—"}
-                    </AppText>
-
-                  </View>
-                  <AppText type={FOURTEEN} weight={MEDIUM} style={{ color: changeColor }}>
+                  <AppText weight={SEMI_BOLD} style={{ fontSize: 13, color: changeColor }}>
                     {liveMarketStats.changePct != null
                       ? `${Number(liveMarketStats.changePct) >= 0 ? "+" : ""}${toFixedThree(Number(liveMarketStats.changePct))}%`
                       : "—"}
                   </AppText>
                 </View>
 
-
+                {/* <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 8 }}>
+                  <AppText weight={MEDIUM} style={{ fontSize: 11, color: colors.cyanTheme || "#0AA8C5" }}>
+                    Rank #1
+                  </AppText>
+                  <AppText weight={MEDIUM} style={{ fontSize: 11, color: colors.cyanTheme || "#0AA8C5" }}>
+                    Top Volume
+                  </AppText>
+                  <AppText weight={MEDIUM} style={{ fontSize: 11, color: colors.cyanTheme || "#0AA8C5" }}>
+                    Perpetual
+                  </AppText>
+                </View> */}
               </View>
 
-              {/* Right Column */}
+              {/* Right Column: 4 stacked key-value rows */}
               <View style={styles.statsRightColsStack}>
                 <View style={styles.statListRow}>
-                  <AppText type={ELEVEN} style={[styles.statListLabel, { color: themeColors.text, opacity: 0.6 }]}>24h High ({pairQuote})</AppText>
-                  <AppText type={ELEVEN} weight={MEDIUM} style={[styles.statListValue, { color: themeColors.spotTradeBuy ?? colors.green }]}>
+                  <AppText style={styles.statListLabel}>24h High</AppText>
+                  <AppText weight={MEDIUM} style={[styles.statListValue, { color: themeColors.text }]}>
                     {liveMarketStats.high != null ? toFixedFive(liveMarketStats.high) : "—"}
                   </AppText>
                 </View>
                 <View style={styles.statListRow}>
-                  <AppText type={ELEVEN} style={[styles.statListLabel, { color: themeColors.text, opacity: 0.6 }]}>24h Low ({pairQuote})</AppText>
-                  <AppText type={ELEVEN} weight={MEDIUM} style={[styles.statListValue, { color: themeColors.spotTradeSell ?? colors.red }]}>
+                  <AppText style={styles.statListLabel}>24h Low</AppText>
+                  <AppText weight={MEDIUM} style={[styles.statListValue, { color: themeColors.text }]}>
                     {liveMarketStats.low != null ? toFixedFive(liveMarketStats.low) : "—"}
                   </AppText>
                 </View>
                 <View style={styles.statListRow}>
-                  <AppText type={ELEVEN} style={[styles.statListLabel, { color: themeColors.text, opacity: 0.6 }]}>24h Vol ({pairBase})</AppText>
-                  <AppText type={ELEVEN} weight={MEDIUM} style={[styles.statListValue, { color: themeColors.text }]} numberOfLines={1}>
+                  <AppText style={styles.statListLabel}>{`24h Volume (${pairBase})`}</AppText>
+                  <AppText weight={MEDIUM} style={[styles.statListValue, { color: themeColors.text }]} numberOfLines={1}>
                     {liveMarketStats.volume != null ? formatWithCommas(twoFixedTwo(liveMarketStats.volume)) : "—"}
                   </AppText>
                 </View>
                 <View style={styles.statListRow}>
-                  <AppText type={ELEVEN} style={[styles.statListLabel, { color: themeColors.text, opacity: 0.6 }]}>24h Turnover ({pairQuote})</AppText>
-                  <AppText type={ELEVEN} weight={MEDIUM} style={[styles.statListValue, { color: themeColors.text }]} numberOfLines={1}>
+                  <AppText style={styles.statListLabel}>{`24h Turnover (${pairQuote})`}</AppText>
+                  <AppText weight={MEDIUM} style={[styles.statListValue, { color: themeColors.text }]} numberOfLines={1}>
                     {liveMarketStats.volQuote != null ? formatWithCommas(twoFixedTwo(liveMarketStats.volQuote)) : "—"}
                   </AppText>
                 </View>
@@ -2075,46 +2096,11 @@ const FutureChartScreen = () => {
           {
             backgroundColor: isDark ? themeColors.background : colors.white,
             paddingBottom: Math.max(insets.bottom, 10),
+            paddingHorizontal: 14,
           },
         ]}
       >
-        <View style={styles.chartBottomLeftIcons}>
-          {[
-            { id: "margin", label: "Margin", icon: margin_ic },
-            { id: "futures", label: "Futures", icon: future_ic },
-            // { id: "bots", label: "Bots", icon: bots_ic },
-          ].map((it) => (
-            <TouchableOpacity
-              key={it.id}
-              activeOpacity={0.8}
-              onPress={() => {
-                if (it.id === "margin") {
-                  NavigationService.navigate(routes.TRADE_SCREEN, { activeTab: "Margin" });
-                } else if (it.id === "futures") {
-                  NavigationService.navigate(routes.FUTURES_SCREEN);
-                } else {
-                  showComingSoon();
-                }
-              }}
-              style={styles.chartBottomIconItem}
-              accessibilityLabel={it.label}
-            >
-              <View style={styles.chartBottomIconImageWrap}>
-                <FastImage
-                  source={it.icon}
-                  style={styles.chartBottomIcon}
-                  resizeMode="contain"
-                  tintColor={themeColors.secondaryText}
-                />
-              </View>
-              <AppText style={[styles.chartBottomIconLabel, { color: themeColors.secondaryText }]}>
-                {it.label}
-              </AppText>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={[styles.chartBottomBtnsWrap]}>
+        {/* <View style={[styles.chartBottomBtnsWrap]}>
           <TouchableOpacity
             style={[
               styles.chartBottomBtn,
@@ -2124,8 +2110,8 @@ const FutureChartScreen = () => {
             onPress={() => goToSpotTradeSide("BUY")}
             activeOpacity={0.88}
           >
-            <AppText weight={SEMI_BOLD} style={{ color: themePalette.white }}>
-              {tradeType === "Margin" ? "Margin Buy" : "Buy"}
+            <AppText weight={SEMI_BOLD} style={{ color: themePalette.white, fontSize: 15 }}>
+              Buy / Long
             </AppText>
           </TouchableOpacity>
           <TouchableOpacity
@@ -2137,11 +2123,11 @@ const FutureChartScreen = () => {
             onPress={() => goToSpotTradeSide("SELL")}
             activeOpacity={0.88}
           >
-            <AppText weight={SEMI_BOLD} style={{ color: themePalette.white }}>
-              {tradeType === "Margin" ? "Margin Sell" : "Sell"}
+            <AppText weight={SEMI_BOLD} style={{ color: themePalette.white, fontSize: 15 }}>
+              Sell / Short
             </AppText>
           </TouchableOpacity>
-        </View>
+        </View>*/}
       </View>
 
       <AnimatedBottomSheet ref={pairSheetRef} isDark={isDark} theme={theme}>
@@ -2819,28 +2805,26 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 6,
   },
-  ratioIndicatorBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 0,
-    paddingVertical: 0,
-    gap: 10,
+  spreadInfo: {
+    marginTop: 8,
+    marginBottom: 6,
   },
-  ratioIndicatorHalf: {
-    flex: 1,
+  ratioBar: {
     flexDirection: "row",
-    alignItems: "center",
-  },
-  ratioIndicatorTrack: {
-    flex: 3,
-    height: 3,
-    backgroundColor: "rgba(128,128,128,0.12)",
+    height: 16,
     borderRadius: 2,
-    flexDirection: "row",
     overflow: "hidden",
+    gap: 1,
   },
-  ratioIndicatorFill: {
-    height: "100%",
+  ratioLeft: {
+    justifyContent: "center",
+    alignItems: "center",
+    height: 16,
+  },
+  ratioRight: {
+    justifyContent: "center",
+    alignItems: "center",
+    height: 16,
   },
   splitObHeader: {
     flexDirection: "row",

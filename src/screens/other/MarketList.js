@@ -1,6 +1,6 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, StyleSheet, Text, TouchableOpacity, View, Dimensions, Image } from "react-native";
-import { SvgUri } from "react-native-svg";
+import { SvgXml } from "react-native-svg";
 import { AppText, BOLD, ELEVEN, FOURTEEN, MEDIUM, NORMAL, SEMI_BOLD, TEN, THIRTEEN, TWELVE } from "../../shared";
 import FastImage from "react-native-fast-image";
 import { Star } from "lucide-react-native";
@@ -29,20 +29,70 @@ const getCoinBadgeBg = (sym = "") => {
   return "#00E5FF";
 };
 
+const coinIconCache = new Map();
+
 const CoinIcon = React.memo(({ item, ticker }) => {
   const iconUri = item?.icon_path || item?.icon_url;
-  const isSvg = useMemo(() => {
-    if (!iconUri) return false;
+  const [iconState, setIconState] = useState(() => {
+    if (!iconUri) return { status: "fallback" };
+    if (coinIconCache.has(iconUri)) return coinIconCache.get(iconUri);
+    return { status: "loading" };
+  });
+
+  useEffect(() => {
+    if (!iconUri) {
+      setIconState({ status: "fallback" });
+      return;
+    }
+
+    if (coinIconCache.has(iconUri)) {
+      setIconState(coinIconCache.get(iconUri));
+      return;
+    }
+
+    let isMounted = true;
     const lower = String(iconUri).toLowerCase();
-    return lower.endsWith(".svg") || lower.includes("fireblocks.io");
-  }, [iconUri]);
 
-  const [useFallback, setUseFallback] = useState(false);
-  const [useSvgFallback, setUseSvgFallback] = useState(false);
+    if (lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".webp")) {
+      const res = { status: "image" };
+      coinIconCache.set(iconUri, res);
+      if (isMounted) setIconState(res);
+      return;
+    }
 
-  console.log(`[MARKET_ICON] ${ticker} => uri: "${iconUri}", isSvg: ${isSvg}, fallback: ${useFallback}`);
+    fetch(iconUri)
+      .then((response) => {
+        const contentType = response.headers.get("content-type") || "";
+        if (contentType.includes("svg") || lower.endsWith(".svg")) {
+          return response.text().then((text) => {
+            if (text && text.trim().startsWith("<") && text.includes("<svg")) {
+              const res = { status: "svg", xml: text };
+              coinIconCache.set(iconUri, res);
+              if (isMounted) setIconState(res);
+            } else {
+              const res = { status: "image" };
+              coinIconCache.set(iconUri, res);
+              if (isMounted) setIconState(res);
+            }
+          });
+        } else {
+          const res = { status: "image" };
+          coinIconCache.set(iconUri, res);
+          if (isMounted) setIconState(res);
+        }
+      })
+      .catch((err) => {
+        console.log(`[ICON_FETCH_ERROR] ${ticker} => ${iconUri}`, err);
+        const res = { status: "image" };
+        if (isMounted) setIconState(res);
+      });
 
-  if (!iconUri || useFallback) {
+    return () => {
+      isMounted = false;
+    };
+  }, [iconUri, ticker]);
+
+  if (!iconUri || iconState.status === "fallback") {
     return (
       <View style={[styles.coinIcon, { backgroundColor: getCoinBadgeBg(ticker), justifyContent: "center", alignItems: "center" }]}>
         <AppText style={{ color: "#FFF", fontSize: 13, fontWeight: "700" }}>{ticker?.substring(0, 1)}</AppText>
@@ -50,17 +100,14 @@ const CoinIcon = React.memo(({ item, ticker }) => {
     );
   }
 
-  if (isSvg || useSvgFallback) {
+  if (iconState.status === "svg" && iconState.xml) {
     return (
       <View style={[styles.coinIcon, { justifyContent: "center", alignItems: "center", overflow: "hidden" }]}>
-        <SvgUri
-          uri={iconUri}
+        <SvgXml
+          xml={iconState.xml}
           width={36}
           height={36}
-          onError={(err) => {
-            console.log(`[SVG_URI_ERROR] ${ticker} => ${iconUri}`, err);
-            setUseFallback(true);
-          }}
+          onError={() => setIconState({ status: "fallback" })}
         />
       </View>
     );
@@ -71,10 +118,7 @@ const CoinIcon = React.memo(({ item, ticker }) => {
       source={{ uri: iconUri }}
       resizeMode="contain"
       style={styles.coinIcon}
-      onError={(e) => {
-        console.log(`[IMAGE_LOAD_ERROR] ${ticker} => ${iconUri}`, e?.nativeEvent);
-        setUseSvgFallback(true);
-      }}
+      onError={() => setIconState({ status: "fallback" })}
     />
   );
 });
@@ -92,7 +136,6 @@ const MarketRow = React.memo(
     const fullName = item?.base_currency_fullname || item?.base_currency_name || item?.name || ticker;
 
     const iconUri = item?.icon_path || item?.icon_url;
-    console.log("MARKET_ROW_ICON:", { symbol: ticker, icon_path: item?.icon_path, iconUri });
 
     const vol = Number(item?.volume_24h ?? item?.volume ?? item?.quote_volume ?? item?.total_volume ?? 0);
     const formattedVol =
@@ -235,7 +278,6 @@ const MarketList = React.memo(
 
     const renderItem = useCallback(
       ({ item }) => {
-        console.log(item, '===item crypto')
         return (
           <MarketRow
             item={item}

@@ -67,14 +67,14 @@ const CustomDropdown = ({
           compact && styles.dropdownTriggerCompact,
           compact
             ? {
-              backgroundColor: themeColors.input,
-              borderColor: themeColors.themeBorderColor,
-              borderWidth: 1,
+              backgroundColor: isDark ? colors.lightBlackLatest : themeColors.input,
+              borderColor: isDark ? darkTheme.inputBorder : themeColors.themeBorderColor,
+              borderWidth: 0.8,
             }
             : {
-              backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
-              borderColor: themeColors.border,
-              borderWidth: 1,
+              backgroundColor: isDark ? colors.lightBlackLatest : "rgba(0,0,0,0.02)",
+              borderColor: isDark ? darkTheme.inputBorder : themeColors.border,
+              borderWidth: 0.8,
             },
           triggerStyle,
         ]}

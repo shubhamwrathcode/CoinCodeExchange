@@ -42,7 +42,7 @@ export const SocketProvider = ({ children }) => {
   const currentExchangeSubscription = useRef(null);
   const isMarketSubscribed = useRef(false);
   const currentFuturesSubscription = useRef(null);
-  const resubscribePendingRef = useRef(() => {});
+  const resubscribePendingRef = useRef(() => { });
   const marketInterestRef = useRef(new Set());
 
   const subscribeToMarket = useCallback((sourceOrForce = "default", forceArg = false) => {
@@ -309,7 +309,7 @@ export const SocketProvider = ({ children }) => {
       const flushFuturesData = () => {
         if (!pendingFuturesData) return;
         futuresDataRef.current = pendingFuturesData;
-          dispatch(setFuturesData(pendingFuturesData));
+        dispatch(setFuturesData(pendingFuturesData));
         pendingFuturesData = null;
       };
 

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useCallback, useEffect } from "react";
 import {
   View,
   TextInput,
@@ -6,16 +6,16 @@ import {
   ScrollView,
   Dimensions,
   Animated,
+  TouchableOpacity,
 } from "react-native";
-import { searchIcon } from "../../helper/ImageAssets";
-import { TouchableOpacity } from "react-native-gesture-handler";
-import { AppText, FOURTEEN, MEDIUM, SEMI_BOLD, SIXTEEN, THIRTEEN, TWELVE } from "../../shared";
+import { Search, Bell, MoreHorizontal } from "lucide-react-native";
+import { AppText, BOLD, FOURTEEN, MEDIUM, SEMI_BOLD, SIXTEEN, THIRTEEN, TWELVE } from "../../shared";
 import FastImage from "react-native-fast-image";
 import { colors, darkTheme, lightTheme } from "../../theme/colors";
 import NavigationService from "../../navigation/NavigationService";
-import { SEARCH_SCREEN } from "../../navigation/routes";
+import { NOTIFICATION_SCREEN, SEARCH_SCREEN } from "../../navigation/routes";
 import { useTheme } from "../../hooks/useTheme";
-import { fontFamilyMedium, fontFamilySemiBold } from "../../theme/typography";
+import { fontFamilyMedium, fontFamilySemiBold, fontFamilyBold } from "../../theme/typography";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const H_PAD = Math.max(14, SCREEN_WIDTH * 0.04);
@@ -51,15 +51,16 @@ const MarketHeader = ({
   const { colors: themeColors, isDark } = useTheme();
 
   const textColor = themeColors.text;
-  const placeholderColor = '#9e9fa3';
+  const placeholderColor = "#9e9fa3";
   const tabInactiveColor = themeColors.secondaryText;
+  const searchInputRef = useRef(null);
 
-  const scrollRef = React.useRef(null);
-  const tabLayoutsRef = React.useRef({});
-  const underlineLeft = React.useRef(new Animated.Value(0)).current;
-  const underlineWidth = React.useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef(null);
+  const tabLayoutsRef = useRef({});
+  const underlineLeft = useRef(new Animated.Value(0)).current;
+  const underlineWidth = useRef(new Animated.Value(0)).current;
 
-  const animateUnderlineTo = React.useCallback(
+  const animateUnderlineTo = useCallback(
     (key, animated = true) => {
       const layout = tabLayoutsRef.current?.[key];
       if (!layout) return;
@@ -86,57 +87,137 @@ const MarketHeader = ({
     [underlineLeft, underlineWidth]
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     animateUnderlineTo(activeTab, true);
   }, [activeTab, animateUnderlineTo]);
 
   // First mount: once layouts come in, snap underline to active tab.
-  React.useEffect(() => {
+  useEffect(() => {
     const id = requestAnimationFrame(() => animateUnderlineTo(activeTab, false));
     return () => cancelAnimationFrame(id);
   }, [activeTab, animateUnderlineTo]);
 
   return (
     <View style={[styles.wrapper, { backgroundColor: themeColors.background }]}>
-      {/* Search bar - full width, reference style */}
-      {showSearch && (
-        <View style={[styles.searchBar,
-        {
-          backgroundColor: isDark ? colors.lightBlackLatest : '#F4F4F4',
-          borderColor: themeColors.border, borderWidth: 0.4
-        }]}>
-          <FastImage
-            source={searchIcon}
-            resizeMode="contain"
-            style={styles.searchIcon}
-            tintColor={placeholderColor}
-          />
-          <TextInput
-            style={[styles.searchInput, {
-              color: textColor, fontSize: 14,
-              fontFamily: fontFamilySemiBold
-            }]}
-            placeholder="Search Coins"
-            placeholderTextColor={placeholderColor}
-            value={search}
-            onChangeText={onSearchChange}
-            returnKeyType="search"
-          />
+      {/* Top Header Row with "Market" title + Bell icon */}
+      <View style={styles.topHeaderRow}>
+        <AppText weight={BOLD} style={[styles.headerTitle, { color: textColor }]}>
+          Market
+        </AppText>
+        <View style={styles.topRightIcons}>
+          {/* <TouchableOpacity
+            style={styles.headerIconButton}
+            onPress={() => {
+              if (searchInputRef.current) {
+                searchInputRef.current.focus();
+              } else {
+                NavigationService.navigate(SEARCH_SCREEN);
+              }
+            }}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Search color={textColor} size={22} />
+          </TouchableOpacity> */}
+          <TouchableOpacity
+            style={styles.headerIconButton}
+            onPress={() => NavigationService.navigate(NOTIFICATION_SCREEN)}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <View style={styles.bellWrap}>
+              <Bell color={textColor} size={22} />
+              <View style={styles.redDot} />
+            </View>
+          </TouchableOpacity>
         </View>
-      )
-      }
+      </View>
 
-      {
-        !showSearch && (
+      {/* Search bar row */}
+      {showSearch && (
+        <View style={styles.searchRowContainer}>
+          <View
+            style={[
+              styles.searchBar,
+              {
+                backgroundColor: isDark ? colors.lightBlackLatest : "#F4F4F4",
+                borderColor: isDark ? "rgba(255,255,255,0.06)" : themeColors.border,
+                borderWidth: 0.8,
+              },
+            ]}
+          >
+            <Search color={placeholderColor} size={18} style={styles.searchIcon} />
+            <TextInput
+              ref={searchInputRef}
+              style={[
+                styles.searchInput,
+                {
+                  color: textColor,
+                  fontSize: 14,
+                  fontFamily: fontFamilySemiBold,
+                },
+              ]}
+              placeholder="Search for market"
+              placeholderTextColor={placeholderColor}
+              value={search}
+              onChangeText={onSearchChange}
+              returnKeyType="search"
+            />
+          </View>
+          {/* <TouchableOpacity
+            style={[
+              styles.moreBtn,
+              {
+                backgroundColor: isDark ? colors.lightBlackLatest : "#F4F4F4",
+                borderColor: isDark ? "rgba(255,255,255,0.06)" : themeColors.border,
+                borderWidth: 0.8,
+              },
+            ]}
+            activeOpacity={0.7}
+          >
+            <MoreHorizontal color={placeholderColor} size={20} />
+          </TouchableOpacity> */}
+        </View>
+      )}
+
+      {!showSearch && (
+        <View style={styles.searchRowContainer}>
           <TouchableOpacity
             onPress={() => NavigationService.navigate(SEARCH_SCREEN)}
-            style={[styles.searchBar, { backgroundColor: themeColors.card, }]}
+            style={[
+              styles.searchBar,
+              {
+                backgroundColor: isDark ? colors.lightBlackLatest : "#F4F4F4",
+                borderColor: isDark ? "rgba(255,255,255,0.06)" : themeColors.border,
+                borderWidth: 0.8,
+              },
+            ]}
+            activeOpacity={0.8}
           >
-            <FastImage source={searchIcon} resizeMode="contain" style={styles.searchIcon} tintColor={placeholderColor} />
-            <AppText weight={SEMI_BOLD} type={FOURTEEN} style={[styles.searchPlaceholder, { color: placeholderColor }]}>Search Coins</AppText>
+            <Search color={placeholderColor} size={18} style={styles.searchIcon} />
+            <AppText
+              weight={SEMI_BOLD}
+              type={FOURTEEN}
+              style={[styles.searchPlaceholder, { color: placeholderColor }]}
+            >
+              Search for market
+            </AppText>
           </TouchableOpacity>
-        )
-      }
+          {/* <TouchableOpacity
+            style={[
+              styles.moreBtn,
+              {
+                backgroundColor: isDark ? colors.lightBlackLatest : "#F4F4F4",
+                borderColor: isDark ? "rgba(255,255,255,0.06)" : themeColors.border,
+                borderWidth: 0.8,
+              },
+            ]}
+            activeOpacity={0.7}
+          >
+            <MoreHorizontal color={placeholderColor} size={20} />
+          </TouchableOpacity> */}
+        </View>
+      )}
 
       {/* Primary tabs - yellow underline for selected */}
       <ScrollView
@@ -236,20 +317,68 @@ const MarketHeader = ({
 const styles = StyleSheet.create({
   wrapper: {
     paddingHorizontal: H_PAD,
-    paddingTop: 12,
+    paddingTop: 8,
     paddingBottom: 0,
   },
-  searchBar: {
+  topHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 8,
-    height: 42,
-    paddingHorizontal: 10,
-    marginBottom: 5,
+    justifyContent: "space-between",
+    marginBottom: 12,
+    paddingTop: 4,
+  },
+  headerTitle: {
+    fontSize: 26,
+    lineHeight: 32,
+    fontWeight: "700",
+    letterSpacing: -0.4,
+  },
+  topRightIcons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  headerIconButton: {
+    padding: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bellWrap: {
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  redDot: {
+    position: "absolute",
+    top: -1,
+    right: -1,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: "#FF3B30",
+  },
+  searchRowContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 22,
+    height: 44,
+    paddingHorizontal: 14,
+  },
+  moreBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 10,
   },
   searchIcon: {
-    width: 16,
-    height: 16,
     marginRight: 8,
   },
   searchInput: {
@@ -264,7 +393,6 @@ const styles = StyleSheet.create({
   tabsRow: {
     maxHeight: 44,
     borderBottomWidth: 0.7,
-
   },
   tabsScroll: {
     flexDirection: "row",
@@ -281,8 +409,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   tabActive: {},
-  tabLabel: {
-  },
+  tabLabel: {},
   tabLabelActive: {
     fontWeight: "700",
   },
@@ -308,8 +435,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderWidth: 1,
   },
-  subTabText: {
-  },
+  subTabText: {},
 });
 
 export default MarketHeader;

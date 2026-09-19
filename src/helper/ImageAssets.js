@@ -456,6 +456,9 @@ export const EarnIcon = require('../../assets/images/EarnIcon.png');
 export const MarketIcon = require('../../assets/images/marketIcon.png');
 export const TradeIcon = require('../../assets/images/tradeIcon.png');
 export const AssetsIcon = require('../../assets/images/AssetsIcon.png');
+export const defaultTrade = require('../../assets/images/defaultTrade.png');
+export const RectangleGreen = require('../../assets/images/RectangleGreen.png');
+export const RectangleRed = require('../../assets/images/RectangleRed.png');
 
 
 

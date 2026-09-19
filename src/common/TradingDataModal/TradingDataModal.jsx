@@ -10,7 +10,9 @@ import {
   Animated,
   Easing,
   Pressable,
+  Image,
 } from "react-native";
+import { SvgXml } from "react-native-svg";
 import { FlashList } from "@shopify/flash-list";
 import React, { useCallback, useEffect, useMemo, useState, useRef, memo, forwardRef, useImperativeHandle } from "react";
 import { useAppSelector } from "../../store/hooks";
@@ -19,7 +21,7 @@ import FastImage from "react-native-fast-image";
 import { closeIcon, downIcon, searchIcon, starFillIcon, starIcon } from "../../helper/ImageAssets";
 import { colors } from "../../theme/colors";
 import { IMAGE_BASE_URL } from "../../helper/Constants";
-import { toFixedFive, toFixedThree } from "../../helper/utility";
+import { toFixedFive, toFixedThree, buildCoinIconUri } from "../../helper/utility";
 import { addToFavorites } from "../../actions/homeActions";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -27,6 +29,108 @@ const SHEET_HEIGHT = Math.min(SCREEN_HEIGHT * 0.82, 640);
 const OPEN_MS = 230;
 const CLOSE_MS = 210;
 const GESTURE_LOCK_MS = 320;
+
+const getCoinBadgeBg = (sym = "") => {
+  const upper = String(sym).toUpperCase();
+  if (upper.includes("BTC")) return "#F7931A";
+  if (upper.includes("ETH")) return "#627EEA";
+  if (upper.includes("BNB")) return "#F3BA2F";
+  if (upper.includes("SOL")) return "#14F195";
+  if (upper.includes("MEGA")) return "#E84142";
+  if (upper.includes("ZAMA")) return "#FFD700";
+  if (upper.includes("USDT") || upper.includes("USD")) return "#26A17B";
+  if (upper.includes("XRP")) return "#23292F";
+  if (upper.includes("DOGE")) return "#C2A633";
+  if (upper.includes("ADA")) return "#0033AD";
+  if (upper.includes("HBAR")) return "#222222";
+  return "#00E5FF";
+};
+
+const coinIconCache = new Map();
+
+const ModalCoinIcon = memo(({ iconUri, ticker, searchBarBg }) => {
+  const [iconState, setIconState] = useState(() => {
+    if (!iconUri) return { status: "fallback" };
+    if (coinIconCache.has(iconUri)) return coinIconCache.get(iconUri);
+    return { status: "loading" };
+  });
+
+  useEffect(() => {
+    if (!iconUri) {
+      setIconState({ status: "fallback" });
+      return;
+    }
+
+    if (coinIconCache.has(iconUri)) {
+      setIconState(coinIconCache.get(iconUri));
+      return;
+    }
+
+    let isMounted = true;
+    const lower = String(iconUri).toLowerCase();
+
+    if (lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".webp")) {
+      const res = { status: "image" };
+      coinIconCache.set(iconUri, res);
+      if (isMounted) setIconState(res);
+      return;
+    }
+
+    fetch(iconUri)
+      .then((response) => response.text())
+      .then((text) => {
+        if (text && typeof text === "string" && (text.includes("<svg") || text.trim().startsWith("<?xml") || text.includes("<path"))) {
+          const res = { status: "svg", xml: text };
+          coinIconCache.set(iconUri, res);
+          if (isMounted) setIconState(res);
+        } else {
+          const res = { status: "image" };
+          coinIconCache.set(iconUri, res);
+          if (isMounted) setIconState(res);
+        }
+      })
+      .catch(() => {
+        const res = { status: "image" };
+        coinIconCache.set(iconUri, res);
+        if (isMounted) setIconState(res);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [iconUri]);
+
+  if (!iconUri || iconState.status === "fallback") {
+    return (
+      <View style={[styles.coinIcon, { backgroundColor: getCoinBadgeBg(ticker), justifyContent: "center", alignItems: "center" }]}>
+        <Text style={{ color: "#FFF", fontSize: 13, fontWeight: "700" }}>{ticker?.substring(0, 1) || "•"}</Text>
+      </View>
+    );
+  }
+
+  if (iconState.status === "svg" && iconState.xml) {
+    return (
+      <View style={[styles.coinIcon, { justifyContent: "center", alignItems: "center", overflow: "hidden" }]}>
+        <SvgXml
+          xml={iconState.xml}
+          width={30}
+          height={30}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <FastImage
+      source={{ uri: iconUri }}
+      resizeMode="contain"
+      style={styles.coinIcon}
+      onError={() => setIconState({ status: "fallback" })}
+    />
+  );
+});
+
+ModalCoinIcon.displayName = "ModalCoinIcon";
 
 function compactVolume(value) {
   const n = Number(value);
@@ -82,7 +186,17 @@ const rowAreEqual = (prev, next) => {
 const CoinRow = memo(({ item, isFavorite, onToggleFavorite, onChangePair, searchBarBg, rowBorderColor, textColor, subTextColor }) => {
   const chg = getChangePct(item);
   const chgNeg = chg < 0;
-  const iconUri = item?.icon_path ? IMAGE_BASE_URL + item.icon_path : null;
+  const ticker = String(item?.base_currency || item?.symbol || "").toUpperCase();
+  const rawIcon =
+    item?.icon_path ||
+    item?.icon ||
+    item?.base_currency_icon ||
+    item?.currency_icon ||
+    item?.icon_url ||
+    item?.image ||
+    item?.logo;
+  const iconUri = buildCoinIconUri(rawIcon);
+
   const fullName = item?.base_currency_fullname || item?.base_currency || "—";
   const volStr = compactVolume(item?.volume);
   const subtitle = `${fullName} | ${volStr}`;
@@ -111,11 +225,7 @@ const CoinRow = memo(({ item, isFavorite, onToggleFavorite, onChangePair, search
             tintColor={isFavorite ? colors.starColor : subTextColor}
           />
         </TouchableOpacity>
-        {iconUri ? (
-          <FastImage source={{ uri: iconUri }} resizeMode="cover" style={styles.coinIcon} />
-        ) : (
-          <View style={[styles.coinIcon, styles.coinIconPh, { backgroundColor: searchBarBg }]} />
-        )}
+        <ModalCoinIcon iconUri={iconUri} ticker={ticker} searchBarBg={searchBarBg} />
         <View style={styles.pairBlock}>
           <Text style={[styles.pairLine, { color: textColor }]} numberOfLines={1}>
             {item?.base_currency}
@@ -180,13 +290,12 @@ const TradingDataModal = memo(forwardRef(({ visible, onClose, setCurrency, isDar
   }, []);
 
   const playOpenAnim = useCallback(() => {
-    if (!pendingOpenRef.current) return;
-    pendingOpenRef.current = false;
     if (openFallbackRef.current) {
       clearTimeout(openFallbackRef.current);
       openFallbackRef.current = null;
     }
     isClosingRef.current = false;
+    pendingOpenRef.current = false;
     Animated.timing(sheetAnim, {
       toValue: 1,
       duration: OPEN_MS,
@@ -198,31 +307,28 @@ const TradingDataModal = memo(forwardRef(({ visible, onClose, setCurrency, isDar
   }, [sheetAnim]);
 
   const runOpen = useCallback(() => {
-    const now = Date.now();
-    if (now < ignoreOpenUntilRef.current) {
-      if (visiblePropRef.current === true) onCloseRef.current?.();
-      return;
-    }
     if (isClosingRef.current) return;
-    if (mountedRef.current || isOpenRef.current || pendingOpenRef.current) return;
+    if (mountedRef.current && isOpenRef.current) return;
 
-    ignoreBackdropUntilRef.current = now + GESTURE_LOCK_MS;
+    if (openFallbackRef.current) {
+      clearTimeout(openFallbackRef.current);
+      openFallbackRef.current = null;
+    }
     pendingOpenRef.current = true;
     isOpenRef.current = false;
     sheetAnim.stopAnimation();
     backdropAnim.stopAnimation();
     sheetAnim.setValue(0);
-    backdropAnim.setValue(backdropMax);
+    backdropAnim.setValue(1);
     setSearchQuery("");
     mountedRef.current = true;
     setMounted(true);
-    openFallbackRef.current = setTimeout(playOpenAnim, 48);
-  }, [backdropAnim, backdropMax, playOpenAnim, sheetAnim]);
+    openFallbackRef.current = setTimeout(playOpenAnim, 24);
+  }, [backdropAnim, playOpenAnim, sheetAnim]);
 
   const runClose = useCallback(() => {
     if (!mountedRef.current || isClosingRef.current) return;
 
-    ignoreOpenUntilRef.current = Date.now() + GESTURE_LOCK_MS;
     pendingOpenRef.current = false;
     isOpenRef.current = false;
     isClosingRef.current = true;

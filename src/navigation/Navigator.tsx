@@ -142,6 +142,7 @@ import NewSwapHistory from "../screens/account/NewSwapHistory";
 import InternalWalletHistory from "../screens/account/InternalWalletHistory";
 import BuyPackage from "../screens/other/BuyPackage";
 import Futures from "../screens/Futures/FuturesNavigator";
+import FuturesTrade from "../screens/Futures/FuturesTrade";
 import FutureOrderHistory from "../screens/Futures/FutureOrderHistory";
 import TicketScreen from "../screens/supportSreen/TicketScreen";
 import { useTheme } from "../hooks/useTheme";
@@ -151,6 +152,7 @@ import SelectCoin from "../screens/wallet/Withdrawal/SelectCoin";
 import WithdrawForm from "../screens/wallet/Withdrawal/WithdrawForm";
 import AddFavouriteScreen from '../screens/other/AddFavouriteScreen';
 import Earning from '../screens/earning/Earning';
+import EarnComingSoonScreen from '../screens/earning/EarnComingSoonScreen';
 import SoftStaking from '../screens/SoftStaking/SoftStaking';
 import AccountDetails from "../screens/Security/AccountDetails";
 import VipServices from "../screens/account/VipServices";
@@ -200,7 +202,7 @@ const CustomBottomTabBar = ({ state, descriptors, navigation }: any) => {
     [routes.HOME_SCREEN]: "Home",
     [routes.MARKET_SCREEN]: "Market",
     [routes.TRADE_SCREEN]: "Trade",
-    [routes.FUTURES_SCREEN]: "Earn",
+    [routes.EARNING_SCREEN]: "Earn",
     [routes.WALLET_SCREEN]: "Assets",
   };
 
@@ -326,7 +328,7 @@ const CustomBottomTabBar = ({ state, descriptors, navigation }: any) => {
             [routes.HOME_SCREEN]: null,
             [routes.MARKET_SCREEN]: MarketIcon,
             [routes.TRADE_SCREEN]: TradeIcon,
-            [routes.FUTURES_SCREEN]: EarnIcon,
+            [routes.EARNING_SCREEN]: EarnIcon,
             [routes.WALLET_SCREEN]: AssetsIcon,
           };
 
@@ -763,6 +765,7 @@ const MyAuthLoadingStack = () => {
       <Stack.Screen name={routes.LAUNCHPAD_SCREEN} component={Launchpad} />
       <Stack.Screen name={routes.LAUNCHPAD_DETAIL_SCREEN} component={LaunchpadDetail} />
       <Stack.Screen name={routes.REFER_AND_EARN_SCREEN} component={ReferAndEarn} />
+      <Stack.Screen name={routes.FUTURES_SCREEN} component={FuturesTrade} />
     </Stack.Navigator>
   );
 };
@@ -926,7 +929,7 @@ function BottomNavigation() {
           component={Spot}
         />
         <Tab.Screen
-          name={routes.FUTURES_SCREEN}
+          name={routes.EARNING_SCREEN}
           options={{
             tabBarIcon: ({ focused }) => (
               <View style={bottomTabStyles.tabColumn}>
@@ -953,7 +956,7 @@ function BottomNavigation() {
               </View>
             ),
           }}
-          component={Futures}
+          component={EarnComingSoonScreen}
         />
         <Tab.Screen
           name={routes.WALLET_SCREEN}

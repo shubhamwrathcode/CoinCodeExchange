@@ -198,14 +198,13 @@ const MarginBottomSection = ({
             styles.spotOrderSubmitBtn,
             {
               backgroundColor: !userData
-                ? (themeColors.spotTradeBuy ?? colors.spotTradeBuy)
-                : (amount && parseFloat(amount) > 0)
-                  ? (isBuy
-                    ? (themeColors.spotTradeBuy ?? colors.spotTradeBuy)
-                    : (themeColors.spotTradeSell ?? colors.spotTradeSell))
-                  : (isBuy
-                    ? (isDark ? "#19402E" : "#A7E2C6")
-                    : (isDark ? "#4A1D20" : "#F2B2B4")),
+                ? "#00C853"
+                : isBuy
+                  ? "#00C853"
+                  : "#FF3B30",
+              height: 42,
+              minHeight: 42,
+              borderRadius: 28,
             },
           ]}
           onPress={() => {

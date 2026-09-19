@@ -246,9 +246,9 @@ const FutureHistoryScreen = () => {
             <View
               style={{
                 width: 25,
-                height: 4,
-                marginTop: 8,
-                backgroundColor: activeHistoryTab === t.id ? isDark ? colors.white : colors.black : "transparent",
+                height: 3,
+                marginTop: 6,
+                backgroundColor: activeHistoryTab === t.id ? (colors.cyanTheme || "#0AA8C5") : "transparent",
                 borderRadius: 2,
               }}
             />

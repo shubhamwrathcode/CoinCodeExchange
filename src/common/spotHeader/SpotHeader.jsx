@@ -8,8 +8,8 @@ import {
 import React, { useState, useEffect, useRef } from "react";
 import FastImage from "react-native-fast-image";
 import LinearGradient from "react-native-linear-gradient";
-import { back_ic, candle, downIcon, history_line, modes, moreImg } from "../../helper/ImageAssets";
-import { AppText, SEMI_BOLD } from "../AppText";
+import { back_ic, candle, downIcon, history_line, modes, moreImg, defaultTrade } from "../../helper/ImageAssets";
+import { AppText, SEMI_BOLD, BOLD, MEDIUM } from "../AppText";
 import { toFixedThree } from "../../helper/utility";
 import { useTheme } from "../../hooks/useTheme";
 import { colors } from "../../theme/colors";
@@ -17,7 +17,7 @@ import { Alert, Platform, ToastAndroid } from "react-native";
 import NavigationService from "../../navigation/NavigationService";
 import { useAppSelector } from "../../store/hooks";
 import { showError } from "../../helper/logger";
-import { LOGIN_SCREEN, BUY_CRYPTO_SCREEN } from "../../navigation/routes";
+import { LOGIN_SCREEN, BUY_CRYPTO_SCREEN, FUTURES_SCREEN } from "../../navigation/routes";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const HEADER_SHIMMER_STRIP = 140;
@@ -49,27 +49,33 @@ const HeaderShimmerBar = ({ width: w, height, borderRadius = 6, style }) => {
     };
     run();
     return () => shimmerX.stopAnimation();
-  }, [shimmerX, stripW, isDark]);
+  }, [shimmerX]);
 
   return (
     <View
       style={[
-        { width: w, height, borderRadius, overflow: "hidden", backgroundColor: boneColor },
+        {
+          width: w,
+          height,
+          borderRadius,
+          backgroundColor: boneColor,
+          overflow: "hidden",
+        },
         style,
       ]}
     >
       <Animated.View
-        pointerEvents="none"
-        style={[
-          { position: "absolute", top: 0, bottom: 0, width: stripW, left: 0 },
-          { transform: [{ translateX: shimmerX }] },
-        ]}
+        style={{
+          width: stripW,
+          height: "100%",
+          transform: [{ translateX: shimmerX }],
+        }}
       >
         <LinearGradient
           colors={shimmerColors}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={{ flex: 1, width: stripW }}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={StyleSheet.absoluteFill}
         />
       </Animated.View>
     </View>
@@ -81,98 +87,76 @@ const HeaderShimmerBar = ({ width: w, height, borderRadius = 6, style }) => {
  * @param {boolean} [pairLoading] — show input-style skeleton in left block until pair metadata is ready.
  */
 const SpotHeader = ({
-  title,
-  setCurrency,
-  change,
-  onCandlePress,
-  onTrendPress,
-  onMorePress,
-  onBackPress,
-  isDark: isDarkProp,
-  pairLoading = false,
+  title = "BTC/USDT",
+  change = "",
+  onBackPress = () => NavigationService.goBack(),
+  onCandlePress = () => NavigationService.navigate("SpotChartScreen", { pair: title, change }),
+  onTradePress,
+  viewMode = "trade",
+  openPairSheet,
+  pairSheetRef,
+  rightContent = null,
   activeHeaderTab = "Spot",
   setActiveHeaderTab,
   currencyData,
-  pairSheetRef,
+  userData,
+  pairLoading = false,
 }) => {
-  const openLockRef = useRef(false);
-  const { colors: themeColors, theme, isDark: isDarkFromHook } = useTheme();
-  const userData = useAppSelector((state) => state.auth.userData);
-  const darkMode =
-    typeof isDarkProp === "boolean" ? isDarkProp : isDarkFromHook;
+  const { colors: themeColors, isDark } = useTheme();
+  const darkMode = isDark;
+  const isPositive = Number(change) >= 0;
+  const changeColor = change != null && change !== ""
+    ? (isPositive ? (colors.green || "#0B9C3C") : (colors.red || "#E03934"))
+    : themeColors.secondaryText;
+  const formattedChange = change != null && change !== ""
+    ? `${isPositive ? "+" : ""}${toFixedThree(change)}%`
+    : "—";
 
-  const openPairSheet = () => {
-    if (openLockRef.current) return;
-    openLockRef.current = true;
-    pairSheetRef.current?.open();
-    setTimeout(() => {
-      openLockRef.current = false;
-    }, 400);
-  };
+  const titleColor = themeColors.text;
+  const iconTint = themeColors.text;
 
-  const iconTint = darkMode ? themeColors.text : "#222";
-  const titleColor = darkMode ? themeColors.text : "#222";
-  const changeColor =
-    change == null || Number.isNaN(Number(change))
-      ? themeColors.secondaryText
-      : Number(change) < 0
-        ? themeColors.red
-        : themeColors.green;
-
-  const showComingSoon = () => {
-    if (Platform.OS === "android") {
-      ToastAndroid.show("Coming soon", ToastAndroid.SHORT);
-    } else {
-      Alert.alert("Coming soon");
+  const handleOpenPairSheet = () => {
+    if (typeof openPairSheet === "function") {
+      openPairSheet();
+    } else if (pairSheetRef?.current?.open) {
+      pairSheetRef.current.open();
     }
   };
 
-  const leftContent = pairLoading ? (
-    <View style={styles.pairBlock} accessibilityState={{ busy: true }}>
-      <View style={styles.pairRow}>
-        <HeaderShimmerBar width={150} height={22} borderRadius={6} />
-        <View style={{ width: 12, height: 12, marginLeft: 8 }} />
-      </View>
-      <HeaderShimmerBar width={96} height={18} borderRadius={8} style={{ marginTop: 10 }} />
-    </View>
-  ) : (
-    <View style={styles.pairBlock}>
-      <View style={styles.pairRow}>
-        <TouchableOpacity
-          onPress={openPairSheet}
-          activeOpacity={0.75}
-          hitSlop={{ top: 8, bottom: 8, right: 8 }}
-          style={{ flexDirection: "row", alignItems: "center", flexShrink: 1 }}
-        >
-          <AppText weight={SEMI_BOLD} style={[styles.pairTitle, { color: titleColor }]} numberOfLines={1}>
-            {title}
+  const leftContent = (
+    <TouchableOpacity
+      onPress={handleOpenPairSheet}
+      activeOpacity={0.75}
+      hitSlop={{ top: 8, bottom: 8, right: 8 }}
+      style={styles.pairBlock}
+    >
+      {pairLoading ? (
+        <View accessibilityState={{ busy: true }}>
+          <View style={styles.pairRow}>
+            <HeaderShimmerBar width={140} height={22} borderRadius={6} />
+            <View style={{ width: 12, height: 12, marginLeft: 8 }} />
+          </View>
+          <HeaderShimmerBar width={60} height={14} borderRadius={4} style={{ marginTop: 4 }} />
+        </View>
+      ) : (
+        <>
+          <View style={styles.pairRow}>
+            <AppText weight={BOLD} style={[styles.pairTitle, { color: titleColor }]} numberOfLines={1}>
+              {title}
+            </AppText>
+            <FastImage
+              source={downIcon}
+              style={{ width: 12, height: 12, marginLeft: 6, marginTop: 2 }}
+              tintColor={iconTint}
+              resizeMode="contain"
+            />
+          </View>
+          <AppText weight={MEDIUM} style={[styles.changeText, { color: changeColor }]}>
+            {formattedChange}
           </AppText>
-          <FastImage
-            source={downIcon}
-            style={{ width: 12, height: 12, marginLeft: 8, marginTop: 2 }}
-            tintColor={iconTint}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
-
-        {/* No Favorite button here */}
-      </View>
-      <View
-        style={[
-          styles.changePill,
-          {
-            backgroundColor: colors.green,
-            borderColor: colors.green
-          },
-        ]}
-      >
-        <AppText style={[styles.changeText, { color: colors.white }]}>
-          {change != null && change !== ""
-            ? `${Number(change) >= 0 ? "+" : ""}${toFixedThree(change)}%`
-            : "—"}
-        </AppText>
-      </View>
-    </View>
+        </>
+      )}
+    </TouchableOpacity>
   );
 
   return (
@@ -189,7 +173,7 @@ const SpotHeader = ({
             <FastImage source={back_ic} style={{ width: 20, height: 20 }} resizeMode="contain" tintColor={darkMode ? colors.white : colors.black} />
           </TouchableOpacity>
           <View style={styles.topTabs}>
-            {["Spot", "Margin", "Buy Crypto"].map((t, idx, arr) => {
+            {["Spot", "Margin", /* "Buy Crypto", */ "Futures"].map((t, idx, arr) => {
               const active = t === activeHeaderTab;
               return (
                 <TouchableOpacity
@@ -206,78 +190,67 @@ const SpotHeader = ({
                     idx !== arr.length - 1 && { marginRight: 6 },
                   ]}
                 >
-                  <AppText weight={SEMI_BOLD} style={{ fontSize: 16, color: active ? themeColors.text : themeColors.secondaryText }}>
+                  <AppText weight={SEMI_BOLD} style={{ fontSize: 16, color: active ? (colors.cyanTheme || "#0AA8C5") : themeColors.secondaryText }}>
                     {t}
                   </AppText>
-                  <View style={[styles.topTabUnderline, { backgroundColor: active ? themeColors.text : "transparent" }]} />
+                  <View style={[styles.topTabUnderline, { backgroundColor: active ? (colors.cyanTheme || "#0AA8C5") : "transparent" }]} />
                 </TouchableOpacity>
               );
             })}
           </View>
         </View>
 
-        {activeHeaderTab !== "Convert" && activeHeaderTab !== "Buy Crypto" && (
+        {activeHeaderTab !== "Convert" && activeHeaderTab !== "Buy Crypto" && activeHeaderTab !== "Futures" && (
           <View style={styles.pairRowMain}>
             <View style={{ flex: 1 }}>
               {leftContent}
             </View>
 
-            {/* <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={showComingSoon}
-              style={styles.iconBtn}
-              accessibilityLabel="More options"
-            >
-              <FastImage
-                source={modes}
-                style={styles.headerIcon}
-                resizeMode="contain"
-                tintColor={iconTint}
-              />
-            </TouchableOpacity> */}
+            <View style={styles.rightGroup}>
+              <View style={styles.badgeContainer}>
+                <View style={[styles.mmBadge, { backgroundColor: isDark ? "#002E15" : "#E8F8F0" }]}>
+                  <AppText weight={MEDIUM} style={{ color: colors.green || "#00C853", fontSize: 10 }}>MM</AppText>
+                </View>
+                <AppText weight={MEDIUM} style={{ color: colors.green || "#00C853", fontSize: 11, marginTop: 3 }}>0.00%</AppText>
+              </View>
 
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={onCandlePress}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Open chart"
-            >
-              <FastImage
-                source={candle}
-                style={styles.headerIcon}
-                resizeMode="contain"
-                tintColor={iconTint}
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() => {
-                if (!userData) {
-                  showError("Please login first to view order history");
-                  NavigationService.navigate(LOGIN_SCREEN);
-                  return;
-                }
-                if (activeHeaderTab === "Margin") {
-                  NavigationService.navigate("MARGIN_HISTORY_SCREEN", { currencyData });
-                } else {
-                  NavigationService.navigate('Trade_History');
-                }
-              }}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Open history"
-            >
-              <FastImage
-                source={history_line}
-                style={styles.headerIcon}
-                resizeMode="contain"
-                tintColor={iconTint}
-              />
-            </TouchableOpacity>
-
-            {/* (removed duplicate more icon; Coming soon uses the above button) */}
+              <View style={[styles.iconGroup, { backgroundColor: isDark ? "#111214" : "#F3F4F6" }]}>
+                <TouchableOpacity
+                  style={[
+                    styles.iconWrapper,
+                    viewMode === "candles" && { backgroundColor: isDark ? "#35373F" : "#E5E7EB" },
+                  ]}
+                  onPress={onCandlePress}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open chart"
+                >
+                  <FastImage
+                    source={candle}
+                    style={{ width: 18, height: 18 }}
+                    resizeMode="contain"
+                    tintColor={viewMode === "candles" ? (isDark ? colors.white : colors.black) : (isDark ? "#8E8E93" : "#6A7282")}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.iconWrapper,
+                    viewMode === "trade" && { backgroundColor: isDark ? "#35373F" : "#E5E7EB" },
+                  ]}
+                  onPress={onTradePress}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open trade"
+                >
+                  <FastImage
+                    source={defaultTrade}
+                    style={{ width: 18, height: 18 }}
+                    resizeMode="contain"
+                    tintColor={viewMode === "trade" ? (isDark ? colors.white : colors.black) : (isDark ? "#8E8E93" : "#6A7282")}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         )}
       </View>
@@ -290,7 +263,7 @@ export default SpotHeader;
 const styles = StyleSheet.create({
   container: {
     paddingTop: 10,
-    paddingBottom: 10,
+    paddingBottom: 6,
     paddingHorizontal: 12,
   },
   topRow: {
@@ -324,43 +297,51 @@ const styles = StyleSheet.create({
   pairRowMain: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 12,
-    paddingHorizontal: 5,
-    gap: 4,
+    justifyContent: "space-between",
+    marginTop: 10,
+    paddingHorizontal: 4,
   },
   pairBlock: {
-    paddingRight: 10,
+    justifyContent: "center",
   },
   pairRow: {
     flexDirection: "row",
     alignItems: "center",
   },
   pairTitle: {
-    fontSize: 18,
+    fontSize: 22,
     letterSpacing: -0.2,
-  },
-  changePill: {
-    alignSelf: "flex-start",
-    marginTop: 10,
-    borderRadius: 5,
-    borderWidth: StyleSheet.hairlineWidth,
-    justifyContent: "flex-start",
-    alignItems: "center",
-    paddingHorizontal: 5
   },
   changeText: {
     fontSize: 13,
-
+    marginTop: 3,
   },
-  iconBtn: {
-    padding: 6,
-    minWidth: 34,
-    minHeight: 34,
+  rightGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  badgeContainer: {
+    alignItems: "center",
+    marginRight: 14,
+  },
+  mmBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  iconGroup: {
+    flexDirection: "row",
+    borderRadius: 22,
+    padding: 3,
+    alignItems: "center",
+  },
+  iconWrapper: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
   },
-  headerIcon: {
-    width: 24,
-    height: 24,
+  activeIconWrapper: {
   },
 });

@@ -6,6 +6,7 @@ import { AppText, SEMI_BOLD, MEDIUM, Button } from "../../shared";
 import { colors, darkTheme, lightTheme } from "../../theme/colors";
 import { checkIc, downIcon, tick, closeIcon, add, minus, right_ic } from "../../helper/ImageAssets";
 import { IMAGE_BASE_URL } from "../../helper/Constants";
+import { buildCoinIconUri } from "../../helper/utility";
 
 const MarginHeaderDropdowns = ({
   marginMode,
@@ -30,7 +31,15 @@ const MarginHeaderDropdowns = ({
   const quoteSymbol = currencyData?.quote_currency || "USDT";
   const baseSymbol = currencyData?.base_currency || "BTC";
   const coinLabel = `${baseSymbol}/${quoteSymbol}`;
-  const coinIconSrc = currencyData?.icon_path ? `${IMAGE_BASE_URL}${currencyData.icon_path}` : null;
+  const coinIconSrc = buildCoinIconUri(
+    currencyData?.icon_path ||
+    currencyData?.icon ||
+    currencyData?.base_currency_icon ||
+    currencyData?.currency_icon ||
+    currencyData?.icon_url ||
+    currencyData?.image ||
+    currencyData?.logo
+  );
 
   const minLeverage = currencyData?.margin_config?.min_leverage ?? 1;
   const maxLeverage = (isCross ? crossAccount?.max_leverage : null) ?? currencyData?.margin_config?.max_leverage ?? 10;
@@ -118,16 +127,16 @@ const MarginHeaderDropdowns = ({
         style={[
           styles.dropdown,
           {
-            backgroundColor: isDark ? themeColors.background : lightTheme.input,
+            backgroundColor: isDark ? colors.lightBlackLatest : lightTheme.input,
             flex: 1,
             borderRadius: 10,
-            borderWidth: isDark ? 1 : 0,
+            borderWidth: 0.8,
             paddingVertical: 6,
             paddingHorizontal: 12,
             marginBottom: 0,
             flexDirection: "row",
             alignItems: "center",
-            borderColor: isDark ? colors.themeElevationColor : "transparent"
+            borderColor: isDark ? darkTheme.inputBorder : themeColors.border,
           },
         ]}
       >
@@ -148,16 +157,16 @@ const MarginHeaderDropdowns = ({
         style={[
           styles.dropdown,
           {
-            backgroundColor: isDark ? colors.newThemeColor : lightTheme.input,
+            backgroundColor: isDark ? colors.lightBlackLatest : lightTheme.input,
             width: 75,
             borderRadius: 10,
-            borderWidth: isDark ? 1 : 0,
+            borderWidth: 0.8,
             paddingVertical: 6,
             paddingHorizontal: 12,
             marginBottom: 0,
             flexDirection: "row",
             alignItems: "center",
-            borderColor: isDark ? colors.themeElevationColor : "transparent"
+            borderColor: isDark ? darkTheme.inputBorder : themeColors.border,
           },
         ]}
       >

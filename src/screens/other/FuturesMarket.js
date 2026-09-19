@@ -1,6 +1,6 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { View, StyleSheet, TouchableOpacity, ScrollView, Text, FlatList, Image } from "react-native";
-import { SvgUri } from "react-native-svg";
+import { SvgXml } from "react-native-svg";
 import { AppText, ELEVEN, FOURTEEN, MEDIUM, SEMI_BOLD, TWELVE } from "../../shared";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { colors } from "../../theme/colors";
@@ -30,20 +30,70 @@ const getCoinBadgeBg = (sym = "") => {
   return "#00E5FF";
 };
 
+const futuresIconCache = new Map();
+
 const FuturesCoinIcon = React.memo(({ item, ticker }) => {
   const iconUri = item?.icon_path || item?.icon_url;
-  const isSvg = useMemo(() => {
-    if (!iconUri) return false;
+  const [iconState, setIconState] = useState(() => {
+    if (!iconUri) return { status: "fallback" };
+    if (futuresIconCache.has(iconUri)) return futuresIconCache.get(iconUri);
+    return { status: "loading" };
+  });
+
+  useEffect(() => {
+    if (!iconUri) {
+      setIconState({ status: "fallback" });
+      return;
+    }
+
+    if (futuresIconCache.has(iconUri)) {
+      setIconState(futuresIconCache.get(iconUri));
+      return;
+    }
+
+    let isMounted = true;
     const lower = String(iconUri).toLowerCase();
-    return lower.endsWith(".svg") || lower.includes("fireblocks.io");
-  }, [iconUri]);
 
-  const [useFallback, setUseFallback] = useState(false);
-  const [useSvgFallback, setUseSvgFallback] = useState(false);
+    if (lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".webp")) {
+      const res = { status: "image" };
+      futuresIconCache.set(iconUri, res);
+      if (isMounted) setIconState(res);
+      return;
+    }
 
-  console.log(`[FUTURES_ICON] ${ticker} => uri: "${iconUri}", isSvg: ${isSvg}, fallback: ${useFallback}`);
+    fetch(iconUri)
+      .then((response) => {
+        const contentType = response.headers.get("content-type") || "";
+        if (contentType.includes("svg") || lower.endsWith(".svg")) {
+          return response.text().then((text) => {
+            if (text && text.trim().startsWith("<") && text.includes("<svg")) {
+              const res = { status: "svg", xml: text };
+              futuresIconCache.set(iconUri, res);
+              if (isMounted) setIconState(res);
+            } else {
+              const res = { status: "image" };
+              futuresIconCache.set(iconUri, res);
+              if (isMounted) setIconState(res);
+            }
+          });
+        } else {
+          const res = { status: "image" };
+          futuresIconCache.set(iconUri, res);
+          if (isMounted) setIconState(res);
+        }
+      })
+      .catch((err) => {
+        console.log(`[FUTURES_ICON_FETCH_ERROR] ${ticker} => ${iconUri}`, err);
+        const res = { status: "image" };
+        if (isMounted) setIconState(res);
+      });
 
-  if (!iconUri || useFallback) {
+    return () => {
+      isMounted = false;
+    };
+  }, [iconUri, ticker]);
+
+  if (!iconUri || iconState.status === "fallback") {
     return (
       <View style={[styles.coinIcon, { backgroundColor: getCoinBadgeBg(ticker), justifyContent: "center", alignItems: "center" }]}>
         <AppText style={{ color: "#FFF", fontSize: 13, fontWeight: "700" }}>{ticker?.substring(0, 1)}</AppText>
@@ -51,17 +101,14 @@ const FuturesCoinIcon = React.memo(({ item, ticker }) => {
     );
   }
 
-  if (isSvg || useSvgFallback) {
+  if (iconState.status === "svg" && iconState.xml) {
     return (
       <View style={[styles.coinIcon, { justifyContent: "center", alignItems: "center", overflow: "hidden" }]}>
-        <SvgUri
-          uri={iconUri}
+        <SvgXml
+          xml={iconState.xml}
           width={36}
           height={36}
-          onError={(err) => {
-            console.log(`[FUTURES_SVG_ERROR] ${ticker} => ${iconUri}`, err);
-            setUseFallback(true);
-          }}
+          onError={() => setIconState({ status: "fallback" })}
         />
       </View>
     );
@@ -72,10 +119,7 @@ const FuturesCoinIcon = React.memo(({ item, ticker }) => {
       source={{ uri: iconUri }}
       resizeMode="contain"
       style={styles.coinIcon}
-      onError={(e) => {
-        console.log(`[FUTURES_IMAGE_ERROR] ${ticker} => ${iconUri}`, e?.nativeEvent);
-        setUseSvgFallback(true);
-      }}
+      onError={() => setIconState({ status: "fallback" })}
     />
   );
 });

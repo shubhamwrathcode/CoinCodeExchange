@@ -109,3 +109,4 @@ const AppSafeAreaView = ({
   );
 };
 export { AppSafeAreaView };
+export default AppSafeAreaView;
