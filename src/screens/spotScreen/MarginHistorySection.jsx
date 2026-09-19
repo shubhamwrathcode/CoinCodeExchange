@@ -30,6 +30,7 @@ import {
   downIcon,
   Refresh,
   INFO,
+  historyIcon,
 } from "../../helper/ImageAssets";
 import { appOperation } from "../../appOperation";
 import { CUSTOMER_TYPE } from "../../appOperation/types";
@@ -1337,8 +1338,8 @@ const MarginHistorySection = ({ currencyData = {}, themeColors: themeColorsProp,
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       {/* Primary Tab Bar */}
-      <View style={[styles.tabsContainer, {}]}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 10 }}>
+      <View style={[styles.tabsContainer, { flexDirection: "row", alignItems: "center" }]}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 10 }} style={{ flex: 1 }}>
           {currentTabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -1367,6 +1368,30 @@ const MarginHistorySection = ({ currencyData = {}, themeColors: themeColorsProp,
             );
           })}
         </ScrollView>
+
+        {!isFullScreen && (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => NavigationService.navigate("MARGIN_HISTORY_SCREEN", { activeTab, currencyData })}
+            style={{
+              paddingLeft: 10,
+              paddingRight: 2,
+              paddingVertical: 4,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Margin History"
+          >
+            <FastImage
+              source={historyIcon}
+              style={{ width: 18, height: 18 }}
+              resizeMode="contain"
+              tintColor={isDark ? colors.white : colors.black}
+            />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Sub tabs for Asset History */}

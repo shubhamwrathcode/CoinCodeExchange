@@ -30,6 +30,7 @@ import {
   closeIcon,
   candle,
   history_line,
+  historyIcon,
   defaultTrade,
   add,
   order_1,
@@ -2351,6 +2352,34 @@ const FuturesUI = () => {
         ))}
       </ScrollView>
 
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => {
+          if (!userData) {
+            showError("Please login first to view futures history");
+            navigation.navigate(LOGIN_SCREEN);
+            return;
+          }
+          navigation.navigate('FutureHistoryScreen', { selectedCoin, initialTab: activeHistoryTab });
+        }}
+        style={{
+          paddingLeft: 10,
+          paddingRight: 2,
+          paddingVertical: 4,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel="Futures History"
+      >
+        <FastImage
+          source={historyIcon}
+          style={{ width: 18, height: 18 }}
+          resizeMode="contain"
+          tintColor={isDark ? colors.white : colors.black}
+        />
+      </TouchableOpacity>
     </View>
   );
 
