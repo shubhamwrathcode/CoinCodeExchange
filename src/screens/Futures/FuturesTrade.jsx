@@ -4,6 +4,7 @@ import { setFuturesData } from "../../slices/homeSlice";
 import FastImage from 'react-native-fast-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
+import { BlurView } from '@react-native-community/blur';
 import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import RBSheet from 'react-native-raw-bottom-sheet';
@@ -2469,20 +2470,56 @@ const FuturesUI = () => {
             animationType="slide"
             customStyles={{
               container: {
-                backgroundColor: themeColors.background,
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
+                backgroundColor: "transparent",
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
                 paddingHorizontal: 20,
+                overflow: "hidden",
               },
               wrapper: {
-                backgroundColor: "#0006",
+                backgroundColor: "rgba(0, 0, 0, 0.7)",
               },
               draggableIcon: {
-                backgroundColor: themeColors.themeBorderColor || "#ccc",
+                backgroundColor: "rgba(255, 255, 255, 0.2)",
                 width: 40,
+                marginTop: 10,
               },
             }}
           >
+            <BlurView
+              style={StyleSheet.absoluteFill}
+              blurType="light"
+              blurAmount={20}
+              reducedTransparencyFallbackColor="#111214"
+            />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+            {isDark && (
+              <>
+                <LinearGradient
+                  colors={[
+                    "rgba(16, 185, 129, 0.10)",
+                    "rgba(6, 182, 212, 0.04)",
+                    "rgba(16, 185, 129, 0.02)",
+                    "rgba(16, 185, 129, 0.07)",
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+                <LinearGradient
+                  colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+              </>
+            )}
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingTop: 8, paddingBottom: 4 }}>
                 <AppText weight={BOLD} style={{ fontSize: 18, color: themeColors.text }}>
@@ -2579,20 +2616,56 @@ const FuturesUI = () => {
             animationType="slide"
             customStyles={{
               container: {
-                backgroundColor: themeColors.background,
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
+                backgroundColor: "transparent",
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
                 paddingHorizontal: 20,
+                overflow: "hidden",
               },
               wrapper: {
-                backgroundColor: "#0006",
+                backgroundColor: "rgba(0, 0, 0, 0.7)",
               },
               draggableIcon: {
-                backgroundColor: themeColors.themeBorderColor || "#ccc",
+                backgroundColor: "rgba(255, 255, 255, 0.2)",
                 width: 40,
+                marginTop: 10,
               },
             }}
           >
+            <BlurView
+              style={StyleSheet.absoluteFill}
+              blurType="light"
+              blurAmount={20}
+              reducedTransparencyFallbackColor="#111214"
+            />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+            {isDark && (
+              <>
+                <LinearGradient
+                  colors={[
+                    "rgba(16, 185, 129, 0.10)",
+                    "rgba(6, 182, 212, 0.04)",
+                    "rgba(16, 185, 129, 0.02)",
+                    "rgba(16, 185, 129, 0.07)",
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+                <LinearGradient
+                  colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+              </>
+            )}
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingTop: 8, paddingBottom: 20 }}>
                 <AppText weight={BOLD} style={{ fontSize: 18, color: themeColors.text }}>
@@ -2695,20 +2768,56 @@ const FuturesUI = () => {
             closeOnPressMask={true}
             customStyles={{
               container: {
-                backgroundColor: themeColors.background,
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
+                backgroundColor: "transparent",
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
                 paddingHorizontal: 20,
+                overflow: "hidden",
               },
               wrapper: {
-                backgroundColor: "#0006",
+                backgroundColor: "rgba(0, 0, 0, 0.7)",
               },
               draggableIcon: {
-                backgroundColor: themeColors.themeBorderColor || "#ccc",
+                backgroundColor: "rgba(255, 255, 255, 0.2)",
                 width: 40,
+                marginTop: 10,
               },
             }}
           >
+            <BlurView
+              style={StyleSheet.absoluteFill}
+              blurType="light"
+              blurAmount={20}
+              reducedTransparencyFallbackColor="#111214"
+            />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+            {isDark && (
+              <>
+                <LinearGradient
+                  colors={[
+                    "rgba(16, 185, 129, 0.10)",
+                    "rgba(6, 182, 212, 0.04)",
+                    "rgba(16, 185, 129, 0.02)",
+                    "rgba(16, 185, 129, 0.07)",
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+                <LinearGradient
+                  colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+              </>
+            )}
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingBottom: 16 }}>
                 <AppText weight={SEMI_BOLD} style={{ fontSize: 18, color: themeColors.text }}>
@@ -2778,15 +2887,50 @@ const FuturesUI = () => {
             activeOpacity={1}
             onPress={(e) => e?.stopPropagation?.()}
             style={{
-              backgroundColor: themeColors.background,
+              backgroundColor: "transparent",
               height: 640,
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              borderTopWidth: 1,
+              borderLeftWidth: 1,
+              borderRightWidth: 1,
+              borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
               paddingHorizontal: 16,
               paddingTop: 8,
               paddingBottom: 16,
+              overflow: "hidden",
             }}
           >
+            <BlurView
+              style={StyleSheet.absoluteFill}
+              blurType="light"
+              blurAmount={20}
+              reducedTransparencyFallbackColor="#111214"
+            />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+            {isDark && (
+              <>
+                <LinearGradient
+                  colors={[
+                    "rgba(16, 185, 129, 0.10)",
+                    "rgba(6, 182, 212, 0.04)",
+                    "rgba(16, 185, 129, 0.02)",
+                    "rgba(16, 185, 129, 0.07)",
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+                <LinearGradient
+                  colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+              </>
+            )}
             <View style={{ flex: 1, paddingHorizontal: 4 }}>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 4, paddingBottom: 20 }}>
                 <AppText weight={BOLD} style={{ fontSize: 18, color: themeColors.text, marginTop: 10 }}>
@@ -2948,17 +3092,52 @@ const FuturesUI = () => {
             activeOpacity={1}
             onPress={(e) => e?.stopPropagation?.()}
             style={{
-              backgroundColor: themeColors.background,
+              backgroundColor: "transparent",
               height: Math.min(540, Dimensions.get("window").height * 0.6),
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              borderTopWidth: 1,
+              borderLeftWidth: 1,
+              borderRightWidth: 1,
+              borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
               paddingHorizontal: 16,
               paddingTop: 12,
               paddingBottom: 8,
+              overflow: "hidden",
             }}
           >
+            <BlurView
+              style={StyleSheet.absoluteFill}
+              blurType="light"
+              blurAmount={20}
+              reducedTransparencyFallbackColor="#111214"
+            />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+            {isDark && (
+              <>
+                <LinearGradient
+                  colors={[
+                    "rgba(16, 185, 129, 0.10)",
+                    "rgba(6, 182, 212, 0.04)",
+                    "rgba(16, 185, 129, 0.02)",
+                    "rgba(16, 185, 129, 0.07)",
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+                <LinearGradient
+                  colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+              </>
+            )}
             <View style={{ alignItems: "center", marginBottom: 8 }}>
-              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: themeColors.themeBorderColor || (isDark ? colors.white_opacity : colors.black_opacity) }} />
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255, 255, 255, 0.2)" }} />
             </View>
             <View style={{ flex: 1 }}>
               <View

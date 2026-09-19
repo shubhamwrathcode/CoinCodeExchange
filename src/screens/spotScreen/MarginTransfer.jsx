@@ -13,6 +13,9 @@ import {
   Dimensions,
 } from "react-native";
 import FastImage from "react-native-fast-image";
+import RBSheet from "react-native-raw-bottom-sheet";
+import { BlurView } from "@react-native-community/blur";
+import LinearGradient from "react-native-linear-gradient";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useRoute, useNavigation } from "@react-navigation/native";
 
@@ -40,12 +43,9 @@ import {
 } from "../../helper/ImageAssets";
 import SimpleToast from "react-native-simple-toast";
 import { fontFamilyMedium } from "../../theme/typography";
-import RBSheet from "react-native-raw-bottom-sheet";
 import { appOperation } from "../../appOperation";
-import { MARGIN_BORROW_REPAY_HISTORY_SCREEN } from "../../navigation/routes";
-import { MARGIN_TRANSFER_HISTORY_SCREEN, TRANSFER_HISTORY_SCREEN } from "../../navigation/routes";
+import { MARGIN_BORROW_REPAY_HISTORY_SCREEN, MARGIN_TRANSFER_HISTORY_SCREEN, TRANSFER_HISTORY_SCREEN } from "../../navigation/routes";
 import { IMAGE_BASE_URL } from "../../helper/Constants";
-import LinearGradient from "react-native-linear-gradient";
 
 const SHIMMER_STRIP = 160;
 function ShimmerCell({ width: w, height, borderRadius = 6, style }) {
@@ -590,10 +590,54 @@ const MarginTransfer = () => {
         closeOnDragDown={true}
         height={600}
         customStyles={{
-          container: { backgroundColor: themeColors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 16 },
-          draggableIcon: { backgroundColor: isDark ? "#3A3A3C" : "#E5E5EA", width: 40 },
+          container: {
+            backgroundColor: "transparent",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            borderTopWidth: 1,
+            borderLeftWidth: 1,
+            borderRightWidth: 1,
+            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+            paddingHorizontal: 16,
+            overflow: "hidden",
+          },
+          wrapper: {
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+          },
+          draggableIcon: { backgroundColor: "rgba(255, 255, 255, 0.2)", width: 40, marginTop: 10 },
         }}
       >
+        <BlurView
+          style={StyleSheet.absoluteFill}
+          blurType="light"
+          blurAmount={20}
+          reducedTransparencyFallbackColor="#111214"
+        />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+        {isDark && (
+          <>
+            <LinearGradient
+              colors={[
+                "rgba(16, 185, 129, 0.10)",
+                "rgba(6, 182, 212, 0.04)",
+                "rgba(16, 185, 129, 0.02)",
+                "rgba(16, 185, 129, 0.07)",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            <LinearGradient
+              colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </>
+        )}
+        <View style={{ flex: 1 }}>
         <AppText weight={SEMI_BOLD} style={{ fontSize: 18, color: themeColors.text, marginBottom: 16, textAlign: "center", marginTop: 10 }}>
           Select Wallet
         </AppText>
@@ -642,6 +686,7 @@ const MarginTransfer = () => {
             )
           })}
         </ScrollView>
+        </View>
       </RBSheet>
 
       {/* Coin Selector Sheet */}
@@ -650,10 +695,54 @@ const MarginTransfer = () => {
         closeOnDragDown={true}
         height={600}
         customStyles={{
-          container: { backgroundColor: themeColors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 16 },
-          draggableIcon: { backgroundColor: isDark ? "#3A3A3C" : "#E5E5EA", width: 40 },
+          container: {
+            backgroundColor: "transparent",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            borderTopWidth: 1,
+            borderLeftWidth: 1,
+            borderRightWidth: 1,
+            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+            paddingHorizontal: 16,
+            overflow: "hidden",
+          },
+          wrapper: {
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+          },
+          draggableIcon: { backgroundColor: "rgba(255, 255, 255, 0.2)", width: 40, marginTop: 10 },
         }}
       >
+        <BlurView
+          style={StyleSheet.absoluteFill}
+          blurType="light"
+          blurAmount={20}
+          reducedTransparencyFallbackColor="#111214"
+        />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+        {isDark && (
+          <>
+            <LinearGradient
+              colors={[
+                "rgba(16, 185, 129, 0.10)",
+                "rgba(6, 182, 212, 0.04)",
+                "rgba(16, 185, 129, 0.02)",
+                "rgba(16, 185, 129, 0.07)",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            <LinearGradient
+              colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </>
+        )}
+        <View style={{ flex: 1 }}>
         <AppText weight={SEMI_BOLD} style={{ fontSize: 18, color: themeColors.text, marginBottom: 12, textAlign: "center", marginTop: 10 }}>Select Coin</AppText>
         <TextInput
           placeholder="Search coin"
@@ -692,6 +781,7 @@ const MarginTransfer = () => {
             </TouchableOpacity>
           ))}
         </ScrollView>
+        </View>
       </RBSheet>
 
       {/* Margin Pair Selector Sheet */}
@@ -700,10 +790,54 @@ const MarginTransfer = () => {
         closeOnDragDown={true}
         height={600}
         customStyles={{
-          container: { backgroundColor: themeColors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 16 },
-          draggableIcon: { backgroundColor: isDark ? "#3A3A3C" : "#E5E5EA", width: 40 },
+          container: {
+            backgroundColor: "transparent",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            borderTopWidth: 1,
+            borderLeftWidth: 1,
+            borderRightWidth: 1,
+            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+            paddingHorizontal: 16,
+            overflow: "hidden",
+          },
+          wrapper: {
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+          },
+          draggableIcon: { backgroundColor: "rgba(255, 255, 255, 0.2)", width: 40, marginTop: 10 },
         }}
       >
+        <BlurView
+          style={StyleSheet.absoluteFill}
+          blurType="light"
+          blurAmount={20}
+          reducedTransparencyFallbackColor="#111214"
+        />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+        {isDark && (
+          <>
+            <LinearGradient
+              colors={[
+                "rgba(16, 185, 129, 0.10)",
+                "rgba(6, 182, 212, 0.04)",
+                "rgba(16, 185, 129, 0.02)",
+                "rgba(16, 185, 129, 0.07)",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            <LinearGradient
+              colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </>
+        )}
+        <View style={{ flex: 1 }}>
         <AppText weight={SEMI_BOLD} style={{ fontSize: 18, color: themeColors.text, marginBottom: 16, marginTop: 10 }}>Select Margin Pair</AppText>
         <ScrollView showsVerticalScrollIndicator={false}>
           {marginPairs.map((p) => (
@@ -734,6 +868,7 @@ const MarginTransfer = () => {
             </TouchableOpacity>
           ))}
         </ScrollView>
+        </View>
       </RBSheet>
 
     </SafeAreaView>

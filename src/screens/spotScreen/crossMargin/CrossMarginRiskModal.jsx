@@ -8,6 +8,8 @@ import {
 } from "react-native";
 import FastImage from "react-native-fast-image";
 import RBSheet from "react-native-raw-bottom-sheet";
+import { BlurView } from "@react-native-community/blur";
+import LinearGradient from "react-native-linear-gradient";
 import { AppText, BOLD, MEDIUM, SEMI_BOLD } from "../../../shared";
 import { closeIcon, add, minus } from "../../../helper/ImageAssets";
 import { useTheme } from "../../../hooks/useTheme";
@@ -217,15 +219,20 @@ const CrossMarginRiskModal = forwardRef(({ risk: riskProp }, ref) => {
       customModalProps={{ statusBarTranslucent: true }}
       customStyles={{
         container: {
-          backgroundColor: isDark ? themeColors.sheetDarkColor : themeColors.themeElevationColor,
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
+          backgroundColor: "transparent",
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          borderTopWidth: 1,
+          borderLeftWidth: 1,
+          borderRightWidth: 1,
+          borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
           paddingHorizontal: universalPaddingHorizontal,
           paddingTop: 12,
           paddingBottom: 8,
+          overflow: "hidden",
         },
         wrapper: {
-          backgroundColor: "#0006",
+          backgroundColor: "rgba(0, 0, 0, 0.7)",
         },
         draggableIcon: {
           height: 0,
@@ -234,6 +241,36 @@ const CrossMarginRiskModal = forwardRef(({ risk: riskProp }, ref) => {
         },
       }}
     >
+      <BlurView
+        style={StyleSheet.absoluteFill}
+        blurType="light"
+        blurAmount={20}
+        reducedTransparencyFallbackColor="#111214"
+      />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+      {isDark && (
+        <>
+          <LinearGradient
+            colors={[
+              "rgba(16, 185, 129, 0.10)",
+              "rgba(6, 182, 212, 0.04)",
+              "rgba(16, 185, 129, 0.02)",
+              "rgba(16, 185, 129, 0.07)",
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+          <LinearGradient
+            colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+        </>
+      )}
       <View style={{ flex: 1 }}>
       <View style={styles.header}>
         <View style={{ flex: 1, paddingRight: 12 }}>

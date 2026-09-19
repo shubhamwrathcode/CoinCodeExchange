@@ -10,9 +10,12 @@ import {
   Animated,
   Modal,
   TextInput,
+  Image,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import FastImage from "react-native-fast-image";
+import { BlurView } from "@react-native-community/blur";
+import LinearGradient from "react-native-linear-gradient";
 import moment from "moment";
 import { useSelector } from "react-redux";
 import SimpleToast from "react-native-simple-toast";
@@ -1384,11 +1387,10 @@ const MarginHistorySection = ({ currencyData = {}, themeColors: themeColorsProp,
             accessibilityRole="button"
             accessibilityLabel="Margin History"
           >
-            <FastImage
+            <Image
               source={historyIcon}
-              style={{ width: 18, height: 18 }}
+              style={{ width: 18, height: 18, tintColor: isDark ? colors.white : colors.black }}
               resizeMode="contain"
-              tintColor={isDark ? colors.white : colors.black}
             />
           </TouchableOpacity>
         )}
@@ -1580,21 +1582,47 @@ const MarginHistorySection = ({ currencyData = {}, themeColors: themeColorsProp,
             />
             <View
               style={{
-                backgroundColor: isDark ? themeColors.sheetDarkColor || themeColors.background : themeColors.themeElevationColor || colors.white,
-                borderRadius: 20,
+                backgroundColor: "transparent",
+                borderRadius: 24,
                 padding: 25,
                 width: "85%",
                 alignSelf: "center",
                 alignItems: "center",
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 10 },
-                shadowOpacity: 0.25,
-                shadowRadius: 20,
-                elevation: 10,
                 borderWidth: 1,
-                borderColor: themeColors.themeBorderColor || (isDark ? "#333" : "#e5e7eb"),
+                borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+                overflow: "hidden",
               }}
             >
+              <BlurView
+                style={StyleSheet.absoluteFill}
+                blurType="light"
+                blurAmount={20}
+                reducedTransparencyFallbackColor="#111214"
+              />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.78)" : "rgba(255, 255, 255, 0.90)" }]} />
+              {isDark && (
+                <>
+                  <LinearGradient
+                    colors={[
+                      "rgba(16, 185, 129, 0.10)",
+                      "rgba(6, 182, 212, 0.04)",
+                      "rgba(16, 185, 129, 0.02)",
+                      "rgba(16, 185, 129, 0.07)",
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                    pointerEvents="none"
+                  />
+                  <LinearGradient
+                    colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+                    start={{ x: 0, y: 0.5 }}
+                    end={{ x: 1, y: 0.5 }}
+                    style={StyleSheet.absoluteFill}
+                    pointerEvents="none"
+                  />
+                </>
+              )}
               <AppText
                 style={{
                   fontSize: 20,
@@ -1695,12 +1723,47 @@ const MarginHistorySection = ({ currencyData = {}, themeColors: themeColorsProp,
                 : "—";
               return (
                 <View style={{
-                  backgroundColor: isDark ? themeColors.background || "#1E1E1E" : colors.white,
-                  borderTopLeftRadius: 16,
-                  borderTopRightRadius: 16,
+                  backgroundColor: "transparent",
+                  borderTopLeftRadius: 24,
+                  borderTopRightRadius: 24,
+                  borderTopWidth: 1,
+                  borderLeftWidth: 1,
+                  borderRightWidth: 1,
+                  borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
                   padding: 16,
                   paddingBottom: 32,
+                  overflow: "hidden",
                 }}>
+                  <BlurView
+                    style={StyleSheet.absoluteFill}
+                    blurType="light"
+                    blurAmount={20}
+                    reducedTransparencyFallbackColor="#111214"
+                  />
+                  <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+                  {isDark && (
+                    <>
+                      <LinearGradient
+                        colors={[
+                          "rgba(16, 185, 129, 0.10)",
+                          "rgba(6, 182, 212, 0.04)",
+                          "rgba(16, 185, 129, 0.02)",
+                          "rgba(16, 185, 129, 0.07)",
+                        ]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={StyleSheet.absoluteFill}
+                        pointerEvents="none"
+                      />
+                      <LinearGradient
+                        colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0.5 }}
+                        style={StyleSheet.absoluteFill}
+                        pointerEvents="none"
+                      />
+                    </>
+                  )}
                   <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                     <AppText style={{ color: textThemeColor, fontSize: 18 }} weight={BOLD}>Close Position</AppText>
                     <TouchableOpacity
@@ -1993,21 +2056,47 @@ const MarginHistorySection = ({ currencyData = {}, themeColors: themeColorsProp,
             />
             <View
               style={{
-                backgroundColor: isDark ? themeColors.sheetDarkColor || themeColors.background : themeColors.themeElevationColor || colors.white,
-                borderRadius: 20,
+                backgroundColor: "transparent",
+                borderRadius: 24,
                 padding: 25,
                 width: "85%",
                 alignSelf: "center",
                 alignItems: "center",
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 10 },
-                shadowOpacity: 0.25,
-                shadowRadius: 20,
-                elevation: 10,
                 borderWidth: 1,
-                borderColor: themeColors.themeBorderColor || (isDark ? "#333" : "#e5e7eb"),
+                borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+                overflow: "hidden",
               }}
             >
+              <BlurView
+                style={StyleSheet.absoluteFill}
+                blurType="light"
+                blurAmount={20}
+                reducedTransparencyFallbackColor="#111214"
+              />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.78)" : "rgba(255, 255, 255, 0.90)" }]} />
+              {isDark && (
+                <>
+                  <LinearGradient
+                    colors={[
+                      "rgba(16, 185, 129, 0.10)",
+                      "rgba(6, 182, 212, 0.04)",
+                      "rgba(16, 185, 129, 0.02)",
+                      "rgba(16, 185, 129, 0.07)",
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                    pointerEvents="none"
+                  />
+                  <LinearGradient
+                    colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+                    start={{ x: 0, y: 0.5 }}
+                    end={{ x: 1, y: 0.5 }}
+                    style={StyleSheet.absoluteFill}
+                    pointerEvents="none"
+                  />
+                </>
+              )}
               <AppText
                 style={{
                   fontSize: 20,

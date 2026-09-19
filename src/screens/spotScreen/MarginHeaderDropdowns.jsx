@@ -2,6 +2,10 @@ import React, { useRef, useState, useEffect } from "react";
 import { View, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
 import RBSheet from "react-native-raw-bottom-sheet";
+import { BlurView } from "@react-native-community/blur";
+import LinearGradient from "react-native-linear-gradient";
+import { Users, Info, Circle } from "lucide-react-native";
+import ToggleSwitch from "../../common/ToggleSwitch";
 import { AppText, SEMI_BOLD, MEDIUM, Button } from "../../shared";
 import { colors, darkTheme, lightTheme } from "../../theme/colors";
 import { checkIc, downIcon, tick, closeIcon, add, minus, right_ic } from "../../helper/ImageAssets";
@@ -70,6 +74,8 @@ const MarginHeaderDropdowns = ({
   };
 
   const [leverageDraft, setLeverageDraft] = useState(getInitialLeverage(marginLeverage));
+  const [marginModeDraft, setMarginModeDraft] = useState(marginMode || "Isolated");
+  const [batchAdjustMarginMode, setBatchAdjustMarginMode] = useState(false);
 
   const Qf = Number(coinBalance?.quote_currency_balance) || 0;
   const Bf = Number(coinBalance?.base_currency_balance) || 0;
@@ -186,85 +192,231 @@ const MarginHeaderDropdowns = ({
         ref={rbSheetMarginMode}
         closeOnDragDown={true}
         closeOnPressMask={true}
-        height={330}
+        height={600}
         animationType="slide"
+        onOpen={() => {
+          setMarginModeDraft(marginMode || "Isolated");
+        }}
         customModalProps={{ statusBarTranslucent: true }}
         customStyles={{
           container: {
-            backgroundColor: isDark ? colors.newThemeColor : themeColors.themeElevationColor,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            paddingHorizontal: universalPaddingHorizontal,
+            backgroundColor: "transparent",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            borderTopWidth: 1,
+            borderLeftWidth: 1,
+            borderRightWidth: 1,
+            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+            overflow: "hidden",
           },
           wrapper: {
-            backgroundColor: "#0006",
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
           },
           draggableIcon: {
-            backgroundColor: themeColors.themeBorderColor,
+            backgroundColor: "rgba(255, 255, 255, 0.2)",
             width: 40,
+            marginTop: 10,
           },
         }}
       >
-        <View style={{ flex: 1 }}>
-          <View style={{ paddingVertical: 15 }}>
-            <AppText weight={SEMI_BOLD} style={{ fontSize: 18, color: themeColors.text, marginLeft: 5 }}>
-              Margin Trading
+        <BlurView
+          style={StyleSheet.absoluteFill}
+          blurType="light"
+          blurAmount={20}
+          reducedTransparencyFallbackColor="#111214"
+        />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+        {isDark && (
+          <>
+            <LinearGradient
+              colors={[
+                "rgba(16, 185, 129, 0.10)",
+                "rgba(6, 182, 212, 0.04)",
+                "rgba(16, 185, 129, 0.02)",
+                "rgba(16, 185, 129, 0.07)",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            <LinearGradient
+              colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </>
+        )}
+        <View style={{ flex: 1, paddingHorizontal: 16 }}>
+          {/* Header */}
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingTop: 4 }}>
+            <AppText weight={SEMI_BOLD} style={{ fontSize: 20, color: themeColors.text }}>
+              Margin Mode
             </AppText>
+            <TouchableOpacity onPress={() => rbSheetMarginMode?.current?.close()} style={{ padding: 4 }}>
+              <FastImage
+                source={closeIcon}
+                resizeMode="contain"
+                style={{ width: 14, height: 14 }}
+                tintColor={themeColors.secondaryText}
+              />
+            </TouchableOpacity>
           </View>
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <AppText style={{ fontSize: 12, color: themeColors.secondaryText, marginTop: 4, marginBottom: 16 }}>
+            Select the unit type you want to use for placing your order.
+          </AppText>
+
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
             {[
               {
                 name: "Isolated",
                 description:
-                  "Margin and PnL of different trading pairs are calculated separately. Liquidation in one market will not affect positions in other markets.",
+                  "In isolated margin mode, the position margin is the allocated amount, and your loss is limited to it upon liquidation. You can also adjust the margin for positions in this mode.",
               },
               {
                 name: "Cross",
                 description:
-                  "All positions share margin and PnL are offset. In the event of liquidation, all margin could be sold and all positions liquidated.",
+                  "In cross margin mode, the entire account balance is used as margin, and you may lose it all upon liquidation.",
               },
             ].map((item) => {
-              const isSelected = marginMode === item.name;
+              const isSelected = marginModeDraft === item.name;
               return (
                 <TouchableOpacity
                   key={item.name}
                   activeOpacity={0.8}
-                  onPress={() => {
-                    setMarginMode(item.name);
-                    rbSheetMarginMode?.current?.close();
-                  }}
+                  onPress={() => setMarginModeDraft(item.name)}
                   style={{
-                    backgroundColor: 'transparent',
+                    flexDirection: "row",
+                    alignItems: "flex-start",
+                    backgroundColor: isSelected
+                      ? "rgba(0, 188, 212, 0.08)"
+                      : isDark
+                        ? "rgba(255, 255, 255, 0.03)"
+                        : "#F9FAFB",
+                    borderRadius: 14,
+                    padding: 14,
+                    marginBottom: 12,
                     borderWidth: 1,
                     borderColor: isSelected
-                      ? themeColors.text
-                      : themeColors.themeBorderColor,
-                    borderRadius: 12,
-                    padding: 16,
-                    marginBottom: 12,
+                      ? "#00BCD4"
+                      : isDark
+                        ? "#2A2C33"
+                        : "#E5E7EB",
                   }}
                 >
-                  <AppText
-                    weight={MEDIUM}
+                  <View
                     style={{
-                      color: themeColors.text,
-                      fontSize: 16,
-                      marginBottom: 2,
+                      width: 38,
+                      height: 38,
+                      borderRadius: 10,
+                      backgroundColor: isDark ? "rgba(255, 255, 255, 0.03)" : "#F2F3F5",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 12,
                     }}
                   >
-                    {item.name}
-                  </AppText>
-                  <AppText
-                    style={{
-                      color: themeColors.secondaryText,
-                      fontSize: 13,
-                    }}
-                  >
-                    {item.description}
-                  </AppText>
+                    <Users color={isSelected ? "#00BCD4" : (isDark ? "#8E95A3" : "#6B7280")} size={20} />
+                  </View>
+                  <View style={{ flex: 1, paddingRight: 8 }}>
+                    <AppText weight={SEMI_BOLD} style={{ fontSize: 15, color: themeColors.text }}>
+                      {item.name}
+                    </AppText>
+                    <AppText
+                      style={{
+                        fontSize: 12,
+                        color: isDark ? "#9CA3AF" : "#6B7280",
+                        marginTop: 4,
+                        lineHeight: 17,
+                      }}
+                    >
+                      {item.description}
+                    </AppText>
+                  </View>
+                  <View style={{ width: 24, alignItems: "center", justifyContent: "center", marginTop: 2 }}>
+                    {isSelected ? (
+                      <View
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          borderWidth: 2,
+                          borderColor: "#00BCD4",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#00BCD4" }} />
+                      </View>
+                    ) : (
+                      <Circle color={isDark ? "#4B5563" : "#D1D5DB"} size={20} strokeWidth={1.5} />
+                    )}
+                  </View>
                 </TouchableOpacity>
               );
             })}
+
+            {/* Info Card */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: isDark ? "rgba(255, 255, 255, 0.03)" : "#F2F3F5",
+                borderRadius: 10,
+                padding: 12,
+                marginTop: 4,
+                borderWidth: 1,
+                borderColor: isDark ? "#2A2C33" : "rgba(0, 0, 0, 0.04)",
+              }}
+            >
+              <Info color={isDark ? "#8E95A3" : "#6B7280"} size={16} />
+              <AppText style={{ fontSize: 12, color: isDark ? "#9CA3AF" : "#6B7280", marginLeft: 8, flex: 1 }}>
+                Switching margin modes only applies to the current trading pair.
+              </AppText>
+            </View>
+
+            {/* Divider */}
+            <View
+              style={{
+                height: 1,
+                backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "#E5E7EB",
+                marginVertical: 14,
+              }}
+            />
+
+            {/* Batch Adjust Leverage */}
+            {/* <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <AppText weight={MEDIUM} style={{ fontSize: 14, color: themeColors.text }}>
+                Batch Adjust Leverage
+              </AppText>
+              <ToggleSwitch
+                value={batchAdjustMarginMode}
+                onValueChange={setBatchAdjustMarginMode}
+                isDark={isDark}
+              />
+            </View> */}
+
+            {/* Continue Button */}
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => {
+                setMarginMode(marginModeDraft);
+                rbSheetMarginMode?.current?.close();
+              }}
+              style={{
+                backgroundColor: "#00BCD4",
+                paddingVertical: 14,
+                borderRadius: 24,
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 10,
+              }}
+            >
+              <AppText weight={SEMI_BOLD} style={{ fontSize: 15, color: "#FFFFFF" }}>
+                Continue
+              </AppText>
+            </TouchableOpacity>
           </ScrollView>
         </View>
       </RBSheet>
@@ -272,9 +424,9 @@ const MarginHeaderDropdowns = ({
       {/* Margin Leverage Sheet */}
       <RBSheet
         ref={rbSheetMarginLeverage}
-        closeOnDragDown={false}
+        closeOnDragDown={true}
         closeOnPressMask={true}
-        height={500}
+        height={620}
         animationType="slide"
         onOpen={() => {
           setLeverageDraft(getInitialLeverage(marginLeverage));
@@ -282,71 +434,145 @@ const MarginHeaderDropdowns = ({
         customModalProps={{ statusBarTranslucent: true }}
         customStyles={{
           container: {
-            backgroundColor: isDark ? colors.newThemeColor : themeColors.themeElevationColor,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            paddingHorizontal: universalPaddingHorizontal,
-            paddingTop: 8,
-            paddingBottom: 16,
+            backgroundColor: "transparent",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            borderTopWidth: 1,
+            borderLeftWidth: 1,
+            borderRightWidth: 1,
+            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+            overflow: "hidden",
           },
           wrapper: {
-            backgroundColor: "#0006",
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+          },
+          draggableIcon: {
+            backgroundColor: "rgba(255, 255, 255, 0.2)",
+            width: 40,
+            marginTop: 10,
           },
         }}
       >
-        <View style={{ flex: 1, paddingHorizontal: 10 }}>
+        <BlurView
+          style={StyleSheet.absoluteFill}
+          blurType="light"
+          blurAmount={20}
+          reducedTransparencyFallbackColor="#111214"
+        />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+        {isDark && (
+          <>
+            <LinearGradient
+              colors={[
+                "rgba(16, 185, 129, 0.10)",
+                "rgba(6, 182, 212, 0.04)",
+                "rgba(16, 185, 129, 0.02)",
+                "rgba(16, 185, 129, 0.07)",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            <LinearGradient
+              colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </>
+        )}
+        <View style={{ flex: 1, paddingHorizontal: 16 }}>
+          {/* Header */}
           <View style={{
             flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-            paddingTop: 4, paddingBottom: 20
+            paddingTop: 4, paddingBottom: 16
           }}>
-            <AppText weight={SEMI_BOLD} style={{ fontSize: 18, color: themeColors.text, marginTop: 10 }}>
+            <AppText weight={SEMI_BOLD} style={{ fontSize: 20, color: themeColors.text }}>
               Adjust Leverage
             </AppText>
             <TouchableOpacity onPress={() => rbSheetMarginLeverage?.current?.close()} style={{ padding: 4 }}>
               <FastImage
                 source={closeIcon}
                 resizeMode="contain"
-                style={{ width: 15, height: 15 }}
+                style={{ width: 14, height: 14 }}
                 tintColor={themeColors.secondaryText}
               />
             </TouchableOpacity>
           </View>
-          <ScrollView showsVerticalScrollIndicator={false}>
 
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
             {/* Coin Row */}
             <AppText style={{ color: themeColors.secondaryText, fontSize: 13, marginBottom: 8 }}>Coin</AppText>
-            <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: isDark ? darkTheme.darkThemeInputColor : "#F2F2F7", padding: 12, borderRadius: 10, marginBottom: 16 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "#F2F3F5",
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: isDark ? "rgba(255, 255, 255, 0.08)" : "#E5E7EB",
+                marginBottom: 16,
+              }}
+            >
               {!!coinIconSrc && (
-                <FastImage source={{ uri: coinIconSrc }} style={{ width: 24, height: 24, borderRadius: 12, marginRight: 8 }} />
+                <FastImage source={{ uri: coinIconSrc }} style={{ width: 24, height: 24, borderRadius: 12, marginRight: 10 }} />
               )}
               <AppText weight={SEMI_BOLD} style={{ fontSize: 15, color: themeColors.text }}>{coinLabel}</AppText>
             </View>
 
-            {/* Leverage Input */}
+            {/* Leverage Box */}
             <AppText style={{ color: themeColors.secondaryText, fontSize: 13, marginBottom: 8 }}>Leverage</AppText>
-            <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: isDark ? darkTheme.darkThemeInputColor : "#F2F2F7", padding: 12, borderRadius: 10, marginBottom: 16 }}>
-              <AppText weight={SEMI_BOLD} style={{ fontSize: 15, color: themeColors.text }}>{leverageDraft}x</AppText>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "#F2F3F5",
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: isDark ? "rgba(255, 255, 255, 0.08)" : "#E5E7EB",
+                marginBottom: 16,
+              }}
+            >
+              <AppText weight={SEMI_BOLD} style={{ fontSize: 16, color: themeColors.text }}>{leverageDraft}x</AppText>
             </View>
 
-            {/* Quick selector row */}
-            <View style={{ flexDirection: "row", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+            {/* Quick selector pills */}
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 18, flexWrap: "wrap" }}>
               {quickLeverages.map((x) => {
                 const levStr = `${x}x`;
                 const isSelected = leverageDraft === x;
                 return (
                   <TouchableOpacity
                     key={levStr}
+                    activeOpacity={0.75}
                     onPress={() => safeSet(x)}
                     style={{
                       paddingHorizontal: 16,
                       paddingVertical: 8,
-                      borderRadius: 8,
+                      borderRadius: 20,
                       borderWidth: 1,
-                      borderColor: isSelected ? themeColors.text : "transparent",
-                      backgroundColor: isDark ? darkTheme.darkThemeInputColor : "#F2F2F7",
+                      borderColor: isSelected ? "#00BCD4" : (isDark ? "rgba(255, 255, 255, 0.08)" : "#E5E7EB"),
+                      backgroundColor: isSelected
+                        ? "rgba(0, 188, 212, 0.15)"
+                        : (isDark ? "rgba(255, 255, 255, 0.05)" : "#F2F3F5"),
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
-                    <AppText weight={SEMI_BOLD} style={{ color: themeColors.text, fontSize: 13 }}>
+                    <AppText
+                      weight={SEMI_BOLD}
+                      style={{
+                        color: isSelected ? "#00BCD4" : themeColors.text,
+                        fontSize: 13,
+                      }}
+                    >
                       {levStr}
                     </AppText>
                   </TouchableOpacity>
@@ -354,53 +580,77 @@ const MarginHeaderDropdowns = ({
               })}
             </View>
 
-            {/* Details List */}
-            <View style={{ marginBottom: 8, marginTop: 10 }}>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 5 }}>
-                <AppText style={{ color: themeColors.secondaryText, fontSize: 12 }}>Allow to Open</AppText>
-                <AppText weight={MEDIUM} style={{ color: themeColors.text, fontSize: 12 }}>{fmt(netEquity * leverageDraft)} {quoteSymbol}</AppText>
+            {/* Details Card */}
+            <View
+              style={{
+                backgroundColor: isDark ? "rgba(255, 255, 255, 0.03)" : "#F9FAFB",
+                borderWidth: 1,
+                borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : "#E5E7EB",
+                borderRadius: 12,
+                padding: 14,
+                marginBottom: 16,
+                gap: 8,
+              }}
+            >
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <AppText style={{ color: themeColors.secondaryText, fontSize: 13 }}>Allow to Open</AppText>
+                <AppText weight={MEDIUM} style={{ color: themeColors.text, fontSize: 13 }}>
+                  {fmt(netEquity * leverageDraft)} {quoteSymbol}
+                </AppText>
               </View>
 
-              <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 5 }}>
-                <AppText style={{ color: themeColors.secondaryText, fontSize: 12 }}>Maximum Borrowable</AppText>
-                <AppText weight={MEDIUM} style={{ color: themeColors.text, fontSize: 12 }}>{fmt(Math.max(0, netEquity * (maxLeverage - 1) - currentLoan))} {quoteSymbol}</AppText>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <AppText style={{ color: themeColors.secondaryText, fontSize: 13 }}>Maximum Borrowable</AppText>
+                <AppText weight={MEDIUM} style={{ color: themeColors.text, fontSize: 13 }}>
+                  {fmt(Math.max(0, netEquity * (maxLeverage - 1) - currentLoan))} {quoteSymbol}
+                </AppText>
               </View>
 
-              <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 5 }}>
-                <AppText style={{ color: themeColors.secondaryText, fontSize: 12 }}>Leverage Range</AppText>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <AppText weight={MEDIUM} style={{ color: themeColors.text, fontSize: 12 }}>{minLeverage}x – {maxLeverage}x</AppText>
-                </View>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <AppText style={{ color: themeColors.secondaryText, fontSize: 13 }}>Leverage Range</AppText>
+                <AppText weight={MEDIUM} style={{ color: themeColors.text, fontSize: 13 }}>
+                  {minLeverage}x – {maxLeverage}x
+                </AppText>
               </View>
 
-              <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 5 }}>
-                <AppText style={{ color: themeColors.secondaryText, fontSize: 12 }}>Current Loan</AppText>
-                <AppText weight={MEDIUM} style={{ color: themeColors.text, fontSize: 12 }}>{fmt(currentLoan)} {quoteSymbol}</AppText>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <AppText style={{ color: themeColors.secondaryText, fontSize: 13 }}>Current Loan</AppText>
+                <AppText weight={MEDIUM} style={{ color: themeColors.text, fontSize: 13 }}>
+                  {fmt(currentLoan)} {quoteSymbol}
+                </AppText>
               </View>
             </View>
 
             {/* Warning Message */}
             {netEquity <= 0 && (
-              <AppText weight={MEDIUM} style={{ color: colors.cyanTheme, fontSize: 11, marginTop: 4, lineHeight: 14 }}>
+              <AppText weight={MEDIUM} style={{ color: colors.cyanTheme, fontSize: 11, marginBottom: 12, lineHeight: 15 }}>
                 The current available margin ≤ 0. You can increase the leverage or add margin.
               </AppText>
             )}
-          </ScrollView>
 
-          {/* Confirm Button */}
-          <Button
-            onPress={() => {
-              const final = hasAllowed ? snapToAllowed(leverageDraft) : clamp(leverageDraft);
-              setMarginLeverage(`${final}x`);
-              rbSheetMarginLeverage?.current?.close();
-            }}
-            containerStyle={{
-              marginTop: 12,
-              marginBottom: 8,
-            }}
-          >
-            Confirm
-          </Button>
+            {/* Confirm Button */}
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => {
+                const final = hasAllowed ? snapToAllowed(leverageDraft) : clamp(leverageDraft);
+                setMarginLeverage(`${final}x`);
+                rbSheetMarginLeverage?.current?.close();
+              }}
+              style={{
+                backgroundColor: "#00BCD4",
+                paddingVertical: 14,
+                borderRadius: 24,
+                alignItems: "center",
+                justifyContent: "center",
+                marginTop: 6,
+                marginBottom: Platform.OS === "ios" ? 20 : 12,
+              }}
+            >
+              <AppText weight={SEMI_BOLD} style={{ fontSize: 15, color: "#FFFFFF" }}>
+                Confirm
+              </AppText>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
       </RBSheet>
     </View>

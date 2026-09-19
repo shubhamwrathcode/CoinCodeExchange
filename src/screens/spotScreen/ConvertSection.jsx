@@ -8,6 +8,9 @@ import {
   ScrollView,
 } from "react-native";
 import FastImage from "react-native-fast-image";
+import { BlurView } from "@react-native-community/blur";
+import LinearGradient from "react-native-linear-gradient";
+import RBSheet from "react-native-raw-bottom-sheet";
 import { AppText, SEMI_BOLD, MEDIUM, Button } from "../../shared";
 import { colors, lightTheme } from "../../theme/colors";
 import { useTheme } from "../../hooks/useTheme";
@@ -32,7 +35,6 @@ import NavigationService from "../../navigation/NavigationService";
 import SimpleToast from "react-native-simple-toast";
 import { fontFamilyMedium } from "../../theme/typography";
 import { useAppSelector } from "../../store/hooks";
-import RBSheet from "react-native-raw-bottom-sheet";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
 const ConvertSection = () => {
@@ -476,22 +478,58 @@ const ConvertSection = () => {
         animationType="slide"
         customStyles={{
           container: {
-            backgroundColor: isDark ? "#171a20" : colors.white,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
+            backgroundColor: "transparent",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            borderTopWidth: 1,
+            borderLeftWidth: 1,
+            borderRightWidth: 1,
+            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
             paddingHorizontal: 16,
             paddingTop: 12,
             paddingBottom: 24,
+            overflow: "hidden",
           },
           wrapper: {
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
           },
           draggableIcon: {
-            backgroundColor: isDark ? "#3A3A3C" : "#E5E5EA",
+            backgroundColor: "rgba(255, 255, 255, 0.2)",
             width: 40,
+            marginTop: 10,
           },
         }}
       >
+        <BlurView
+          style={StyleSheet.absoluteFill}
+          blurType="light"
+          blurAmount={20}
+          reducedTransparencyFallbackColor="#111214"
+        />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+        {isDark && (
+          <>
+            <LinearGradient
+              colors={[
+                "rgba(16, 185, 129, 0.10)",
+                "rgba(6, 182, 212, 0.04)",
+                "rgba(16, 185, 129, 0.02)",
+                "rgba(16, 185, 129, 0.07)",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            <LinearGradient
+              colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </>
+        )}
         <View style={{ flex: 1 }}>
           {/* Active Spend / Receive selectors in sheet (Segmented style) */}
           <View style={[styles.sheetHeaderPanel, { backgroundColor: isDark ? "#1C1C1E" : "#F2F2F7" }]}>
@@ -618,22 +656,58 @@ const ConvertSection = () => {
         animationType="slide"
         customStyles={{
           container: {
-            backgroundColor: isDark ? "#171a20" : colors.white,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
+            backgroundColor: "transparent",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            borderTopWidth: 1,
+            borderLeftWidth: 1,
+            borderRightWidth: 1,
+            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
             paddingHorizontal: 16,
             paddingTop: 12,
             paddingBottom: 24,
+            overflow: "hidden",
           },
           wrapper: {
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
           },
           draggableIcon: {
-            backgroundColor: isDark ? "#3A3A3C" : "#E5E5EA",
+            backgroundColor: "rgba(255, 255, 255, 0.2)",
             width: 40,
+            marginTop: 10,
           },
         }}
       >
+        <BlurView
+          style={StyleSheet.absoluteFill}
+          blurType="light"
+          blurAmount={20}
+          reducedTransparencyFallbackColor="#111214"
+        />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+        {isDark && (
+          <>
+            <LinearGradient
+              colors={[
+                "rgba(16, 185, 129, 0.10)",
+                "rgba(6, 182, 212, 0.04)",
+                "rgba(16, 185, 129, 0.02)",
+                "rgba(16, 185, 129, 0.07)",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            <LinearGradient
+              colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </>
+        )}
         <View style={{ flex: 1 }}>
           {/* Header */}
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingBottom: 14 }}>
@@ -731,22 +805,58 @@ const ConvertSection = () => {
         animationType="slide"
         customStyles={{
           container: {
-            backgroundColor: isDark ? "#171a20" : colors.white,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
+            backgroundColor: "transparent",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            borderTopWidth: 1,
+            borderLeftWidth: 1,
+            borderRightWidth: 1,
+            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
             paddingHorizontal: 16,
             paddingTop: 12,
             paddingBottom: 24,
+            overflow: "hidden",
           },
           wrapper: {
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
           },
           draggableIcon: {
-            backgroundColor: isDark ? "#3A3A3C" : "#E5E5EA",
+            backgroundColor: "rgba(255, 255, 255, 0.2)",
             width: 40,
+            marginTop: 10,
           },
         }}
       >
+        <BlurView
+          style={StyleSheet.absoluteFill}
+          blurType="light"
+          blurAmount={20}
+          reducedTransparencyFallbackColor="#111214"
+        />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+        {isDark && (
+          <>
+            <LinearGradient
+              colors={[
+                "rgba(16, 185, 129, 0.10)",
+                "rgba(6, 182, 212, 0.04)",
+                "rgba(16, 185, 129, 0.02)",
+                "rgba(16, 185, 129, 0.07)",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            <LinearGradient
+              colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </>
+        )}
         <View style={{ flex: 1 }}>
           {/* Header */}
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingBottom: 14 }}>

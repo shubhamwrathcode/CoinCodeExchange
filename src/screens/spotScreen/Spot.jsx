@@ -8,6 +8,7 @@ import {
   Dimensions,
   AppState,
   Animated,
+  Image,
   ImageBackground,
   ActivityIndicator,
   Platform,
@@ -87,7 +88,9 @@ import { fontFamily, fontFamilyMedium, fontFamilySemiBold } from "../../theme/ty
 import CustomDropdown from "../../shared/components/CustomDropdown";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import RBSheet from "react-native-raw-bottom-sheet";
+import { BlurView } from "@react-native-community/blur";
 import { universalPaddingHorizontal, borderWidth } from "../../theme/dimens";
+import { TrendingUp, ShoppingCart, Target, Activity, Check, Circle, Gem, X } from "lucide-react-native";
 import { IMAGE_BASE_URL } from "../../helper/Constants";
 /** Same vertical space between Buy/Sell column sections (tabs → fields → slider → IOC → assets → CTA → footer). */
 const SPOT_ORDER_V_GAP = 8;
@@ -157,24 +160,28 @@ const ORDER_TYPE_SHEET_BASIC = [
   {
     name: "Limit",
     description: "Buy or sell at your chosen price or better.",
-    icon: limitTrade,
+    icon: TrendingUp,
+    gradient: ["#4F1D96", "#7C3AED"],
   },
   {
     name: "Market",
     description: "Instantly trade at the current market price.",
-    icon: market_ic,
+    icon: ShoppingCart,
+    gradient: ["#064E3B", "#059669"],
   },
 ];
 const ORDER_TYPE_SHEET_ADVANCED = [
   {
     name: "Spot Limit",
     description: "Once the stop price is reached, a limit order is set at your selected price.",
-    icon: spotLimitTrade,
+    icon: Target,
+    gradient: ["#78350F", "#D97706"],
   },
   {
     name: "Spot Market",
     description: "Once the stop price is reached, a market order is executed at the best price.",
-    icon: spotMarket,
+    icon: Activity,
+    gradient: ["#312E81", "#6366F1"],
   },
 ];
 
@@ -3202,12 +3209,13 @@ const Spot = () => {
     rbSheetlimit?.current?.close();
   };
 
-  const orderTypeSheetHeight = Math.min(540, WindowHeight * 0.58);
+  const orderTypeSheetHeight = Math.min(560, WindowHeight * 0.65);
 
   const renderOrderTypeSheet = () => {
-    const lime = themeColors.spotTradeBuy ?? colors.spotTradeBuy ?? colors.buyBtnGreen;
     const renderRow = (item) => {
       const selected = numberSelectLimit === item.name;
+      const IconComponent = item.icon;
+      const glowColor = item.gradient?.[1] || "#7C3AED";
       return (
         <TouchableOpacity
           key={item.name}
@@ -3216,45 +3224,78 @@ const Spot = () => {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            paddingVertical: 14,
-            paddingHorizontal: 4,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: themeColors.themeBorderColor,
+            backgroundColor: selected
+              ? "rgba(6, 182, 212, 0.08)"
+              : isDark
+                ? "rgba(30, 31, 36, 0.75)"
+                : "#F9FAFB",
+            borderRadius: 16,
+            padding: 12,
+            marginBottom: 8,
+            borderWidth: 1,
+            borderColor: selected
+              ? "#06B6D4"
+              : isDark
+                ? "rgba(255, 255, 255, 0.08)"
+                : "#E5E7EB",
           }}
         >
-          <View
+          <LinearGradient
+            colors={item.gradient || ["#4F1D96", "#7C3AED"]}
             style={{
-              width: 34,
-              height: 34,
-              borderRadius: 17,
-              backgroundColor: isDark ? colors.themeElevationColor : colors.newThemeColor,
+              width: 40,
+              height: 40,
+              borderRadius: 12,
               alignItems: "center",
               justifyContent: "center",
+              marginRight: 12,
+              shadowColor: glowColor,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.45,
+              shadowRadius: 8,
+              elevation: 5,
             }}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
           >
-            <FastImage source={item.icon} tintColor={colors.white} style={{ width: 16, height: 16 }} resizeMode="contain" />
-          </View>
-          <View style={{ flex: 1, marginLeft: 12, paddingRight: 8 }}>
-            <AppText weight={SEMI_BOLD} style={{ color: themeColors.text, fontSize: 14, marginBottom: 3 }}>
+            {IconComponent && <IconComponent color="#FFF" size={20} strokeWidth={2} />}
+          </LinearGradient>
+          <View style={{ flex: 1, marginRight: 12 }}>
+            <AppText weight={SEMI_BOLD} style={{ fontSize: 14, color: themeColors.text }}>
               {item.name}
             </AppText>
-            <AppText type={THIRTEEN} style={{ color: themeColors.secondaryText, fontSize: 11, lineHeight: 15 }}>
+            <AppText
+              weight={MEDIUM}
+              style={{
+                fontSize: 12,
+                color: isDark ? "#8E95A3" : "#6B7280",
+                marginTop: 4,
+                lineHeight: 16,
+              }}
+            >
               {item.description}
             </AppText>
           </View>
-          {selected ? (
-            <View style={{ width: 16, height: 16, borderRadius: 10, backgroundColor: isDark ? colors.white : colors.black, alignItems: "center", justifyContent: "center" }}>
-              <FastImage source={tick} style={{ width: 8, height: 8 }} tintColor={isDark ? colors.black : colors.white} resizeMode="contain" />
-            </View>
-          ) : (
-            <View style={{ width: 26 }} />
-          )}
+          <View style={{ width: 24, alignItems: "center", justifyContent: "center" }}>
+            {selected ? (
+              <View
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 11,
+                  backgroundColor: "#A855F7",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Check color="#FFF" size={14} strokeWidth={3} />
+              </View>
+            ) : (
+              <Circle color={isDark ? "#4B5563" : "#D1D5DB"} size={22} strokeWidth={1.5} />
+            )}
+          </View>
         </TouchableOpacity>
       );
-    };
-
-    const sectionInfo = (title, body) => {
-      Alert.alert(title, body);
     };
 
     return (
@@ -3262,17 +3303,27 @@ const Spot = () => {
         <View
           style={{
             flexDirection: "row",
-            alignItems: "center",
+            alignItems: "flex-start",
             justifyContent: "space-between",
-            paddingBottom: 14,
-            marginBottom: 4,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: themeColors.themeBorderColor,
+            marginBottom: 14,
+            paddingBottom: 4,
           }}
         >
-          <AppText weight={SEMI_BOLD} style={{ fontSize: 16, color: themeColors.text }}>
-            Order Type
-          </AppText>
+          <View style={{ flex: 1 }}>
+            <AppText weight={BOLD} style={{ fontSize: 20, color: themeColors.text }}>
+              Order Type
+            </AppText>
+            <AppText
+              weight={MEDIUM}
+              style={{
+                fontSize: 13,
+                color: isDark ? "#8E95A3" : "#6B7280",
+                marginTop: 4,
+              }}
+            >
+              Choose how you want to place your order
+            </AppText>
+          </View>
           <TouchableOpacity
             onPress={() => {
               setIsOrderTypeModalVisible(false);
@@ -3280,17 +3331,12 @@ const Spot = () => {
             }}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 18,
-              backgroundColor: themeColors.themeElevationColor,
+              padding: 4,
               alignItems: "center",
               justifyContent: "center",
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: themeColors.themeBorderColor,
             }}
           >
-            <FastImage source={REMOVE} style={{ width: 18, height: 18 }} resizeMode="contain" tintColor={isDark ? colors.white : colors.black} />
+            <X color={isDark ? "#9CA3AF" : themeColors.text} size={20} strokeWidth={2} />
           </TouchableOpacity>
         </View>
 
@@ -3299,43 +3345,37 @@ const Spot = () => {
           contentContainerStyle={{ paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 12, marginBottom: 6 }}>
-            <AppText weight={SEMI_BOLD} style={{ fontSize: 13, color: themeColors.text }}>
-              Basic
-            </AppText>
-            <TouchableOpacity
-              onPress={() =>
-                sectionInfo(
-                  "Basic order types",
-                  "Limit: your order rests on the book at a set price.\n\nMarket: fill immediately at the best available prices."
-                )
-              }
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={{ marginLeft: 4, top: 2 }}
+          {/* BASIC SECTION */}
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8, marginTop: 4 }}>
+            <Gem color="#F59E0B" size={14} strokeWidth={2.5} />
+            <AppText
+              weight={SEMI_BOLD}
+              style={{
+                fontSize: 13,
+                color: "#F59E0B",
+                marginLeft: 8,
+                letterSpacing: 1,
+              }}
             >
-              <FastImage source={INFO} style={{ width: 12, height: 12 }} resizeMode="contain" tintColor={isDark ? colors.white : colors.black} />
-            </TouchableOpacity>
+              BASIC
+            </AppText>
           </View>
           {ORDER_TYPE_SHEET_BASIC.map(renderRow)}
 
-          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 18, marginBottom: 6 }}>
-            <AppText weight={SEMI_BOLD} style={{ fontSize: 14, color: themeColors.text }}>
-              Advanced
-            </AppText>
-            <TouchableOpacity
-              onPress={() =>
-                sectionInfo(
-                  "Advanced (Spot)",
-                  "Spot Limit: after your stop is hit, a limit order is placed.\n\nSpot Market: after your stop is hit, a market order runs at the best price."
-                )
-              }
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          {/* ADVANCED SECTION */}
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8, marginTop: 12 }}>
+            <Gem color="#3B82F6" size={14} strokeWidth={2.5} />
+            <AppText
+              weight={SEMI_BOLD}
               style={{
-                marginLeft: 4, top: 2,
+                fontSize: 13,
+                color: "#3B82F6",
+                marginLeft: 8,
+                letterSpacing: 1,
               }}
             >
-              <FastImage source={INFO} style={{ width: 12, height: 12 }} tintColor={isDark ? colors.white : colors.black} resizeMode="contain" />
-            </TouchableOpacity>
+              ADVANCED
+            </AppText>
           </View>
           {ORDER_TYPE_SHEET_ADVANCED.map(renderRow)}
         </ScrollView>
@@ -3546,7 +3586,7 @@ const Spot = () => {
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20, }}>
           <AppText style={{ color: themeColors.text, fontSize: 18 }} weight={BOLD}>Order Confirmation</AppText>
           <TouchableOpacity onPress={() => rbSheetMarginConfirm.current?.close()}>
-            <FastImage source={REMOVE} style={{ width: 20, height: 20 }} tintColor={themeColors.iconColor} />
+            <FastImage source={REMOVE} style={{ width: 20, height: 20 }} tintColor={themeColors.text || colors.white} />
           </TouchableOpacity>
         </View>
 
@@ -3645,9 +3685,7 @@ const Spot = () => {
               resizeMode="stretch"
               style={styles.checkImage}
             />
-          ) : (
-            <></>
-          )}
+          ) : null}
         </TouchableOpacity>
       );
     });
@@ -5360,11 +5398,10 @@ const Spot = () => {
                       accessibilityRole="button"
                       accessibilityLabel="Trade History"
                     >
-                      <FastImage
+                      <Image
                         source={historyIcon}
-                        style={{ width: 18, height: 18 }}
+                        style={{ width: 18, height: 18, tintColor: isDark ? colors.white : colors.black }}
                         resizeMode="contain"
-                        tintColor={isDark ? colors.white : colors.black}
                       />
                     </TouchableOpacity>
                   </View>
@@ -5573,19 +5610,56 @@ const Spot = () => {
           animationType="none"
           customStyles={{
             container: {
-              backgroundColor: isDark ? themeColors.sheetDarkColor : themeColors.themeElevationColor,
-              height: 300,
-              borderRadius: 10,
+              backgroundColor: "transparent",
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              borderTopWidth: 1,
+              borderLeftWidth: 1,
+              borderRightWidth: 1,
+              borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
               paddingHorizontal: universalPaddingHorizontal,
+              overflow: "hidden",
             },
             wrapper: {
-              backgroundColor: "#0006",
+              backgroundColor: "rgba(0, 0, 0, 0.7)",
             },
             draggableIcon: {
-              backgroundColor: "transparent",
+              backgroundColor: "rgba(255, 255, 255, 0.2)",
+              width: 40,
+              marginTop: 10,
             },
           }}
         >
+          <BlurView
+            style={StyleSheet.absoluteFill}
+            blurType="light"
+            blurAmount={20}
+            reducedTransparencyFallbackColor="#111214"
+          />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+          {isDark && (
+            <>
+              <LinearGradient
+                colors={[
+                  "rgba(16, 185, 129, 0.10)",
+                  "rgba(6, 182, 212, 0.04)",
+                  "rgba(16, 185, 129, 0.02)",
+                  "rgba(16, 185, 129, 0.07)",
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+                pointerEvents="none"
+              />
+              <LinearGradient
+                colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={StyleSheet.absoluteFill}
+                pointerEvents="none"
+              />
+            </>
+          )}
           {renderNumber()}
         </RBSheet>
       </ScrollView>
@@ -5612,7 +5686,7 @@ const Spot = () => {
           onPress={() => setIsOrderTypeModalVisible(false)}
           style={{
             flex: 1,
-            backgroundColor: "rgba(0,0,0,0.6)",
+            backgroundColor: "rgba(0, 0, 0, 0.75)",
             justifyContent: "flex-end",
           }}
         >
@@ -5620,19 +5694,50 @@ const Spot = () => {
             activeOpacity={1}
             onPress={(e) => e?.stopPropagation?.()}
             style={{
-              backgroundColor: isDark ? themeColors.sheetDarkColor : themeColors.themeElevationColor,
               height: orderTypeSheetHeight,
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              paddingHorizontal: universalPaddingHorizontal,
-              paddingTop: 12,
-              paddingBottom: 8,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              borderTopWidth: 1,
+              borderLeftWidth: 1,
+              borderRightWidth: 1,
+              borderColor: "rgba(255, 255, 255, 0.12)",
+              backgroundColor: "transparent",
+              overflow: "hidden",
             }}
           >
-            <View style={{ alignItems: "center", marginBottom: 8 }}>
-              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: isDark ? colors.white_opacity : colors.black_opacity }} />
+            <BlurView
+              style={StyleSheet.absoluteFill}
+              blurType="light"
+              blurAmount={20}
+              reducedTransparencyFallbackColor="#111214"
+            />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(10, 12, 16, 0.68)" }]} />
+            <LinearGradient
+              colors={[
+                "rgba(16, 185, 129, 0.10)",
+                "rgba(6, 182, 212, 0.04)",
+                "rgba(16, 185, 129, 0.02)",
+                "rgba(16, 185, 129, 0.07)",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            <LinearGradient
+              colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+
+            <View style={{ paddingHorizontal: universalPaddingHorizontal, paddingTop: 10, paddingBottom: 8, flex: 1 }}>
+              <View style={{ alignItems: "center", marginBottom: 14 }}>
+                <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: "rgba(255, 255, 255, 0.2)" }} />
+              </View>
+              {renderOrderTypeSheet()}
             </View>
-            {renderOrderTypeSheet()}
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -5649,22 +5754,58 @@ const Spot = () => {
         customModalProps={{ statusBarTranslucent: true }}
         customStyles={{
           container: {
-            backgroundColor: isDark ? themeColors.sheetDarkColor : themeColors.themeElevationColor,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
+            backgroundColor: "transparent",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            borderTopWidth: 1,
+            borderLeftWidth: 1,
+            borderRightWidth: 1,
+            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
             paddingHorizontal: universalPaddingHorizontal,
             paddingTop: 12,
             paddingBottom: 8,
+            overflow: "hidden",
           },
           wrapper: {
-            backgroundColor: "#0006",
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
           },
           draggableIcon: {
-            backgroundColor: themeColors.themeBorderColor,
+            backgroundColor: "rgba(255, 255, 255, 0.2)",
             width: 40,
+            marginTop: 10,
           },
         }}
       >
+        <BlurView
+          style={StyleSheet.absoluteFill}
+          blurType="light"
+          blurAmount={20}
+          reducedTransparencyFallbackColor="#111214"
+        />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+        {isDark && (
+          <>
+            <LinearGradient
+              colors={[
+                "rgba(16, 185, 129, 0.10)",
+                "rgba(6, 182, 212, 0.04)",
+                "rgba(16, 185, 129, 0.02)",
+                "rgba(16, 185, 129, 0.07)",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            <LinearGradient
+              colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </>
+        )}
         <AddFundsSheet
           coinBalance={coinBalance}
           currencyData={currencyData}
@@ -5687,22 +5828,58 @@ const Spot = () => {
         customModalProps={{ statusBarTranslucent: true }}
         customStyles={{
           container: {
-            backgroundColor: isDark ? themeColors.sheetDarkColor : themeColors.themeElevationColor,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
+            backgroundColor: "transparent",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            borderTopWidth: 1,
+            borderLeftWidth: 1,
+            borderRightWidth: 1,
+            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
             paddingHorizontal: universalPaddingHorizontal,
             paddingTop: 12,
             paddingBottom: 8,
+            overflow: "hidden",
           },
           wrapper: {
-            backgroundColor: "#0006",
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
           },
           draggableIcon: {
-            backgroundColor: themeColors.themeBorderColor,
+            backgroundColor: "rgba(255, 255, 255, 0.2)",
             width: 40,
+            marginTop: 10,
           },
         }}
       >
+        <BlurView
+          style={StyleSheet.absoluteFill}
+          blurType="light"
+          blurAmount={20}
+          reducedTransparencyFallbackColor="#111214"
+        />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+        {isDark && (
+          <>
+            <LinearGradient
+              colors={[
+                "rgba(16, 185, 129, 0.10)",
+                "rgba(6, 182, 212, 0.04)",
+                "rgba(16, 185, 129, 0.02)",
+                "rgba(16, 185, 129, 0.07)",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            <LinearGradient
+              colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </>
+        )}
         {renderMarginConfirmSheet()}
       </RBSheet>
 
@@ -5714,7 +5891,7 @@ const Spot = () => {
             {
               zIndex: 99999,
               elevation: 99999,
-              backgroundColor: "rgba(0,0,0,0.6)",
+              backgroundColor: "rgba(0,0,0,0.7)",
               justifyContent: "center",
               alignItems: "center",
             },
@@ -5727,21 +5904,47 @@ const Spot = () => {
           />
           <View
             style={{
-              backgroundColor: isDark ? themeColors.sheetDarkColor : themeColors.themeElevationColor,
-              borderRadius: 20,
+              backgroundColor: "transparent",
+              borderRadius: 24,
               padding: 25,
               width: Width * 0.85,
               alignSelf: "center",
               alignItems: "center",
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 10 },
-              shadowOpacity: 0.25,
-              shadowRadius: 20,
-              elevation: 10,
               borderWidth: 1,
-              borderColor: themeColors.themeBorderColor,
+              borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+              overflow: "hidden",
             }}
           >
+            <BlurView
+              style={StyleSheet.absoluteFill}
+              blurType="light"
+              blurAmount={20}
+              reducedTransparencyFallbackColor="#111214"
+            />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.78)" : "rgba(255, 255, 255, 0.90)" }]} />
+            {isDark && (
+              <>
+                <LinearGradient
+                  colors={[
+                    "rgba(16, 185, 129, 0.10)",
+                    "rgba(6, 182, 212, 0.04)",
+                    "rgba(16, 185, 129, 0.02)",
+                    "rgba(16, 185, 129, 0.07)",
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+                <LinearGradient
+                  colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+              </>
+            )}
             <AppText
               style={{
                 fontSize: 20,

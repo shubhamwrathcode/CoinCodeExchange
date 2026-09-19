@@ -18,6 +18,8 @@ import React, { useCallback, useEffect, useMemo, useState, useRef, memo, forward
 import { useAppSelector } from "../../store/hooks";
 import { useDispatch } from "react-redux";
 import FastImage from "react-native-fast-image";
+import { BlurView } from "@react-native-community/blur";
+import LinearGradient from "react-native-linear-gradient";
 import { closeIcon, downIcon, searchIcon, starFillIcon, starIcon } from "../../helper/ImageAssets";
 import { colors } from "../../theme/colors";
 import { IMAGE_BASE_URL } from "../../helper/Constants";
@@ -630,12 +632,48 @@ const TradingDataModal = memo(forwardRef(({ visible, onClose, setCurrency, isDar
             styles.sheet,
             {
               height: SHEET_HEIGHT,
-              backgroundColor: modalBg,
+              backgroundColor: "transparent",
+              borderColor: darkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
               transform: [{ translateY: sheetTranslateY }],
             },
           ]}
           collapsable={false}
         >
+          <BlurView
+            style={StyleSheet.absoluteFill}
+            blurType="light"
+            blurAmount={20}
+            reducedTransparencyFallbackColor="#111214"
+          />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: darkMode ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+          {darkMode && (
+            <>
+              <LinearGradient
+                colors={[
+                  "rgba(16, 185, 129, 0.10)",
+                  "rgba(6, 182, 212, 0.04)",
+                  "rgba(16, 185, 129, 0.02)",
+                  "rgba(16, 185, 129, 0.07)",
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+                pointerEvents="none"
+              />
+              <LinearGradient
+                colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={StyleSheet.absoluteFill}
+                pointerEvents="none"
+              />
+            </>
+          )}
+
+          <View style={{ alignItems: "center", marginBottom: 8, marginTop: 2 }}>
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: darkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.15)" }} />
+          </View>
+
           <View style={styles.header}>
             <Text style={[styles.title, { color: textColor }]}>Select Coin</Text>
             <TouchableOpacity
@@ -699,10 +737,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#000",
   },
   sheet: {
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
     paddingHorizontal: 14,
-    paddingTop: 6,
+    paddingTop: 8,
     paddingBottom: 10,
     overflow: "hidden",
   },

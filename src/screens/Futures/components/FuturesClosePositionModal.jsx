@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { KeyboardAwareScrollView } from '@codler/react-native-keyboard-aware-scroll-view';
 import RBSheet from 'react-native-raw-bottom-sheet';
+import { BlurView } from '@react-native-community/blur';
+import LinearGradient from 'react-native-linear-gradient';
 import { AppText, BOLD, MEDIUM, SEMI_BOLD } from '../../../common';
 import { colors, darkTheme } from '../../../theme/colors';
 import {
@@ -168,20 +170,56 @@ const FuturesClosePositionModal = ({
         onClose={handleSheetClose}
         height={600}
         customStyles={{
-          wrapper: { backgroundColor: 'rgba(0,0,0,0.5)' },
+          wrapper: { backgroundColor: 'rgba(0,0,0,0.7)' },
           draggableIcon: {
-            backgroundColor: isDark ? '#444' : '#E5E7EB',
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
             width: 40,
+            marginTop: 10,
           },
           container: {
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            borderTopWidth: 1,
+            borderLeftWidth: 1,
+            borderRightWidth: 1,
+            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
             paddingHorizontal: 16,
             paddingBottom: 24,
-            backgroundColor: isDark ? themeColors.background || '#1E1E1E' : colors.white,
+            backgroundColor: "transparent",
+            overflow: "hidden",
           },
         }}
       >
+        <BlurView
+          style={StyleSheet.absoluteFill}
+          blurType="light"
+          blurAmount={20}
+          reducedTransparencyFallbackColor="#111214"
+        />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+        {isDark && (
+          <>
+            <LinearGradient
+              colors={[
+                "rgba(16, 185, 129, 0.10)",
+                "rgba(6, 182, 212, 0.04)",
+                "rgba(16, 185, 129, 0.02)",
+                "rgba(16, 185, 129, 0.07)",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            <LinearGradient
+              colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </>
+        )}
         <View style={{ flex: 1 }}>
         <KeyboardAwareScrollView
           style={{ flex: 1, marginTop: 8 }}
