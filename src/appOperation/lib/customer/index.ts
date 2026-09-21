@@ -667,6 +667,51 @@ export default (appOperation: AppOperation) => ({
     appOperation.post('futures/order', data, CUSTOMER_TYPE),
   close_position: (data: any) =>
     appOperation.post('futures/close-position', data, CUSTOMER_TYPE),
+  adjustPositionMargin: async (data: any) => {
+    const isRemove = String(data?.type ?? '').toUpperCase() === 'REMOVE' || data?.type === 2 || data?.type === '2';
+    const numAmount = Number(data?.amount ?? data?.margin ?? 0);
+    const posId = data?.position_id || data?.positionId || data?.id || data?._id;
+
+    const payload = {
+      ...data,
+      position_id: posId,
+      positionId: posId,
+      symbol: data?.symbol,
+      amount: numAmount,
+      margin: numAmount,
+      type: isRemove ? 2 : 1,
+      action: isRemove ? 'REMOVE' : 'ADD',
+      operation: isRemove ? 'reduce' : 'add',
+      side: data?.side,
+    };
+
+    const endpoints = [
+      'futures/isolated-margin',
+      'futures/adjust-margin',
+      'futures/adjust-position-margin',
+      'futures/position-margin',
+      'futures/position/margin',
+      'futures/margin',
+      'futures/positions/adjust-margin',
+    ];
+
+    let lastError: any = null;
+    for (const ep of endpoints) {
+      try {
+        const res = await appOperation.post(ep, payload, CUSTOMER_TYPE);
+        if (res && (res.success || res.status === 200 || res.code === 200 || res.data)) {
+          return res;
+        }
+      } catch (e: any) {
+        lastError = e;
+        const msg = String(e?.message || '');
+        if (!msg.includes('HTML') && !msg.includes('404') && e?.code !== 404) {
+          return e;
+        }
+      }
+    }
+    return lastError || { success: false, message: 'Server endpoint for adjust margin is not configured.' };
+  },
   futuresOpenPositions: (params: { symbol?: string; skip?: number; limit?: number } = {}) => {
     const p = new URLSearchParams({ skip: String(params.skip ?? 0), limit: String(params.limit ?? 20) });
     if (params.symbol) p.append("symbol", params.symbol);

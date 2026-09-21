@@ -25,9 +25,10 @@ import { AppText, BLACK, BOLD, DISCLAIMTEXT, FOURTEEN, SEMI_BOLD, TEN, TWELVE } 
 import FastImage from "react-native-fast-image";
 import { toFixedFive } from "../helper/utility";
 import { showError } from "../helper/logger";
-import { closeIcon, NO_NOTIFICATION_ICON, NO_NOTIFICATION_ICON_LIGHT, searchIcon, checkIcon } from "../helper/ImageAssets";
+import { closeIcon, NO_NOTIFICATION_ICON, NO_NOTIFICATION_ICON_LIGHT, searchIcon, checkIcon, activities_icon } from "../helper/ImageAssets";
 import { colors, darkTheme } from "../theme/colors";
 import { useTheme } from "../hooks/useTheme";
+import CoinIcon from "./CoinIcon";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -129,14 +130,11 @@ const CoinListModal = ({ visible, data, onSelect, onClose, disabledCoinId, selec
         }}
       >
         <View style={styles.coinLeft}>
-          <FastImage
-            source={{
-              uri: /^https?:\/\//i.test(String(item?.icon_path || ""))
-                ? String(item?.icon_path || "")
-                : `${String(IMAGE_BASE_URL || "").replace(/\/+$/, "")}/${String(item?.icon_path || "").replace(/^\/+/, "")}`,
-            }}
+          <CoinIcon
+            coin={item}
             style={styles.coinIcon}
             resizeMode="contain"
+            fallback={activities_icon}
           />
           <View style={styles.coinInfo}>
             <AppText

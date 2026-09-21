@@ -2,11 +2,13 @@ import React from 'react';
 import { View, TouchableOpacity, Modal, ActivityIndicator, StyleSheet } from 'react-native';
 import { BlurView } from '@react-native-community/blur';
 import LinearGradient from 'react-native-linear-gradient';
-import { AppText, FOURTEEN, SIXTEEN } from '../../../common';
+import { AppText, FOURTEEN, SIXTEEN, BOLD } from '../../../common';
 import { colors } from '../../../theme/colors';
 import { fontFamilyMedium, fontFamilySemiBold } from '../../../theme/typography';
 
-const FuturesCancelModal = ({ visible, onClose, onConfirm, isDark, themeColors, loading }) => {
+const FuturesCancelModal = ({ visible, onClose, onConfirm, isDark = true, themeColors = {}, loading = false }) => {
+  const primaryThemeColor = colors.cyanTheme || '#0AA8C5';
+
   return (
     <Modal
       transparent
@@ -14,7 +16,7 @@ const FuturesCancelModal = ({ visible, onClose, onConfirm, isDark, themeColors, 
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.75)', justifyContent: 'center', alignItems: 'center' }}>
         <View style={{
           width: '85%',
           backgroundColor: 'transparent',
@@ -36,10 +38,10 @@ const FuturesCancelModal = ({ visible, onClose, onConfirm, isDark, themeColors, 
             <>
               <LinearGradient
                 colors={[
-                  'rgba(16, 185, 129, 0.10)',
-                  'rgba(6, 182, 212, 0.04)',
-                  'rgba(16, 185, 129, 0.02)',
-                  'rgba(16, 185, 129, 0.07)',
+                  'rgba(10, 168, 197, 0.12)',
+                  'rgba(16, 185, 129, 0.05)',
+                  'rgba(10, 168, 197, 0.02)',
+                  'rgba(10, 168, 197, 0.08)',
                 ]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -47,7 +49,7 @@ const FuturesCancelModal = ({ visible, onClose, onConfirm, isDark, themeColors, 
                 pointerEvents="none"
               />
               <LinearGradient
-                colors={['transparent', 'rgba(16, 185, 129, 0.04)', 'transparent']}
+                colors={['transparent', 'rgba(10, 168, 197, 0.04)', 'transparent']}
                 start={{ x: 0, y: 0.5 }}
                 end={{ x: 1, y: 0.5 }}
                 style={StyleSheet.absoluteFill}
@@ -55,10 +57,10 @@ const FuturesCancelModal = ({ visible, onClose, onConfirm, isDark, themeColors, 
               />
             </>
           )}
-          <AppText type={SIXTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold, marginBottom: 12 }}>
+          <AppText type={SIXTEEN} style={{ color: themeColors.text || '#FFFFFF', fontFamily: fontFamilySemiBold, marginBottom: 12 }}>
             Cancel Order
           </AppText>
-          <AppText type={FOURTEEN} style={{ color: themeColors.secondaryText, fontFamily: fontFamilyMedium, textAlign: 'center', marginBottom: 24, lineHeight: 20 }}>
+          <AppText type={FOURTEEN} style={{ color: isDark ? '#8E95A3' : '#6B7280', fontFamily: fontFamilyMedium, textAlign: 'center', marginBottom: 24, lineHeight: 20 }}>
             Are you sure you want to cancel this order?
           </AppText>
           
@@ -70,12 +72,15 @@ const FuturesCancelModal = ({ visible, onClose, onConfirm, isDark, themeColors, 
                 flex: 1,
                 paddingVertical: 12,
                 borderRadius: 12,
-                backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
-                alignItems: 'center'
+                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.10)' : 'rgba(0, 0, 0, 0.05)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 1,
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.10)' : 'rgba(0, 0, 0, 0.05)',
               }}
             >
-              <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>
-                No, Keep it
+              <AppText type={FOURTEEN} style={{ color: themeColors.text || '#FFFFFF', fontFamily: fontFamilySemiBold }}>
+                No, Keep
               </AppText>
             </TouchableOpacity>
             
@@ -86,16 +91,17 @@ const FuturesCancelModal = ({ visible, onClose, onConfirm, isDark, themeColors, 
                 flex: 1,
                 paddingVertical: 12,
                 borderRadius: 12,
-                backgroundColor: colors.red,
+                backgroundColor: colors.red || '#E03934',
                 alignItems: 'center',
                 flexDirection: 'row',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                minHeight: 44,
               }}
             >
               {loading ? (
-                <ActivityIndicator size="small" color={colors.white} />
+                <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <AppText type={FOURTEEN} style={{ color: colors.white, fontFamily: fontFamilySemiBold }}>
+                <AppText type={FOURTEEN} style={{ color: '#FFFFFF', fontFamily: fontFamilySemiBold }}>
                   Yes, Cancel
                 </AppText>
               )}

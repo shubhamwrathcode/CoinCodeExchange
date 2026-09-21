@@ -7,13 +7,14 @@ import SimpleToast from 'react-native-simple-toast';
 
 import { BOLD, fontFamilyMedium, fontFamilySemiBold, MEDIUM, SEMI_BOLD } from '../../../theme/typography';
 import { colors } from '../../../theme/colors';
-import { decNum, computePosition, computeClosedPosition, snapAndCapCloseQty, snapToIncrementInput, formatLiqFee, formatFuturesTs, pickOpenedTs, pickClosedTs, openFuturesHistoryDetail, fmtFuturesQty, fmtFuturesPrice, fmtFuturesUsdt, fmtFuturesPct } from '../../../helper/futuresUtils';
-import { right_ic, NO_NOTIFICATION_ICON, filterIcon } from '../../../helper/ImageAssets';
+import { decNum, capDecStr, computePosition, computeClosedPosition, snapAndCapCloseQty, snapToIncrementInput, formatLiqFee, formatFuturesTs, pickOpenedTs, pickClosedTs, openFuturesHistoryDetail, fmtFuturesQty, fmtFuturesPrice, fmtFuturesUsdt, fmtFuturesPct, computeTradeHistoryItem, formatFuturesOrderType, getFuturesOrderDisplayPrice, getFuturesOrderTriggerText } from '../../../helper/futuresUtils';
+import { right_ic, NO_NOTIFICATION_ICON, filterIcon, editnew } from '../../../helper/ImageAssets';
 import { AppText, FOURTEEN, TEN, THIRTEEN, TWELVE } from '../../../common';
 import HistorySectionLoader, { LOADER_MIN_HEIGHT } from '../../../common/HistorySectionLoader/HistorySectionLoader';
 import { SwipeListView } from 'react-native-swipe-list-view';
 import FuturesCancelModal from './FuturesCancelModal';
 import FuturesClosePositionModal from './FuturesClosePositionModal';
+import FuturesAdjustMarginModal from './FuturesAdjustMarginModal';
 import FuturesHistoryFilterSheet from './FuturesHistoryFilterSheet';
 import { appOperation } from '../../../appOperation';
 import { useAppSelector } from '../../../store/hooks';
@@ -44,6 +45,8 @@ const FuturesHistorySection = ({
   loadingOpenOrders,
   futuresOrderHistory,
   loadingOrderHistory,
+  futuresTradeHistory = [],
+  loadingTradeHistory = false,
   futuresTransactionHistory,
   loadingTransactionHistory,
   themeColors,
@@ -69,6 +72,52 @@ const FuturesHistorySection = ({
   const [closingIds, setClosingIds] = React.useState({});
   const closingIdsRef = useRef({});
   const closingTimersRef = useRef({});
+
+  const [adjustMarginModalVisible, setAdjustMarginModalVisible] = React.useState(false);
+  const [posToAdjustMargin, setPosToAdjustMargin] = React.useState(null);
+  const [adjustMarginLoading, setAdjustMarginLoading] = React.useState(false);
+
+  const userFuturesWallet = useAppSelector((state) => state.wallet.userFuturesWallet);
+  const futuresData = useAppSelector((state) => state.home.futuresData);
+
+  const availableBalance = React.useMemo(() => {
+    if (futuresData?.balance?.available_balance != null) {
+      return Number(futuresData.balance.available_balance) || 0;
+    }
+    if (Array.isArray(userFuturesWallet)) {
+      const w = userFuturesWallet.find(w => w?.short_name === 'USDT' || w?.currency === 'USDT');
+      return Number(w?.balance ?? w?.available_balance ?? 0) || 0;
+    }
+    return 0;
+  }, [futuresData, userFuturesWallet]);
+
+  const executeAdjustMargin = async (payload) => {
+    console.log("👉 [UI] EXECUTE ADJUST MARGIN CALLED WITH PAYLOAD:", payload);
+    setAdjustMarginLoading(true);
+    try {
+      const result = await appOperation.customer.adjustPositionMargin(payload);
+      console.log("📥 [UI] ADJUST MARGIN RESULT RECEIVED:", result);
+      if (result?.success || result?.code === 200 || result?.status === 'success') {
+        const isAdd = payload?.type === 'ADD' || result?.data?.added === true;
+        const defaultSuccessMsg = isAdd ? 'Margin added successfully' : 'Margin removed successfully';
+        const msg = result?.message || result?.data?.message || defaultSuccessMsg;
+        SimpleToast.show(msg);
+        setAdjustMarginModalVisible(false);
+        setPosToAdjustMargin(null);
+        if (onRefresh) onRefresh({ silent: true });
+      } else {
+        const errMsg = result?.error?.message || result?.message || 'Failed to adjust margin';
+        console.warn("⚠️ [UI] ADJUST MARGIN FAILURE:", errMsg, result);
+        SimpleToast.show(errMsg.includes('HTML') ? 'Backend endpoint not found for adjust margin.' : errMsg);
+      }
+    } catch (e) {
+      const errMsg = e?.error?.message || e?.message || 'Something went wrong';
+      console.error("🔥 [UI] ADJUST MARGIN EXCEPTION:", e);
+      SimpleToast.show(errMsg.includes('HTML') ? 'Backend endpoint not found for adjust margin.' : errMsg);
+    } finally {
+      setAdjustMarginLoading(false);
+    }
+  };
 
   const [orderKindFilter, setOrderKindFilter] = React.useState('all');
   const [orderSideFilter, setOrderSideFilter] = React.useState('All Sides');
@@ -222,7 +271,7 @@ const FuturesHistorySection = ({
           </AppText>
           <TouchableOpacity
             style={{
-              backgroundColor: colors.cyanTheme,
+              backgroundColor: colors.cyanTheme || colors.buttonDarkBg || '#0AA8C5',
               paddingHorizontal: 22,
               paddingVertical: 8,
               borderRadius: 6,
@@ -249,6 +298,8 @@ const FuturesHistorySection = ({
         return loadingOpenOrders;
       case 'Order History':
         return loadingOrderHistory;
+      case 'Trade History':
+        return loadingTradeHistory;
       case 'Transaction History':
         return loadingTransactionHistory;
       default:
@@ -260,6 +311,7 @@ const FuturesHistorySection = ({
     loadingPositionHistory,
     loadingOpenOrders,
     loadingOrderHistory,
+    loadingTradeHistory,
     loadingTransactionHistory,
   ]);
 
@@ -307,7 +359,7 @@ const FuturesHistorySection = ({
               <AppText type={TWELVE} style={{ color: sideColor, fontFamily: fontFamilySemiBold }}>
                 {isLong ? "LONG" : "SHORT"}
               </AppText>
-              {" · "}{pos.leverage || 1}x{" · "}{String(pos.margin_type ?? "ISOLATED").toUpperCase()}
+              {" · "}{pos.leverage || 1}x{" · "}{String(pos.margin_type ?? pos.margin_mode ?? "ISOLATED").toUpperCase() === "CROSS" ? "Cross" : "Isolated"}
             </AppText>
           </View>
           <TouchableOpacity
@@ -347,7 +399,7 @@ const FuturesHistorySection = ({
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
             <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>Size</AppText>
             <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>
-              {fmtFuturesQty(qty)} {pos.symbol ? pos.symbol.replace(/USDT.*/, '') : "BTC"}
+              {fmtFuturesQty(qty)}
             </AppText>
           </View>
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
@@ -371,19 +423,42 @@ const FuturesHistorySection = ({
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
             <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>Margin Ratio</AppText>
             <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>
-              {Number(marginRatio) > 0 ? fmtFuturesPct(marginRatio) : "—"}
+              {Number(marginRatio) > 0 ? fmtFuturesPct(marginRatio, { dp: 4 }) : "—"}
             </AppText>
           </View>
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>Margin</AppText>
-            <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>
-              {fmtFuturesUsdt(margin)}
-            </AppText>
+            <View style={{ alignItems: "flex-end" }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>
+                  {fmtFuturesUsdt(margin)}
+                </AppText>
+                {String(pos.margin_type ?? pos.margin_mode ?? "ISOLATED").toUpperCase() !== "CROSS" && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setPosToAdjustMargin(pos);
+                      setAdjustMarginModalVisible(true);
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <FastImage
+                      source={editnew}
+                      style={{ width: 14, height: 14 }}
+                      resizeMode="contain"
+                      tintColor={themeColors.text}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+              <AppText type={TEN} style={{ color: themeColors.secondaryText, marginTop: 1 }}>
+                ({String(pos.margin_type ?? pos.margin_mode ?? "ISOLATED").toUpperCase() === "CROSS" ? "Cross" : "Isolated"})
+              </AppText>
+            </View>
           </View>
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
             <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>PNL (ROE%)</AppText>
             <AppText type={FOURTEEN} style={{ color: pnlColor, fontFamily: fontFamilySemiBold }}>
-              {fmtFuturesUsdt(pnl, { signed: true })} ({fmtFuturesPct(roe, { signed: true })})
+              {fmtFuturesUsdt(pnl, { signed: true })} ({fmtFuturesPct(roe, { signed: true, dp: 4 })})
             </AppText>
           </View>
 
@@ -408,6 +483,8 @@ const FuturesHistorySection = ({
     const openedDateFormatted = formatFuturesTs(pickOpenedTs(pos));
     const liqFee = formatLiqFee(pos, "USDT");
     const liqFeeDisplay = liqFee?.display || "—";
+
+    const baseCoin = pos.symbol ? String(pos.symbol).replace(/USDT.*/i, "").replace(/-PERP/i, "").replace(/\/.*/, "") : (selectedCoin?.base_currency || "USDT");
 
     return (
       <TouchableOpacity
@@ -457,7 +534,7 @@ const FuturesHistorySection = ({
           </View>
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
             <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>Size</AppText>
-            <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>{fmtFuturesQty(safeQty)} {selectedCoin?.base_currency || "USDT"}</AppText>
+            <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>{fmtFuturesQty(safeQty)} {baseCoin}</AppText>
           </View>
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
             <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>Entry Price</AppText>
@@ -504,7 +581,7 @@ const FuturesHistorySection = ({
     const filledQty = decNum(order.executed_quantity ?? order.filledQty ?? 0);
     const totalQty = decNum(order.quantity ?? order.origQty ?? 0);
 
-    const orderType = String(order.order_type ?? order.type ?? "Limit").charAt(0).toUpperCase() + String(order.order_type ?? order.type ?? "Limit").slice(1).toLowerCase();
+    const orderType = formatFuturesOrderType(order.order_type ?? order.type);
     const leverage = order.leverage ? `${order.leverage}x` : "1x";
 
     const createdTime = order.created_at || order.createdAt || order.updatedAt;
@@ -512,47 +589,13 @@ const FuturesHistorySection = ({
     const timeFormatted = createdTime ? moment(createdTime).format("HH:mm:ss") : "—";
 
     const unfilledQty = totalQty - filledQty;
-    const baseCoin = selectedCoin?.base_currency || (order.symbol ? order.symbol.replace(/USDT.*/, '') : "BTC");
+    const baseCoin = order.symbol ? String(order.symbol).replace(/USDT.*/i, "").replace(/-PERP/i, "").replace(/\/.*/, "") : (selectedCoin?.base_currency || "BTC");
 
     const tif = order.timeInForce || order.time_in_force || "GTC";
     const reduceOnly = order.reduceOnly || order.reduce_only ? "Yes" : "No";
 
-    const triggerVal = decNum(order?.trigger_price ?? order?.triggerPrice ?? order?.stop_price ?? order?.stopPrice);
-    const limitVal = decNum(order?.price);
-    const rawType = String(order.order_type ?? order.type ?? "").toUpperCase();
-
-    const fmtPrice = (n) => fmtFuturesPrice(n);
-
-    const tpSlText = () => {
-      const tp = decNum(order.take_profit);
-      const sl = decNum(order.stop_loss);
-      if (!Number.isFinite(tp) && !Number.isFinite(sl)) return null;
-      const parts = [];
-      if (Number.isFinite(tp)) parts.push(`TP ${fmtPrice(tp)}`);
-      if (Number.isFinite(sl)) parts.push(`SL ${fmtPrice(sl)}`);
-      return parts.join(" · ");
-    };
-
-    const getTriggerText = () => {
-      const attached = tpSlText();
-      if (attached) return attached;
-
-      if ((rawType === "STOP_LIMIT" || rawType === "TAKE_PROFIT_LIMIT") && Number.isFinite(triggerVal)) {
-        return `Trigger ${fmtPrice(triggerVal)}`;
-      }
-      if (rawType === "CONDITIONAL" && Number.isFinite(triggerVal)) {
-        if (Number.isFinite(limitVal) && limitVal > 0) {
-          return `Trigger ${fmtPrice(triggerVal)} · Limit ${fmtPrice(limitVal)}`;
-        }
-        return `Trigger ${fmtPrice(triggerVal)}`;
-      }
-      if ((rawType === "STOP_MARKET" || rawType === "TAKE_PROFIT_MARKET") && Number.isFinite(triggerVal)) {
-        return rawType === "TAKE_PROFIT_MARKET" ? "TP trigger" : "SL trigger";
-      }
-      return null;
-    };
-
-    const triggerText = getTriggerText();
+    const displayPrice = getFuturesOrderDisplayPrice(order);
+    const triggerText = getFuturesOrderTriggerText(order);
 
     return (
       <TouchableOpacity
@@ -583,7 +626,7 @@ const FuturesHistorySection = ({
         <View style={{ gap: 8 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
             <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>Price</AppText>
-            <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>{decNum(order.price) > 0 ? fmtFuturesPrice(decNum(order.price)) : "Market"}</AppText>
+            <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>{displayPrice}</AppText>
           </View>
           {triggerText && (
             <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
@@ -600,7 +643,7 @@ const FuturesHistorySection = ({
             <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>{timeFormatted}</AppText>
           </View>
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>Amount / Filled</AppText>
+            <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>Qty / Filled</AppText>
             <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>{fmtFuturesQty(totalQty, "0")} / {fmtFuturesQty(filledQty, "0")} {baseCoin}</AppText>
           </View>
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
@@ -611,10 +654,10 @@ const FuturesHistorySection = ({
             <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>TIF</AppText>
             <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>{tif}</AppText>
           </View>
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          {/* <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
             <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>Reduce Only</AppText>
             <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>{reduceOnly}</AppText>
-          </View>
+          </View> */}
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
             <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>Status</AppText>
             <AppText type={FOURTEEN} style={{ color: getStatusColor(order.status || "OPEN", themeColors), fontFamily: fontFamilySemiBold }}>{String(order.status || "OPEN").toUpperCase()}</AppText>
@@ -709,54 +752,19 @@ const FuturesHistorySection = ({
 
   const renderFuturesOrderHistoryItem = ({ item: order, isLast }) => {
     const isBuy = String(order.side ?? "").toUpperCase() === "BUY";
-    const orderType = String(order.order_type ?? order.type ?? "").toUpperCase();
+    const orderType = formatFuturesOrderType(order.order_type ?? order.type);
     const sideColor = isBuy ? colors.green : colors.red;
-    const filledQty = decNum(order.filled_quantity ?? order.executed_quantity);
-    const totalQty = decNum(order.quantity);
-    const baseCoin = selectedCoin?.base_currency || "USDT";
+    const filledQty = decNum(order.filled_quantity ?? order.executed_quantity ?? 0);
+    const totalQty = decNum(order.quantity ?? 0);
+    const baseCoin = order.symbol ? String(order.symbol).replace(/USDT.*/i, "").replace(/-PERP/i, "").replace(/\/.*/, "") : (selectedCoin?.base_currency || "BTC");
 
     const createdTime = order.created_at || order.createdAt || order.updatedAt;
     const dateFormatted = createdTime ? moment(createdTime).format("YYYY-MM-DD") : "—";
     const timeFormatted = createdTime ? moment(createdTime).format("HH:mm:ss") : "—";
 
-    const priceVal = decNum(order.order_price ?? order.price);
     const avgFillVal = decNum(order.average_execution_price ?? order.avg_price);
-
-    const triggerVal = decNum(order?.trigger_price ?? order?.triggerPrice ?? order?.stop_price ?? order?.stopPrice);
-    const limitVal = decNum(order?.price);
-
-    const fmtPrice = (n) => fmtFuturesPrice(n);
-
-    const tpSlText = () => {
-      const tp = decNum(order.take_profit);
-      const sl = decNum(order.stop_loss);
-      if (!Number.isFinite(tp) && !Number.isFinite(sl)) return null;
-      const parts = [];
-      if (Number.isFinite(tp)) parts.push(`TP ${fmtPrice(tp)}`);
-      if (Number.isFinite(sl)) parts.push(`SL ${fmtPrice(sl)}`);
-      return parts.join(" · ");
-    };
-
-    const getTriggerText = () => {
-      const attached = tpSlText();
-      if (attached) return attached;
-
-      if ((orderType === "STOP_LIMIT" || orderType === "TAKE_PROFIT_LIMIT") && Number.isFinite(triggerVal)) {
-        return `Trigger ${fmtPrice(triggerVal)}`;
-      }
-      if (orderType === "CONDITIONAL" && Number.isFinite(triggerVal)) {
-        if (Number.isFinite(limitVal) && limitVal > 0) {
-          return `Trigger ${fmtPrice(triggerVal)} · Limit ${fmtPrice(limitVal)}`;
-        }
-        return `Trigger ${fmtPrice(triggerVal)}`;
-      }
-      if ((orderType === "STOP_MARKET" || orderType === "TAKE_PROFIT_MARKET") && Number.isFinite(triggerVal)) {
-        return orderType === "TAKE_PROFIT_MARKET" ? "TP trigger" : "SL trigger";
-      }
-      return null;
-    };
-
-    const triggerText = getTriggerText();
+    const displayPrice = getFuturesOrderDisplayPrice(order);
+    const triggerText = getFuturesOrderTriggerText(order);
 
     return (
       <TouchableOpacity
@@ -785,7 +793,7 @@ const FuturesHistorySection = ({
             <AppText type={TWELVE} style={{ color: sideColor, fontFamily: fontFamilySemiBold }}>
               {isBuy ? "BUY" : "SELL"}
             </AppText>
-            {" · "}{orderType === "MARKET" ? "Market" : "Limit"}{" · "}{order.leverage || 1}x
+            {" · "}{orderType}{" · "}{order.leverage || 1}x
           </AppText>
         </View>
 
@@ -793,7 +801,7 @@ const FuturesHistorySection = ({
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
             <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>Price</AppText>
             <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>
-              {orderType === "MARKET" ? "Market" : priceVal > 0 ? fmtFuturesPrice(priceVal) : "0"}
+              {displayPrice}
             </AppText>
           </View>
           {triggerText && (
@@ -839,6 +847,92 @@ const FuturesHistorySection = ({
     );
   };
 
+  const renderFuturesTradeHistoryItem = ({ item: trade, isLast }) => {
+    const userId = userData?._id || userData?.id;
+    const t = computeTradeHistoryItem(trade, selectedCoin, userId);
+    const sideColor = t.isBuy ? colors.green : colors.red;
+    const pnlColor = t.realizedPnl > 0 ? colors.green : t.realizedPnl < 0 ? colors.red : themeColors.text;
+
+    return (
+      <TouchableOpacity
+        onPress={() => openFuturesHistoryDetail(navigation, {
+          pos: trade,
+          selectedCoin,
+          title: 'Trade History',
+          userId,
+        })}
+        activeOpacity={0.7}
+        style={{
+          paddingVertical: 14,
+          paddingHorizontal: 0,
+          borderBottomWidth: isLast ? 0 : 1,
+          borderBottomColor: themeColors.themeBorderColor || "#e0e0e0",
+        }}
+      >
+        <View style={{ marginBottom: 12 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
+            <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>
+              {t.symbol}
+            </AppText>
+            <FastImage
+              source={right_ic}
+              style={{ width: 10, height: 10, marginLeft: 6 }}
+              tintColor={themeColors.secondaryText}
+              resizeMode="contain"
+            />
+          </View>
+          <AppText type={TWELVE} style={{ color: themeColors.text, fontFamily: fontFamilyMedium }}>
+            <AppText type={TWELVE} style={{ color: sideColor, fontFamily: fontFamilySemiBold }}>
+              {t.sideText}
+            </AppText>
+            {` · ${t.roleText}`}
+          </AppText>
+        </View>
+
+        <View style={{ gap: 8 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>Price</AppText>
+            <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>
+              {t.price > 0 ? fmtFuturesPrice(t.price) : "Market"}
+            </AppText>
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>Qty</AppText>
+            <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>
+              {fmtFuturesQty(t.qty, "0")} {t.baseCoin}
+            </AppText>
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>Date</AppText>
+            <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>{t.dateFormatted}</AppText>
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>Time</AppText>
+            <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>{t.timeFormatted}</AppText>
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>Fee</AppText>
+            <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>
+              {capDecStr(t.fee, 8) ?? "0"} {t.feeAsset}
+            </AppText>
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>Realized PNL</AppText>
+            <AppText type={FOURTEEN} style={{ color: pnlColor, fontFamily: fontFamilySemiBold }}>
+              {t.realizedPnl > 0 ? `+${capDecStr(t.realizedPnl, 8)}` : (capDecStr(t.realizedPnl, 8) ?? "0")} USDT
+            </AppText>
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <AppText type={FOURTEEN} style={{ color: isDark ? "#8E8E93" : "#666666", fontFamily: fontFamilySemiBold }}>Total</AppText>
+            <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilySemiBold }}>
+              {capDecStr(t.total, 8) ?? "0"} USDT
+            </AppText>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   if (activeHistoryTab === 'Positions') {
     if (futuresPositions.length === 0) {
       return <EmptyState />;
@@ -872,6 +966,21 @@ const FuturesHistorySection = ({
             setPosToClose(null);
           }}
           onConfirm={executeClosePosition}
+        />
+
+        <FuturesAdjustMarginModal
+          visible={adjustMarginModalVisible}
+          isDark={isDark}
+          themeColors={themeColors}
+          loading={adjustMarginLoading}
+          pos={posToAdjustMargin}
+          availableBalance={availableBalance}
+          onClose={() => {
+            if (adjustMarginLoading) return;
+            setAdjustMarginModalVisible(false);
+            setPosToAdjustMargin(null);
+          }}
+          onConfirm={executeAdjustMargin}
         />
       </View>
     );
@@ -978,6 +1087,34 @@ const FuturesHistorySection = ({
             {limit && filteredOrders.length > limit && (
               <TouchableOpacity onPress={onViewMore} style={{ marginTop: 16, alignItems: 'center' }}>
                 <AppText type={FOURTEEN} style={{ color: themeColors.text, textDecorationLine: 'underline' }}>View More</AppText>
+              </TouchableOpacity>
+            )}
+          </>
+        )}
+        <View style={{ height: 80 }} />
+      </View>
+    );
+  }
+
+  if (activeHistoryTab === 'Trade History') {
+    const list = futuresTradeHistory || [];
+    const data = limit ? list.slice(0, limit) : list;
+    const hasMore = limit && list.length > limit;
+
+    return (
+      <View style={{ paddingHorizontal: 16, paddingBottom: 20 }}>
+        {list.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <>
+            {data.map((trade, index) => (
+              <React.Fragment key={trade._id || trade.id || index}>
+                {renderFuturesTradeHistoryItem({ item: trade, isLast: index === data.length - 1 && !hasMore })}
+              </React.Fragment>
+            ))}
+            {hasMore && (
+              <TouchableOpacity onPress={onViewMore} style={{ marginTop: 16, alignItems: 'center' }}>
+                <AppText type={FOURTEEN} style={{ color: themeColors.text, textDecorationLine: 'underline', fontFamily: fontFamilySemiBold }}>View More</AppText>
               </TouchableOpacity>
             )}
           </>

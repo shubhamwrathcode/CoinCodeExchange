@@ -3,7 +3,8 @@ import { FlatList, TextInput, TouchableOpacity, View } from "react-native";
 import FastImage from "react-native-fast-image";
 import { AppText, DISCLAIMTEXT, EIGHTEEN, FIFTEEN, FOURTEEN, SEMI_BOLD, SIXTEEN, TWELVE, TWENTY_SIX } from "../../../shared";
 import { colors, darkTheme } from "../../../theme/colors";
-import { bitcoin_ic, checkIc, moreOption, searchIcon, NO_NOTIFICATION_ICON } from "../../../helper/ImageAssets";
+import { activities_icon, checkIc, moreOption, searchIcon, NO_NOTIFICATION_ICON } from "../../../helper/ImageAssets";
+import CoinIcon from "../../../common/CoinIcon";
 import WalletTabQuickActions from "../WalletTabQuickActions";
 
 const GenericWalletTab = ({
@@ -148,21 +149,11 @@ const GenericWalletTab = ({
             <View style={[styles.row, { borderBottomColor: themeColors.border }, isLast && { borderBottomWidth: 0 }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
                 <View style={{ borderRadius: 16, overflow: "hidden" }}>
-                  <FastImage
-                    source={
-                      failedIconMap?.[String(item?.currency_id)]
-                        ? bitcoin_ic
-                        : (buildCoinIconUri(item?.icon_path)
-                          ? { uri: buildCoinIconUri(item?.icon_path) }
-                          : bitcoin_ic)
-                    }
+                  <CoinIcon
+                    coin={item}
                     style={{ width: 28, height: 28 }}
                     resizeMode="cover"
-                    onError={() => {
-                      const id = String(item?.currency_id ?? "");
-                      if (!id) return;
-                      setFailedIconMap((prev) => (prev?.[id] ? prev : { ...(prev || {}), [id]: true }));
-                    }}
+                    fallback={activities_icon}
                   />
                 </View>
                 <View style={{ flex: 1 }}>

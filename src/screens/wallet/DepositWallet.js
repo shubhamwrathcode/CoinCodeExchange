@@ -21,7 +21,7 @@ import {
   appBg,
   loginDarkBg,
   back_ic,
-  bitcoin_ic,
+  activities_icon,
   bnbIcon,
   giftIcon,
   searchIcon,
@@ -39,6 +39,8 @@ import {
   getDepositFiatCoins,
 } from "../../actions/walletActions";
 import { BASE_URL } from "../../helper/Constants";
+import { buildCoinImageUri } from "../../helper/coinIconUrl";
+import CoinIcon from "../../common/CoinIcon";
 import { colors } from "../../theme/colors";
 
 const DepositWallet = () => {
@@ -191,10 +193,11 @@ const DepositWallet = () => {
                     }
                   >
                     <View style={{ borderRadius: 50, overflow: "hidden" }}>
-                      <FastImage
-                        source={{ uri: BASE_URL + item?.icon_path }}
+                      <CoinIcon
+                        coin={item}
                         style={{ width: 30, height: 30 }}
                         resizeMode="cover"
+                        fallback={activities_icon}
                       />
                     </View>
 

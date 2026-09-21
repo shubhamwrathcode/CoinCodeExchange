@@ -3,7 +3,7 @@ import { Dimensions, ScrollView, StyleSheet, TextInput, TouchableOpacity, View }
 import { AppSafeAreaView, AppText, BLACK, BOLD, Button, DISCLAIMTEXT, FOURTEEN, MEDIUM, SEMI_BOLD, SIXTEEN, TEN, TWELVE, TWENTY, WHITE } from "../../shared";
 import KeyBoardAware from "../../shared/components/KeyboardAware";
 import FastImage from "react-native-fast-image";
-import { back_ic, BACK_ICON, bitcoin_ic, moreOption, printIcon, sideIcon } from "../../helper/ImageAssets";
+import { back_ic, BACK_ICON, activities_icon, moreOption, printIcon, sideIcon } from "../../helper/ImageAssets";
 import NavigationService from "../../navigation/NavigationService";
 import { colors } from "../../theme/colors";
 import { fontFamilyMedium } from "../../theme/typography";
@@ -17,6 +17,7 @@ import { IMAGE_BASE_URL } from "../../helper/Constants";
 import TransferModal from "../../shared/components/TransferModal";
 import { useFocusEffect, useRoute } from "@react-navigation/native";
 import TransferSkeleton from "./TransferSkeleton";
+import CoinIcon from "../../common/CoinIcon";
 
 const formatWalletName = (name) => {
   if (!name) return "";
@@ -248,14 +249,11 @@ const Transfer = () => {
             }} onPress={() => setCoinModal(true)}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <View style={{ borderRadius: 50, overflow: "hidden" }}>
-                  <FastImage
-                    source={
-                      buildCoinIconUri(coin?.icon_path)
-                        ? { uri: buildCoinIconUri(coin?.icon_path) }
-                        : bitcoin_ic
-                    }
-                    resizeMode="contain"
+                  <CoinIcon
+                    coin={coin}
                     style={{ width: 28, height: 28 }}
+                    resizeMode="contain"
+                    fallback={activities_icon}
                   />
                 </View>
 
@@ -285,7 +283,7 @@ const Transfer = () => {
               <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20 }}>
                 <AppText style={{ color: themeColors.secondaryText }} weight={SEMI_BOLD} type={FOURTEEN}>{coin?.short_name}</AppText>
                 <View style={{ width: 1, height: 16, backgroundColor: isDark ? "rgba(255, 255, 255, 0.15)" : "#E4E7EC", marginHorizontal: 12 }} />
-                <AppText style={{ color: colors.cyanTheme }} weight={SEMI_BOLD} type={FOURTEEN} onPress={() => setAmount(String(particularCoinBalance?.fromWallet?.balance) || 0)}>MAX</AppText>
+                <AppText style={{ color: colors.orangeTheme }} weight={SEMI_BOLD} type={FOURTEEN} onPress={() => setAmount(String(particularCoinBalance?.fromWallet?.balance) || 0)}>MAX</AppText>
               </View>
 
             </View>

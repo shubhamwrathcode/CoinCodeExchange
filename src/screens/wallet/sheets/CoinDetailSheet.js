@@ -4,8 +4,9 @@ import FastImage from "react-native-fast-image";
 import RBSheet from "react-native-raw-bottom-sheet";
 import Toast from "react-native-simple-toast";
 import { AppText, DISCLAIMTEXT, FOURTEEN, SEMI_BOLD, TWELVE } from "../../../shared";
-import { bitcoin_ic } from "../../../helper/ImageAssets";
+import { activities_icon } from "../../../helper/ImageAssets";
 import { colors } from "../../../theme/colors";
+import CoinIcon from "../../../common/CoinIcon";
 
 const CoinDetailSheet = ({
   sheetRef,
@@ -103,16 +104,11 @@ const CoinDetailSheet = ({
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <View style={{ borderRadius: 20, overflow: "hidden" }}>
-                  <FastImage
-                    source={
-                      failedIconMap?.[String(selectedCoin?.currency_id)]
-                        ? bitcoin_ic
-                        : (buildCoinIconUri(selectedCoin?.icon_path)
-                          ? { uri: buildCoinIconUri(selectedCoin?.icon_path) }
-                          : bitcoin_ic)
-                    }
+                  <CoinIcon
+                    coin={selectedCoin}
                     style={{ width: 40, height: 40 }}
                     resizeMode="cover"
+                    fallback={activities_icon}
                   />
                 </View>
                 <View>

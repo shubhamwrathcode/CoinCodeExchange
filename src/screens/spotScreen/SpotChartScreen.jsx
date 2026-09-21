@@ -461,7 +461,7 @@ const SpotChartScreen = ({ route: routeProp, isEmbedded = false, onTradePress } 
   const chartHeight = 400;
   const tabScrollBottomPadding =
     TAB_SCROLL_BOTTOM_GAP + TAB_SCROLL_BAR_CLEARANCE + Math.max(insets.bottom, 8);
-  const { subscribeToExchange, unsubscribeFromExchange, exchangeData } = useContext(SocketContext) || {};
+  const { subscribeToExchange, unsubscribeFromExchange, subscribeToMarket, unsubscribeFromMarket, exchangeData } = useContext(SocketContext) || {};
 
   const spotSelectedPair = useAppSelector((state) => state.home.spotSelectedPair);
   const coinData = useAppSelector((state) => state.home.coinData);
@@ -534,55 +534,58 @@ const SpotChartScreen = ({ route: routeProp, isEmbedded = false, onTradePress } 
     }
 
     return {
-      ...fromList,
       ...raw,
+      ...fromList,
       base_currency: baseCur || "",
       quote_currency: quoteCur || "",
-      base_currency_id: raw.base_currency_id ?? fromList?.base_currency_id,
-      quote_currency_id: raw.quote_currency_id ?? fromList?.quote_currency_id,
-      high: raw.high ?? raw.high_24h ?? fromList?.high ?? fromList?.high_24h,
-      low: raw.low ?? raw.low_24h ?? fromList?.low ?? fromList?.low_24h,
+      base_currency_id: fromList?.base_currency_id ?? raw.base_currency_id,
+      quote_currency_id: fromList?.quote_currency_id ?? raw.quote_currency_id,
+      high: fromList?.high ?? fromList?.high_24h ?? raw.high ?? raw.high_24h,
+      low: fromList?.low ?? fromList?.low_24h ?? raw.low ?? raw.low_24h,
       volume:
-        raw.volume ??
-        raw.volume_24h ??
-        raw.base_volume ??
         fromList?.volume ??
         fromList?.volume_24h ??
-        fromList?.base_volume,
+        fromList?.base_volume ??
+        raw.volume ??
+        raw.volume_24h ??
+        raw.base_volume,
       change:
-        raw.change ??
-        raw.price_change_24h ??
-        raw.change_24hour ??
         fromList?.change ??
         fromList?.price_change_24h ??
-        fromList?.change_24hour,
+        fromList?.change_24hour ??
+        raw.change ??
+        raw.price_change_24h ??
+        raw.change_24hour,
       volume_quote:
-        raw.volumeQuote ??
-        raw.volume_quote ??
-        raw.quote_volume ??
-        raw.volume_24h_quote ??
-        raw.quoteVolume ??
         fromList?.volumeQuote ??
         fromList?.volume_quote ??
         fromList?.quote_volume ??
         fromList?.volume_24h_quote ??
-        fromList?.quoteVolume,
+        fromList?.quoteVolume ??
+        raw.volumeQuote ??
+        raw.volume_quote ??
+        raw.quote_volume ??
+        raw.volume_24h_quote ??
+        raw.quoteVolume,
       buy_price:
+        fromList?.buy_price ??
+        fromList?.last_price ??
+        fromList?.price ??
+        fromList?.last ??
         raw.buy_price ??
         raw.last_price ??
         raw.price ??
-        raw.last ??
-        fromList?.buy_price ??
-        fromList?.last_price ??
-        fromList?.price,
+        raw.last,
       change_percentage:
+        fromList?.change_percentage ??
+        fromList?.changePercentage ??
+        fromList?.change_24h ??
         raw.change_percentage ??
         raw.changePercentage ??
-        raw.change_24h ??
-        fromList?.change_percentage,
-      _id: raw._id ?? raw.pair_id ?? fromList?._id,
-      step_size: raw.step_size ?? fromList?.step_size,
-      tick_size: raw.tick_size ?? fromList?.tick_size ?? 0.01,
+        raw.change_24h,
+      _id: fromList?._id ?? raw._id ?? raw.pair_id,
+      step_size: fromList?.step_size ?? raw.step_size,
+      tick_size: fromList?.tick_size ?? raw.tick_size ?? 0.01,
     };
   }, [spotSelectedPair, params, coinData]);
 
@@ -1101,6 +1104,14 @@ const SpotChartScreen = ({ route: routeProp, isEmbedded = false, onTradePress } 
     lastSubscribedExchangeRef.current = { base_currency_id: base, quote_currency_id: quote, tradeType, extraParams };
 
   }, [isFocused, mergedPair?.base_currency_id, mergedPair?.quote_currency_id, subscribeToExchange, unsubscribeFromExchange, dispatch, tradeType]);
+
+  useEffect(() => {
+    if (!isFocused) return;
+    subscribeToMarket?.("spot_chart");
+    return () => {
+      unsubscribeFromMarket?.("spot_chart");
+    };
+  }, [isFocused, subscribeToMarket, unsubscribeFromMarket]);
 
   useEffect(() => {
     return () => {

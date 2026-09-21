@@ -25,7 +25,7 @@ import KeyBoardAware from "../../shared/components/KeyboardAware";
 import WalletHeader from "./WalletHeader";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  bitcoin_ic,
+  activities_icon,
   moreOption,
   searchIcon,
   eye_close_icon,
@@ -77,6 +77,7 @@ import WithdrawChoiceSheet from "./sheets/WithdrawChoiceSheet";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "../../hooks/useTheme";
 import { IMAGE_BASE_URL } from "../../helper/Constants";
+import CoinIcon from "../../common/CoinIcon";
 import { TabView } from "react-native-tab-view";
 import Toast from "react-native-simple-toast";
 import SpotWalletTab from "./tabs/SpotWalletTab";
@@ -583,13 +584,13 @@ const WalletNew = ({ route }) => {
     const balancesByKey = {
       main: walletBalanceMain,
       spot: walletBalanceSpot,
-      p2p: null,
-      swap: walletBalanceSwap,
-      earning: walletBalanceEarning,
-      futures: walletBalanceFutures,
-      options: walletBalanceOptions,
+      // p2p: null,
+      // swap: walletBalanceSwap,
       margin: marginSummary ? { dollarPrice: marginSummary?.account_equity_usd || marginSummary?.total_assets_usd || 0, currencyPrice: marginSummary?.account_equity_usd || marginSummary?.total_assets_usd || 0, Currency: "USD" } : null,
       cross: crossMarginSummary ? { dollarPrice: crossMarginSummary?.net_equity || crossMarginSummary?.account_equity_usd || 0, currencyPrice: crossMarginSummary?.net_equity || crossMarginSummary?.account_equity_usd || 0, Currency: "USD" } : null,
+      futures: walletBalanceFutures,
+      earning: walletBalanceEarning,
+      options: walletBalanceOptions,
     };
 
     const usdFor = (bal) => safeNum(portfolioUsdtEstimate(bal));
@@ -610,17 +611,17 @@ const WalletNew = ({ route }) => {
     };
 
     return [
-      mk("main", "Main", balancesByKey.main),
-      mk("spot", "Spot", balancesByKey.spot),
-      mk("p2p", "P2P", balancesByKey.p2p),
-      mk("swap", "Swap", balancesByKey.swap),
-      mk("earning", "Earning", balancesByKey.earning),
-      mk("futures", "Futures", balancesByKey.futures),
-      mk("options", "Options", balancesByKey.options),
+      mk("main", "Main Wallet", balancesByKey.main),
+      mk("spot", "Spot Wallet", balancesByKey.spot),
+      // mk("p2p", "P2P", balancesByKey.p2p),
+      // mk("swap", "Swap", balancesByKey.swap),
       mk("margin", "Isolated Margin", balancesByKey.margin),
-      mk("cross", "Cross", balancesByKey.cross),
+      mk("cross", "Cross Margin", balancesByKey.cross),
+      mk("futures", "Futures", balancesByKey.futures),
+      mk("earning", "Earning", balancesByKey.earning),
+      mk("options", "Options", balancesByKey.options),
     ];
-  }, [walletBalance, walletBalanceMain, walletBalanceSpot, walletBalanceSwap, walletBalanceEarning, walletBalanceFutures, walletBalanceOptions, marginSummary, safeNum]);
+  }, [walletBalance, walletBalanceMain, walletBalanceSpot, walletBalanceSwap, walletBalanceEarning, walletBalanceFutures, walletBalanceOptions, marginSummary, crossMarginSummary, safeNum]);
 
   const handleSheetOpen = () => {
     depsoitSheet.current?.open();
@@ -969,7 +970,7 @@ const WalletNew = ({ route }) => {
                           </View>
 
                           {shouldShowCryptoSearch ? (
-                            <View style={[styles.aoCryptoSearchRow, { backgroundColor: isDark ?darkTheme.darkThemeInputColor : '#F7F7F7' }]}>
+                            <View style={[styles.aoCryptoSearchRow, { backgroundColor: isDark ? darkTheme.darkThemeInputColor : '#F7F7F7' }]}>
                               <FastImage
                                 source={searchIcon}
                                 resizeMode="contain"
@@ -1006,21 +1007,11 @@ const WalletNew = ({ route }) => {
                                   <View style={[styles.aoRow, isLast && { borderBottomWidth: 0 }]}>
                                     <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
                                       <View style={{ borderRadius: 16, overflow: "hidden" }}>
-                                        <FastImage
-                                          source={
-                                            failedIconMap?.[String(item?.currency_id)]
-                                              ? bitcoin_ic
-                                              : (buildCoinIconUri(item?.icon_path)
-                                                ? { uri: buildCoinIconUri(item?.icon_path) }
-                                                : bitcoin_ic)
-                                          }
+                                        <CoinIcon
+                                          coin={item}
                                           style={{ width: 28, height: 28 }}
                                           resizeMode="cover"
-                                          onError={() => {
-                                            const id = String(item?.currency_id ?? "");
-                                            if (!id) return;
-                                            setFailedIconMap((prev) => (prev?.[id] ? prev : { ...(prev || {}), [id]: true }));
-                                          }}
+                                          fallback={activities_icon}
                                         />
                                       </View>
                                       <View style={{ flex: 1 }}>

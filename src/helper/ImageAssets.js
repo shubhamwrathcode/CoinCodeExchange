@@ -646,3 +646,4 @@ export const RectangleRed = require('../../assets/images/RectangleRed.png');
 
 
 
+export const activities_icon = require('../../assets/images/activities_icon.png');

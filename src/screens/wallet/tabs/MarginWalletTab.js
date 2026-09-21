@@ -6,7 +6,8 @@ import { AppText, BOLD, DISCLAIMTEXT, EIGHTEEN, FIFTEEN, FOURTEEN, SEMI_BOLD, SI
 import { colors, darkTheme } from "../../../theme/colors";
 import { appOperation } from "../../../appOperation";
 import { CUSTOMER_TYPE } from "../../../appOperation/types";
-import { searchIcon, checkIc, NO_NOTIFICATION_ICON, moreOption, bitcoin_ic, INFO } from "../../../helper/ImageAssets";
+import { searchIcon, checkIc, NO_NOTIFICATION_ICON, moreOption, activities_icon, INFO } from "../../../helper/ImageAssets";
+import CoinIcon from "../../../common/CoinIcon";
 import MarginPairDetailSheet from "./MarginPairDetailSheet";
 import IsolatedMarginRiskModal from "../../spotScreen/isolatedMargin/IsolatedMarginRiskModal";
 import NavigationService from "../../../navigation/NavigationService";
@@ -276,9 +277,11 @@ const MarginWalletTab = ({ theme, themeColors, marginSummary: propMarginSummary,
           return (
             <View style={[styles.row, { borderBottomColor: themeColors.border }, isLast && { borderBottomWidth: 0 }]}>
               <View style={styles.rowLeft}>
-                <FastImage
-                  source={buildCoinIconUri(item.icon_path) ? { uri: buildCoinIconUri(item.icon_path) } : bitcoin_ic}
+                <CoinIcon
+                  coin={item}
                   style={styles.coinIcon}
+                  resizeMode="contain"
+                  fallback={activities_icon}
                 />
                 <View>
                   <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text }}>{item.pair}</AppText>

@@ -36,11 +36,15 @@ const FutureHistoryScreen = () => {
   const [futuresTransactionHistory, setFuturesTransactionHistory] = useState([]);
   const [loadingTransactionHistory, setLoadingTransactionHistory] = useState(initialTab === 'Transaction History');
 
+  const [futuresTradeHistory, setFuturesTradeHistory] = useState([]);
+  const [loadingTradeHistory, setLoadingTradeHistory] = useState(initialTab === 'Trade History');
+
   const historyFetchGenRef = React.useRef({
     positions: 0,
     positionHistory: 0,
     openOrders: 0,
     orderHistory: 0,
+    tradeHistory: 0,
     transactionHistory: 0,
   });
 
@@ -57,6 +61,9 @@ const FutureHistoryScreen = () => {
         break;
       case 'Order History':
         setLoadingOrderHistory(true);
+        break;
+      case 'Trade History':
+        setLoadingTradeHistory(true);
         break;
       case 'Transaction History':
         setLoadingTransactionHistory(true);
@@ -85,15 +92,11 @@ const FutureHistoryScreen = () => {
   ], [futuresPositions, futuresOpenOrders]);
 
   const fetchFuturesPositions = useCallback(async (opts = {}) => {
-    if (!selectedCoin?.symbol) {
-      setLoadingPositions(false);
-      return;
-    }
     const silent = opts?.silent === true;
     const gen = ++historyFetchGenRef.current.positions;
     if (!silent) setLoadingPositions(true);
     try {
-      const params = { symbol: selectedCoin.symbol, skip: 0, limit: 100 };
+      const params = { skip: 0, limit: 100 };
       const result = await appOperation.customer.futuresOpenPositions(params);
       if (gen !== historyFetchGenRef.current.positions) return;
       if (result?.success) {
@@ -106,17 +109,13 @@ const FutureHistoryScreen = () => {
         setLoadingPositions(false);
       }
     }
-  }, [selectedCoin?.symbol]);
+  }, []);
 
   const fetchFuturesPositionHistory = useCallback(async () => {
-    if (!selectedCoin?.symbol) {
-      setLoadingPositionHistory(false);
-      return;
-    }
     const gen = ++historyFetchGenRef.current.positionHistory;
     setLoadingPositionHistory(true);
     try {
-      const params = { symbol: selectedCoin.symbol, skip: 0, limit: 100 };
+      const params = { skip: 0, limit: 100 };
       const result = await appOperation.customer.futuresPositionHistory(params);
       if (gen !== historyFetchGenRef.current.positionHistory) return;
       if (result?.success) {
@@ -129,17 +128,13 @@ const FutureHistoryScreen = () => {
         setLoadingPositionHistory(false);
       }
     }
-  }, [selectedCoin?.symbol]);
+  }, []);
 
   const fetchFuturesOpenOrders = useCallback(async () => {
-    if (!selectedCoin?.symbol) {
-      setLoadingOpenOrders(false);
-      return;
-    }
     const gen = ++historyFetchGenRef.current.openOrders;
     setLoadingOpenOrders(true);
     try {
-      const params = { symbol: selectedCoin.symbol, skip: 0, limit: 100 };
+      const params = { skip: 0, limit: 100 };
       const result = await appOperation.customer.futuresOpenOrders(params);
       if (gen !== historyFetchGenRef.current.openOrders) return;
       if (result?.success) {
@@ -153,17 +148,13 @@ const FutureHistoryScreen = () => {
         setLoadingOpenOrders(false);
       }
     }
-  }, [selectedCoin?.symbol]);
+  }, []);
 
   const fetchFuturesOrderHistory = useCallback(async () => {
-    if (!selectedCoin?.symbol) {
-      setLoadingOrderHistory(false);
-      return;
-    }
     const gen = ++historyFetchGenRef.current.orderHistory;
     setLoadingOrderHistory(true);
     try {
-      const params = { symbol: selectedCoin.symbol, skip: 0, limit: 50 };
+      const params = { skip: 0, limit: 100 };
       const result = await appOperation.customer.futuresOrderHistory(params);
       if (gen !== historyFetchGenRef.current.orderHistory) return;
       if (result?.success) {
@@ -177,13 +168,44 @@ const FutureHistoryScreen = () => {
         setLoadingOrderHistory(false);
       }
     }
-  }, [selectedCoin?.symbol]);
+  }, []);
+
+  const fetchFuturesTradeHistory = useCallback(async () => {
+    const gen = ++historyFetchGenRef.current.tradeHistory;
+    setLoadingTradeHistory(true);
+    try {
+      const params = { skip: 0, limit: 100 };
+      const res = await appOperation.customer.futuresExecutions(params);
+      if (gen !== historyFetchGenRef.current.tradeHistory) return;
+      if (res?.success) {
+        const list = Array.isArray(res?.data?.trades)
+          ? res.data.trades
+          : Array.isArray(res?.trades)
+          ? res.trades
+          : Array.isArray(res?.data?.data)
+          ? res.data.data
+          : Array.isArray(res?.data?.executions)
+          ? res.data.executions
+          : Array.isArray(res?.data)
+          ? res.data
+          : [];
+        setFuturesTradeHistory(list);
+      }
+    } catch (e) {
+      if (gen !== historyFetchGenRef.current.tradeHistory) return;
+      console.warn("fetchFuturesTradeHistory err:", e);
+    } finally {
+      if (gen === historyFetchGenRef.current.tradeHistory) {
+        setLoadingTradeHistory(false);
+      }
+    }
+  }, []);
 
   const fetchFuturesTransactionHistory = useCallback(async () => {
     const gen = ++historyFetchGenRef.current.transactionHistory;
     setLoadingTransactionHistory(true);
     try {
-      const params = { page: 1, limit: 50 };
+      const params = { page: 1, limit: 100 };
       const result = await appOperation.customer.futuresWalletHistory(params);
       if (gen !== historyFetchGenRef.current.transactionHistory) return;
       if (result?.success) {
@@ -209,21 +231,24 @@ const FutureHistoryScreen = () => {
         fetchFuturesOpenOrders();
       } else if (activeHistoryTab === 'Order History') {
         fetchFuturesOrderHistory();
+      } else if (activeHistoryTab === 'Trade History') {
+        fetchFuturesTradeHistory();
+        fetchFuturesOrderHistory();
+        fetchFuturesPositionHistory();
       } else if (activeHistoryTab === 'Transaction History') {
         fetchFuturesTransactionHistory();
       }
     }
-  }, [isFocused, activeHistoryTab, fetchFuturesPositions, fetchFuturesPositionHistory, fetchFuturesOpenOrders, fetchFuturesOrderHistory, fetchFuturesTransactionHistory]);
+  }, [isFocused, activeHistoryTab, fetchFuturesPositions, fetchFuturesPositionHistory, fetchFuturesOpenOrders, fetchFuturesOrderHistory, fetchFuturesTradeHistory, fetchFuturesTransactionHistory]);
 
   const renderBottomTabs = () => (
     <View style={[{
       flexDirection: "row", marginTop: 6, alignItems: "center", height: 35,
-      borderBottomWidth: 1, borderBottomColor: themeColors.themeBorderColor
     }]}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ flexDirection: "row", alignItems: "center", gap: 16, paddingHorizontal: 16 }}
+        contentContainerStyle={{ flexDirection: "row", alignItems: "center", gap: 16, paddingRight: 8 }}
         style={{ flex: 1 }}
       >
         {dynamicHistoryTabs.map((t) => (
@@ -238,17 +263,17 @@ const FutureHistoryScreen = () => {
               weight={SEMI_BOLD}
               style={{
                 color: activeHistoryTab === t.id ? themeColors.text : themeColors.secondaryText,
-                fontSize: 15,
+                fontSize: 14,
               }}
             >
               {t.label} {t.count != null ? `(${t.count})` : ""}
             </AppText>
             <View
               style={{
-                width: 25,
-                height: 3,
-                marginTop: 6,
-                backgroundColor: activeHistoryTab === t.id ? (colors.cyanTheme || "#0AA8C5") : "transparent",
+                width: 22,
+                height: 2.5,
+                marginTop: 4,
+                backgroundColor: activeHistoryTab === t.id ? (isDark ? colors.white : colors.black) : "transparent",
                 borderRadius: 2,
               }}
             />
@@ -260,23 +285,30 @@ const FutureHistoryScreen = () => {
 
   return (
     <AppSafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]}>
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: themeColors.themeBorderColor || "#e0e0e0" }]}>
         <TouchableOpacity
-          style={styles.backBtn}
           onPress={() => navigation.goBack()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={styles.backBtn}
         >
           <FastImage
             source={back_ic}
-            style={{ width: 18, height: 18 }}
+            style={{ width: 20, height: 20 }}
             tintColor={themeColors.text}
             resizeMode="contain"
           />
         </TouchableOpacity>
-        <AppText type={FOURTEEN} weight={SEMI_BOLD} style={styles.headerTitle}>Futures History</AppText>
+        <AppText type={FOURTEEN} weight={SEMI_BOLD} style={[styles.headerTitle, { color: themeColors.text }]}>
+          Futures History
+        </AppText>
         <View style={{ width: 36 }} />
       </View>
-      {renderBottomTabs()}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 10 }}>
+
+      <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+        {renderBottomTabs()}
+      </View>
+
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <FuturesHistorySection
           activeHistoryTab={activeHistoryTab}
           futuresPositions={futuresPositions}
@@ -287,6 +319,8 @@ const FutureHistoryScreen = () => {
           loadingOpenOrders={loadingOpenOrders}
           futuresOrderHistory={futuresOrderHistory}
           loadingOrderHistory={loadingOrderHistory}
+          futuresTradeHistory={futuresTradeHistory}
+          loadingTradeHistory={loadingTradeHistory}
           futuresTransactionHistory={futuresTransactionHistory}
           loadingTransactionHistory={loadingTransactionHistory}
           themeColors={themeColors}
@@ -296,6 +330,10 @@ const FutureHistoryScreen = () => {
           onRefresh={(opts) => {
             fetchFuturesPositions(opts);
             fetchFuturesOpenOrders();
+            fetchFuturesPositionHistory();
+            fetchFuturesOrderHistory();
+            fetchFuturesTradeHistory();
+            fetchFuturesTransactionHistory();
           }}
           onPositionClosed={(posId) => {
             setFuturesPositions((prev) =>

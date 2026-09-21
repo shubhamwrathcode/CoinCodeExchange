@@ -6,10 +6,11 @@ import moment from 'moment';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { useTheme } from '../../hooks/useTheme';
+import { useAppSelector } from '../../store/hooks';
 import { AppText, FOURTEEN, THIRTEEN, TWELVE, SIXTEEN } from '../../common';
 import { BOLD, MEDIUM, SEMI_BOLD, fontFamilyMedium, fontFamilySemiBold } from '../../theme/typography';
 import { colors } from '../../theme/colors';
-import { computeClosedPosition, computePosition, formatLiqFee, formatFuturesTs, pickOpenedTs, pickClosedTs, getFuturesHistoryDetail, fmtFuturesQty, fmtFuturesPrice, fmtFuturesUsdt, fmtFuturesPct } from '../../helper/futuresUtils';
+import { computeClosedPosition, computePosition, formatLiqFee, formatFuturesTs, pickOpenedTs, pickClosedTs, getFuturesHistoryDetail, fmtFuturesQty, fmtFuturesPrice, fmtFuturesUsdt, fmtFuturesPct, decNum, capDecStr, computeTradeHistoryItem, formatFuturesOrderType, getFuturesOrderDisplayPrice, getFuturesOrderTriggerText } from '../../helper/futuresUtils';
 import { back_ic } from '../../helper/ImageAssets';
 import { appOperation } from '../../appOperation';
 import FuturesCancelModal from './components/FuturesCancelModal';
@@ -37,11 +38,12 @@ const FutureHistoryCardDetailPage = () => {
   }
 
   const isOrderTab = title === 'Order History' || title === 'Open Orders';
-  const isOpenPosition = title === 'Positions' || String(pos.status ?? "").toUpperCase() === "OPEN";
+  const isTradeTab = title === 'Trade History';
+  const isOpenPosition = title === 'Positions' || (!isOrderTab && !isTradeTab && String(pos.status ?? "").toUpperCase() === "OPEN");
 
   const closed = computeClosedPosition(pos);
   const openLive = computePosition(pos, markPrice, selectedCoin);
-  const { entry, exit, qty, pnl, fees, funding, reason } = isOpenPosition && !isOrderTab
+  const { entry, exit, qty, pnl, fees, funding, reason } = isOpenPosition && !isOrderTab && !isTradeTab
     ? { entry: openLive.entry, exit: openLive.mark, qty: openLive.qty, pnl: openLive.pnl, fees: 0, funding: 0, reason: pos.status || "OPEN" }
     : closed;
   const safePnl = Number.isFinite(Number(pnl)) ? Number(pnl) : 0;
@@ -53,7 +55,14 @@ const FutureHistoryCardDetailPage = () => {
   const isLong = String(pos.side ?? "").toUpperCase() === "LONG" || String(pos.side ?? "").toUpperCase() === "BUY";
   const pnlColor = safePnl >= 0 ? colors.green : colors.red;
   const fundingColor = safeFunding >= 0 ? colors.green : colors.red;
-  const baseAsset = selectedCoin?.base_currency || (pos.symbol ? String(pos.symbol).replace(/USDT.*/i, "") : "BTC");
+  const baseAsset = selectedCoin?.base_currency || (pos.symbol ? String(pos.symbol).replace(/USDT.*/i, "").replace(/-PERP/i, "").replace(/\/.*/, "") : "BTC");
+
+  const userData = useAppSelector((state) => state.auth.userData);
+  const userId = stored.userId ?? routeParams.userId ?? userData?._id ?? userData?.id;
+
+  // Trade history specific computed item
+  const tradeComputed = computeTradeHistoryItem(pos, selectedCoin, userId);
+  const tradePnlColor = tradeComputed.realizedPnl > 0 ? colors.green : tradeComputed.realizedPnl < 0 ? colors.red : themeColors.text;
 
   const getStatusColor = (statusText) => {
     if (!statusText) return themeColors.text;
@@ -144,12 +153,19 @@ const FutureHistoryCardDetailPage = () => {
               {pos.symbol || "—"}
             </AppText>
           </View>
-          {isOrderTab ? (
+          {isTradeTab ? (
+            <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilyMedium }}>
+              <AppText type={FOURTEEN} style={{ color: tradeComputed.isBuy ? colors.green : colors.red, fontFamily: fontFamilySemiBold }}>
+                {tradeComputed.sideText}
+              </AppText>
+              {` · ${tradeComputed.roleText}`}
+            </AppText>
+          ) : isOrderTab ? (
             <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilyMedium }}>
               <AppText type={FOURTEEN} style={{ color: String(pos.side ?? "").toUpperCase() === "BUY" ? colors.green : colors.red, fontFamily: fontFamilySemiBold }}>
                 {String(pos.side ?? "").toUpperCase() === "BUY" ? "BUY" : "SELL"}
               </AppText>
-              {" · "}{String(pos.order_type ?? pos.type ?? "").toUpperCase() === "MARKET" ? "Market" : "Limit"}{" · "}{pos.leverage || 1}x
+              {" · "}{formatFuturesOrderType(pos.order_type ?? pos.type)}{" · "}{pos.leverage || 1}x
             </AppText>
           ) : (
             <AppText type={FOURTEEN} style={{ color: themeColors.text, fontFamily: fontFamilyMedium }}>
@@ -159,13 +175,24 @@ const FutureHistoryCardDetailPage = () => {
         </View>
 
         <View style={{ gap: 4 }}>
-          {isOrderTab ? (
+          {isTradeTab ? (
             <>
-              {renderDetailRow("Price", String(pos.order_type ?? pos.type ?? "").toUpperCase() === "MARKET" ? "Market" : fmtFuturesPrice(pos.order_price ?? pos.price))}
+              {renderDetailRow("Price", tradeComputed.price > 0 ? fmtFuturesPrice(tradeComputed.price) : "Market")}
+              {renderDetailRow("Qty", `${fmtFuturesQty(tradeComputed.qty, "0")} ${tradeComputed.baseCoin}`)}
+              {renderDetailRow("Date", tradeComputed.dateFormatted)}
+              {renderDetailRow("Time", tradeComputed.timeFormatted)}
+              {renderDetailRow("Fee", `${capDecStr(tradeComputed.fee, 8) ?? "0"} ${tradeComputed.feeAsset}`)}
+              {renderDetailRow("Realized PNL", `${tradeComputed.realizedPnl > 0 ? '+' : ''}${capDecStr(tradeComputed.realizedPnl, 8) ?? "0"} USDT`, tradePnlColor)}
+              {renderDetailRow("Total", `${capDecStr(tradeComputed.total, 8) ?? "0"} USDT`)}
+            </>
+          ) : isOrderTab ? (
+            <>
+              {renderDetailRow("Price", getFuturesOrderDisplayPrice(pos))}
+              {getFuturesOrderTriggerText(pos) ? renderDetailRow("Trigger", getFuturesOrderTriggerText(pos)) : null}
               {renderDetailRow("Avg Fill", fmtFuturesPrice(pos.average_execution_price ?? pos.avg_price))}
               {renderDetailRow("Date", moment(pos.created_at || pos.createdAt).format("YYYY-MM-DD"))}
               {renderDetailRow("Time", moment(pos.created_at || pos.createdAt).format("HH:mm:ss"))}
-              {renderDetailRow("Qty / Filled", `${fmtFuturesQty(pos.quantity, "0")} / ${fmtFuturesQty(pos.filled_quantity ?? pos.executed_quantity ?? pos.filledQty ?? 0, "0")} ${selectedCoin?.base_currency || "USDT"}`)}
+              {renderDetailRow("Qty / Filled", `${fmtFuturesQty(pos.quantity, "0")} / ${fmtFuturesQty(pos.filled_quantity ?? pos.executed_quantity ?? pos.filledQty ?? 0, "0")} ${baseAsset}`)}
               {renderDetailRow("TIF", pos.time_in_force || pos.timeInForce || "GTC")}
               {renderDetailRow("Reduce Only", pos.reduce_only || pos.reduceOnly ? "Yes" : "No")}
               {title === 'Order History' && renderDetailRow("Fee", fmtFuturesUsdt(pos.total_fees_paid ?? 0))}
@@ -185,9 +212,9 @@ const FutureHistoryCardDetailPage = () => {
               {renderDetailRow("Entry Price", fmtFuturesPrice(openLive.entry))}
               {renderDetailRow("Mark Price", fmtFuturesPrice(openLive.mark))}
               {renderDetailRow("Liq. Price", fmtFuturesPrice(pos.liquidation_price))}
-              {renderDetailRow("Margin Ratio", Number(openLive.marginRatio) > 0 ? fmtFuturesPct(openLive.marginRatio) : "—")}
+              {renderDetailRow("Margin Ratio", Number(openLive.marginRatio) > 0 ? fmtFuturesPct(openLive.marginRatio, { dp: 4 }) : "—")}
               {renderDetailRow("Margin", fmtFuturesUsdt(openLive.margin))}
-              {renderDetailRow("PNL (ROE%)", `${fmtFuturesUsdt(openLive.pnl, { signed: true })} (${fmtFuturesPct(openLive.roe, { signed: true })})`, openLive.pnl >= 0 ? colors.green : colors.red)}
+              {renderDetailRow("PNL (ROE%)", `${fmtFuturesUsdt(openLive.pnl, { signed: true })} (${fmtFuturesPct(openLive.roe, { signed: true, dp: 4 })})`, openLive.pnl >= 0 ? colors.green : colors.red)}
               {renderDetailRow("Opened Time", openedTimeDisplay || formatFuturesTs(pickOpenedTs(pos)))}
               {renderDetailRow("Status", String(pos.status || "OPEN").toUpperCase(), getStatusColor(pos.status || "OPEN"))}
             </>

@@ -1,3 +1,5 @@
+import moment from 'moment';
+
 /**
  * Utilities for futures trading: tick/step size, validation, and data formatting.
  * Aligned with web UsdMFutures / futuresUtils for consistency.
@@ -18,7 +20,7 @@ export function getTickSize(pair) {
   if (raw != null && Number(raw) > 0) {
     return Number(raw);
   }
-  const prec = pair?.price_precision;
+  const prec = pair?.price_precision ?? pair?.quote_decimal ?? pair?.price_decimal;
   if (typeof prec === "number" && prec >= 0) {
     return Math.pow(10, -prec);
   }
@@ -30,7 +32,7 @@ export function getStepSize(pair) {
   if (raw != null && Number(raw) > 0) {
     return Number(raw);
   }
-  const prec = pair?.quantity_precision;
+  const prec = pair?.quantity_precision ?? pair?.base_decimal ?? pair?.qty_decimal ?? pair?.quantity_decimal;
   if (typeof prec === "number" && prec >= 0) {
     return Math.pow(10, -prec);
   }
@@ -170,7 +172,7 @@ export function normalizeOrderbookOrders(orders) {
   });
 }
 
-const DEFAULT_ORDER_BOOK_AGG_OPTIONS = [0.1, 0.01, 0.001, 0.0001];
+const DEFAULT_ORDER_BOOK_AGG_OPTIONS = [0.01, 0.1, 1, 10];
 
 export function getOrderBookAggOptionsForPair(tickSize) {
     const tick = Number(tickSize);
@@ -190,8 +192,11 @@ export function getOrderBookAggOptionsForPair(tickSize) {
 
 export function roundPriceToAgg(price, agg) {
     const n = Number(price);
-    if (!Number.isFinite(n) || !agg) return n;
-    return Math.round(n / agg) * agg;
+    const a = Number(agg);
+    if (!Number.isFinite(n) || !Number.isFinite(a) || a <= 0) return n;
+    const dp = getDecimalPlaces(a);
+    const rounded = Math.round(n / a) * a;
+    return dp > 0 ? parseFloat(rounded.toFixed(dp)) : Math.round(rounded);
 }
 
 export function aggregateOrderBookRows(orders, agg) {
@@ -328,12 +333,16 @@ export function fmtFuturesUsdt(n, { signed = false, fallback = "—" } = {}) {
   return `${signedStr} USDT`;
 }
 
-export function fmtFuturesPct(n, { signed = false, fallback = "—" } = {}) {
+export function fmtFuturesPct(n, { signed = false, fallback = "—", dp = 4 } = {}) {
   const v = typeof n === "number" ? n : decNum(n);
   if (!Number.isFinite(v)) return fallback;
-  const body = capDecStr(v) ?? "0";
-  if (signed && v > 0) return `+${body}%`;
-  return `${body}%`;
+  const absVal = Math.abs(v);
+  const formatted = absVal.toFixed(dp);
+  if (signed) {
+    const signedStr = v > 0 ? `+${formatted}` : v < 0 ? `-${formatted}` : formatted;
+    return `${signedStr}%`;
+  }
+  return `${formatted}%`;
 }
 
 let _historyDetail = null;
@@ -357,7 +366,7 @@ export function openFuturesHistoryDetail(navigation, payload) {
 }
 
 export function computePosition(pos, liveMarkPrice = null, selectedCoin = null) {
-  const qty = decNum(pos.quantity);
+  const qty = decNum(pos.quantity ?? pos.filled_quantity ?? pos.amount);
   const entry = decNum(pos.average_entry_price ?? pos.entry_price);
   
   let mark = decNum(pos.mark_price);
@@ -368,27 +377,30 @@ export function computePosition(pos, liveMarkPrice = null, selectedCoin = null) 
     }
   }
 
-  const sideSign = String(pos.side ?? "").toUpperCase() === "SHORT" ? -1 : 1;
-  let pnl = decNum(pos.unrealized_pnl);
+  const sideSign = String(pos.side ?? "").toUpperCase() === "SHORT" || String(pos.side ?? "").toUpperCase() === "SELL" ? -1 : 1;
+  let pnl = decNum(pos.unrealized_pnl ?? pos.pnl);
   
-  if ((!Number.isFinite(pnl) || pnl === 0) && Number.isFinite(entry) && Number.isFinite(mark) && Number.isFinite(qty)) {
+  if (!Number.isFinite(pnl) && Number.isFinite(entry) && Number.isFinite(mark) && Number.isFinite(qty)) {
     pnl = (mark - entry) * qty * sideSign;
   }
   if (!Number.isFinite(pnl)) pnl = 0;
 
-  const margin = decNum(pos.isolated_margin_allocated ?? pos.initial_margin);
+  const margin = decNum(pos.isolated_margin_allocated ?? pos.initial_margin ?? pos.margin);
   
-  const apiRoe = decNum(pos.roe_pct);
+  const apiRoe = decNum(pos.roe_pct ?? pos.roe ?? pos.unrealized_pnl_percentage);
   const roe = Number.isFinite(apiRoe)
     ? apiRoe
     : Number.isFinite(margin) && margin > 0
       ? (pnl / margin) * 100
       : NaN;
 
+  const apiMarginRatio = decNum(pos.margin_ratio ?? pos.marginRatio);
   const mm = decNum(pos.maintenance_margin);
-  const marginRatio = Number.isFinite(mm) && Number.isFinite(margin) && margin + pnl > 0
-    ? (mm / (margin + pnl)) * 100
-    : NaN;
+  const marginRatio = Number.isFinite(apiMarginRatio) && apiMarginRatio > 0
+    ? apiMarginRatio
+    : Number.isFinite(mm) && Number.isFinite(margin) && margin + pnl > 0
+      ? (mm / (margin + pnl)) * 100
+      : NaN;
 
   return { qty, entry, mark, pnl, margin, roe, marginRatio };
 }
@@ -535,4 +547,424 @@ export function computeFuturesLeverageStats({
         currentLoanLimit,
         maxNotionalAtLev,
     };
+}
+
+export function tradeUserView(ex, userId) {
+  const uid = userId ? String(userId) : null;
+  const takerSide = String(ex?.side ?? ex?.taker_side ?? ex?.order_side ?? "").toUpperCase();
+  const flip = (s) => (s === "BUY" || s === "LONG" ? "SELL" : s === "SELL" || s === "SHORT" ? "BUY" : s);
+  const isTaker = uid && ex?.taker_user_id && String(ex.taker_user_id) === String(uid);
+  const isMaker = uid && ex?.maker_user_id && String(ex.maker_user_id) === String(uid);
+  if (isMaker && !isTaker) {
+    return {
+      side: flip(takerSide) || "SELL",
+      role: "Maker",
+      orderId: ex.maker_order_id || ex.order_id || "—",
+      fee: ex.maker_fee ?? ex.fee ?? ex.total_fees_paid,
+      pnl: ex.maker_realized_pnl ?? ex.realized_pnl ?? ex.pnl,
+    };
+  }
+  return {
+    side: takerSide || "BUY",
+    role: isTaker ? "Taker" : (ex?.taker_role ? "Taker" : (ex?.role || "Taker")),
+    orderId: ex.taker_order_id || ex.maker_order_id || ex.order_id || "—",
+    fee: ex.taker_fee ?? ex.fee ?? ex.total_fees_paid,
+    pnl: ex.taker_realized_pnl ?? ex.realized_pnl ?? ex.pnl,
+  };
+}
+
+export function computeTradeHistoryItem(trade, selectedCoin = null, userId = null) {
+  if (!trade || typeof trade !== "object") {
+    return {
+      symbol: "—",
+      isBuy: true,
+      sideText: "BUY",
+      roleText: "Taker",
+      price: 0,
+      qty: 0,
+      total: 0,
+      fee: 0,
+      realizedPnl: 0,
+      feeAsset: "USDT",
+      baseCoin: "BNB",
+      dateFormatted: "—",
+      timeFormatted: "—",
+    };
+  }
+
+  const raw = trade?.data || trade?.trade || trade?.execution || trade?.order || trade;
+  const view = tradeUserView(raw, userId);
+
+  const rawSide = String(view.side || raw.side || raw.type || "").toUpperCase();
+  const isBuy = rawSide === "BUY" || rawSide === "LONG" || raw.is_buyer === true || raw.isBuyer === true;
+  const sideText = isBuy ? "BUY" : "SELL";
+  const roleText = String(view.role || raw.role || "Taker").toUpperCase().includes("MAKER") ? "Maker" : "Taker";
+
+  const searchTargets = [trade, raw, trade?.order, trade?.execution, trade?.trade, trade?.detail, trade?.deal].filter(Boolean);
+
+  const extractNum = (keys, allowZero = false) => {
+    for (const target of searchTargets) {
+      for (const k of keys) {
+        if (target[k] !== undefined && target[k] !== null && target[k] !== "") {
+          const n = decNum(target[k]);
+          if (Number.isFinite(n) && (allowZero ? n >= 0 : n > 0)) {
+            return n;
+          }
+        }
+      }
+    }
+    return null;
+  };
+
+  // Price
+  let price = extractNum([
+    "execution_price",
+    "executionPrice",
+    "fill_price",
+    "fillPrice",
+    "price",
+    "avg_price",
+    "avgPrice",
+    "average_price",
+    "averagePrice",
+    "deal_price",
+    "dealPrice",
+    "order_price",
+    "orderPrice",
+    "trade_price",
+    "tradePrice",
+    "p",
+  ]) || 0;
+
+  // Qty
+  let qty = extractNum([
+    "execution_quantity",
+    "executionQuantity",
+    "executed_qty",
+    "executedQty",
+    "executed_quantity",
+    "executedQuantity",
+    "filled_quantity",
+    "filledQuantity",
+    "filled_qty",
+    "filledQty",
+    "filled",
+    "quantity",
+    "qty",
+    "deal_stock",
+    "deal_size",
+    "deal_amount",
+    "deal_qty",
+    "amount",
+    "size",
+    "contracts",
+    "contract_quantity",
+    "contract_num",
+    "trade_quantity",
+    "trade_qty",
+    "trade_amount",
+    "trade_size",
+    "vol",
+    "volume",
+    "base_qty",
+    "base_amount",
+    "orig_qty",
+    "origQty",
+    "cum_qty",
+    "cumQty",
+    "order_quantity",
+    "order_qty",
+    "order_amount",
+    "exec_qty",
+    "exec_amount",
+    "position_size",
+    "units",
+    "lots",
+    "lot_size",
+  ]) || 0;
+
+  // Total
+  let total = extractNum([
+    "execution_notional_usd",
+    "notional_usd",
+    "notional",
+    "total",
+    "total_value",
+    "totalValue",
+    "total_price",
+    "totalPrice",
+    "volume_quote",
+    "quote_volume",
+    "quoteVolume",
+    "quote_qty",
+    "quoteQty",
+    "quote_amount",
+    "quoteAmount",
+    "cummulativeQuoteQty",
+    "cumQuote",
+    "cost",
+    "trade_value",
+    "tradeValue",
+    "deal_money",
+    "deal_value",
+    "money",
+    "turnover",
+    "val",
+    "value",
+    "sum",
+    "cash",
+    "amount_usd",
+  ]) || 0;
+
+  // Fee
+  let fee = decNum(view.fee) || extractNum([
+    "taker_fee",
+    "maker_fee",
+    "fee",
+    "fee_paid",
+    "feePaid",
+    "fee_amount",
+    "feeAmount",
+    "fees",
+    "commission",
+    "commission_amount",
+    "total_fees",
+    "totalFees",
+    "total_fee",
+    "totalFee",
+    "trade_fee",
+    "tradeFee",
+    "deal_fee",
+    "dealFee",
+    "cost_fee",
+    "trading_fee",
+    "user_fee",
+    "exec_fee",
+    "handling_fee",
+  ]) || 0;
+
+  // Realized PNL
+  let realizedPnl = decNum(view.pnl);
+  if (!Number.isFinite(realizedPnl)) {
+    realizedPnl = extractNum([
+      "taker_realized_pnl",
+      "maker_realized_pnl",
+      "realized_pnl",
+      "realised_pnl",
+      "realizedPnl",
+      "realisedPnl",
+      "pnl",
+      "profit",
+      "closed_pnl",
+      "closedPnl",
+      "net_pnl",
+      "netPnl",
+      "rpnl",
+      "realized_profit",
+      "realised_profit",
+      "realized_pnl_usd",
+      "realized_pnl_usdt",
+    ], true);
+  }
+
+  // Deep Scan across all keys if anything is still 0
+  for (const target of searchTargets) {
+    for (const [key, val] of Object.entries(target)) {
+      const k = key.toLowerCase();
+      const n = decNum(val);
+      if (Number.isFinite(n) && n > 0) {
+        if (qty === 0 && (k.includes("qty") || k.includes("quant") || k.includes("amount") || k.includes("size") || k.includes("vol") || k.includes("stock") || k.includes("fill") || k.includes("exec"))) {
+          qty = n;
+        }
+        if (total === 0 && (k.includes("total") || k.includes("quote") || k.includes("money") || k.includes("turnover") || k.includes("cost") || k.includes("notional"))) {
+          total = n;
+        }
+        if (fee === 0 && (k.includes("fee") || k.includes("commiss"))) {
+          fee = n;
+        }
+        if (realizedPnl === null && (k.includes("pnl") || k.includes("profit"))) {
+          realizedPnl = n;
+        }
+      }
+    }
+  }
+
+  // Total derivation
+  if (total <= 0 && price > 0 && qty > 0) {
+    total = price * qty;
+  }
+  if (qty <= 0 && total > 0 && price > 0) {
+    qty = total / price;
+  }
+
+  // Fee calculation (0.05% taker / 0.02% maker parity)
+  if (fee <= 0 && total > 0) {
+    const feeRate = decNum(trade.fee_rate ?? trade.feeRate ?? trade.taker_fee_rate ?? raw.fee_rate ?? raw.taker_fee_rate);
+    const rate = Number.isFinite(feeRate) && feeRate > 0 ? feeRate : (roleText === "Maker" ? 0.0002 : 0.0005);
+    fee = total * rate;
+  }
+
+  // Realized PNL fallback
+  if (realizedPnl === null || !Number.isFinite(realizedPnl)) {
+    if (!isBuy) {
+      const entryPrice = extractNum(["entry_price", "avg_entry_price", "average_entry_price", "open_price", "cost_price"]);
+      if (Number.isFinite(entryPrice) && entryPrice > 0 && price > 0 && qty > 0) {
+        realizedPnl = (price - entryPrice) * qty;
+      } else {
+        realizedPnl = 0;
+      }
+    } else {
+      realizedPnl = 0;
+    }
+  }
+
+  const feeAsset = trade.fee_asset || trade.feeAsset || raw.fee_asset || raw.feeAsset || raw.settlement_asset || "USDT";
+  const symbol = trade.symbol || raw.symbol || "—";
+  const baseCoin = symbol !== "—"
+    ? String(symbol).replace(/USDT.*/i, "").replace(/-PERP/i, "").replace(/\/.*/, "")
+    : (selectedCoin?.base_currency || "BNB");
+
+  const createdTime = trade.executed_at || trade.executedAt || trade.created_at || trade.createdAt || trade.time || trade.timestamp || trade.execution_time || raw.executed_at || raw.created_at || raw.createdAt;
+  const dateFormatted = createdTime ? moment(createdTime).format("YYYY-MM-DD") : "—";
+  const timeFormatted = createdTime ? moment(createdTime).format("HH:mm:ss") : "—";
+
+  return {
+    symbol,
+    isBuy,
+    sideText,
+    roleText,
+    price,
+    qty,
+    total,
+    fee,
+    realizedPnl,
+    feeAsset,
+    baseCoin,
+    dateFormatted,
+    timeFormatted,
+  };
+}
+
+export function formatFuturesOrderType(type) {
+  if (!type) return "Limit";
+  const up = String(type).toUpperCase().trim();
+  if (up === "TAKE_PROFIT_MARKET" || up === "TAKE_PROFIT") return "TP Market";
+  if (up === "TAKE_PROFIT_LIMIT") return "TP Limit";
+  if (up === "STOP_MARKET" || up === "STOP_LOSS_MARKET" || up === "STOP") return "SL Market";
+  if (up === "STOP_LIMIT" || up === "STOP_LOSS_LIMIT") return "SL Limit";
+  if (up === "TRAILING_STOP_MARKET" || up === "TRAILING_STOP") return "Trailing Stop";
+  if (up === "CONDITIONAL") return "Conditional";
+  if (up === "MARKET") return "Market";
+  if (up === "LIMIT") return "Limit";
+  if (up === "LIQUIDATION") return "Liquidation";
+  return up.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
+export function getFuturesOrderDisplayPrice(order) {
+  if (!order) return "Market";
+  const rawType = String(order.order_type ?? order.type ?? "").toUpperCase();
+  const priceVal = decNum(order.price ?? order.order_price ?? order.limit_price);
+  const triggerVal = decNum(
+    order.trigger_price ??
+    order.triggerPrice ??
+    order.stop_price ??
+    order.stopPrice ??
+    order.take_profit ??
+    order.stop_loss
+  );
+
+  if (
+    rawType.includes("TAKE_PROFIT") ||
+    rawType.includes("STOP") ||
+    rawType.includes("CONDITIONAL") ||
+    rawType.includes("TRIGGER")
+  ) {
+    if (Number.isFinite(triggerVal) && triggerVal > 0) {
+      if (rawType.includes("LIMIT") && Number.isFinite(priceVal) && priceVal > 0) {
+        return fmtFuturesPrice(priceVal);
+      }
+      return fmtFuturesPrice(triggerVal);
+    }
+  }
+
+  if (Number.isFinite(priceVal) && priceVal > 0) {
+    return fmtFuturesPrice(priceVal);
+  }
+
+  if (Number.isFinite(triggerVal) && triggerVal > 0) {
+    return fmtFuturesPrice(triggerVal);
+  }
+
+  if (rawType === "MARKET") {
+    return "Market";
+  }
+
+  return priceVal > 0 ? fmtFuturesPrice(priceVal) : "Market";
+}
+
+export function getFuturesOrderTriggerText(order) {
+  if (!order) return null;
+  const rawType = String(order.order_type ?? order.type ?? "").toUpperCase();
+  const triggerVal = decNum(
+    order.trigger_price ??
+    order.triggerPrice ??
+    order.stop_price ??
+    order.stopPrice
+  );
+  const limitVal = decNum(order.price ?? order.order_price);
+
+  const tp = decNum(order.take_profit);
+  const sl = decNum(order.stop_loss);
+  if (Number.isFinite(tp) || Number.isFinite(sl)) {
+    const parts = [];
+    if (Number.isFinite(tp) && tp > 0) parts.push(`TP ${fmtFuturesPrice(tp)}`);
+    if (Number.isFinite(sl) && sl > 0) parts.push(`SL ${fmtFuturesPrice(sl)}`);
+    if (parts.length > 0) return parts.join(" · ");
+  }
+
+  if ((rawType === "STOP_LIMIT" || rawType === "TAKE_PROFIT_LIMIT") && Number.isFinite(triggerVal) && triggerVal > 0) {
+    return `Trigger ${fmtFuturesPrice(triggerVal)}`;
+  }
+  if (rawType === "CONDITIONAL" && Number.isFinite(triggerVal) && triggerVal > 0) {
+    if (Number.isFinite(limitVal) && limitVal > 0) {
+      return `Trigger ${fmtFuturesPrice(triggerVal)} · Limit ${fmtFuturesPrice(limitVal)}`;
+    }
+    return `Trigger ${fmtFuturesPrice(triggerVal)}`;
+  }
+  if (rawType === "TAKE_PROFIT_MARKET" || rawType === "TAKE_PROFIT") {
+    return "TP trigger";
+  }
+  if (rawType === "STOP_MARKET" || rawType === "STOP") {
+    return "SL trigger";
+  }
+  if (Number.isFinite(triggerVal) && triggerVal > 0) {
+    return `Trigger ${fmtFuturesPrice(triggerVal)}`;
+  }
+  return null;
+}
+
+
+
+export function getLeverageOptions(maxLeverage) {
+  const max = Math.max(1, Number(maxLeverage) || 125);
+  let milestones = [];
+  if (max <= 10) {
+    milestones = [1, 2, 3, 5, 10];
+  } else if (max <= 20) {
+    milestones = [2, 3, 5, 10, 15, 20];
+  } else if (max <= 50) {
+    milestones = [5, 10, 15, 20, 25, 50];
+  } else if (max <= 75) {
+    milestones = [5, 10, 20, 25, 50, 75];
+  } else if (max <= 100) {
+    milestones = [5, 10, 20, 50, 75, 100];
+  } else if (max <= 125) {
+    milestones = [5, 10, 20, 50, 75, 100, 125];
+  } else {
+    milestones = [5, 10, 20, 50, 75, 100, 125, 150];
+  }
+  const filtered = milestones.filter((m) => m <= max);
+  if (!filtered.includes(max)) filtered.push(max);
+  filtered.sort((a, b) => a - b);
+  return filtered;
 }
