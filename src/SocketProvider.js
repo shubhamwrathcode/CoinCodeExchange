@@ -419,7 +419,7 @@ export const SocketProvider = ({ children }) => {
       unsubscribeFromFutures,
       setFuturesHistoryTab,
     }),
-    [exchangeData, futuresDataRef.current, futuresPrice, socketHandlersReady, subscribeToMarket, unsubscribeFromMarket, subscribeToExchange, unsubscribeFromExchange, subscribeToFutures, unsubscribeFromFutures, setFuturesHistoryTab]
+    [exchangeData, futuresPrice, socketHandlersReady, subscribeToMarket, unsubscribeFromMarket, subscribeToExchange, unsubscribeFromExchange, subscribeToFutures, unsubscribeFromFutures, setFuturesHistoryTab]
   );
 
   return (

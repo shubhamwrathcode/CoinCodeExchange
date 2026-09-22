@@ -6,12 +6,13 @@ import Svg, { Path, Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import { BlurView } from '@react-native-community/blur';
-import { TrendingUp, ShoppingCart, Target, Check, Circle as LucideCircle, Gem, X } from 'lucide-react-native';
+import { TrendingUp, ShoppingCart, Target, Check, Circle as LucideCircle, Gem, X, Info } from 'lucide-react-native';
 import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import AnimatedBottomSheet from '../../common/AnimatedBottomSheet/AnimatedBottomSheet';
 import FuturePairList from './FuturePairList';
+import FutureChartScreen from './FutureChartScreen';
 import { useFuturesSocket } from './useFuturesSocket';
 import { AppText, BOLD, MEDIUM, SEMI_BOLD, TWELVE, FOURTEEN, SIXTEEN, TEN, THIRTEEN, Button } from '../../shared';
 import { useTheme } from '../../hooks/useTheme';
@@ -37,7 +38,9 @@ import {
   order_2,
   order_3,
   NO_NOTIFICATION_ICON,
-  right_ic
+  right_ic,
+  defaultTrade,
+  historyIcon
 } from '../../helper/ImageAssets';
 import { fontFamilyMedium, fontFamilySemiBold } from '../../theme/typography';
 import {
@@ -83,7 +86,10 @@ import {
   futuresErrSlSell,
 } from './futuresOrderMessages';
 
-LogBox.ignoreLogs(['VirtualizedLists should never be nested inside plain ScrollViews']);
+LogBox.ignoreLogs([
+  'VirtualizedLists should never be nested inside plain ScrollViews',
+  'useInsertionEffect must not schedule updates'
+]);
 
 const { width: Width, height: Height } = Dimensions.get('window');
 
@@ -308,6 +314,7 @@ const FuturesUI = () => {
     return null;
   });
 
+  const [viewMode, setViewMode] = useState('trade');
   const [activeTab, setActiveTab] = useState('Buy');
   const [sliderValue, setSliderValue] = useState(0);
   const [price, setPrice] = useState(() => {
@@ -499,18 +506,14 @@ const FuturesUI = () => {
       const activeId = activeCoin._id || activeCoin.symbol || activeCoin.short_name || activeCoin.base_asset;
       if (activeId && activeId !== lastRouteCoinId.current) {
         lastRouteCoinId.current = activeId;
-        dispatch(setFuturesData(null));
         setSelectedCoin(activeCoin);
         const p = activeCoin.buy_price ?? activeCoin.last_price ?? activeCoin.mark_price;
         if (p) {
           setPrice(String(formatPriceByTick(parseFloat(p), activeCoin)));
         }
-        if (subscribeToFutures && activeCoin.symbol) {
-          subscribeToFutures({ symbol: activeCoin.symbol });
-        }
       }
     }
-  }, [route.params?.coin, route.params?.pair, route.params?.coinDetail, subscribeToFutures, dispatch]);
+  }, [route.params?.coin, route.params?.pair, route.params?.coinDetail]);
 
   const fetchFuturesPositions = React.useCallback(async (opts = {}) => {
     const silent = opts?.silent === true;
@@ -1018,7 +1021,7 @@ const FuturesUI = () => {
     }
     lastStreamBidRef.current = priceNum;
     setLivePriceState(p);
-  }, [futuresPrice, selectedCoin]);
+  }, [futuresPrice, selectedCoin?.symbol, selectedCoin?._id]);
 
   const livePrice = React.useMemo(() => {
     if (livePriceState) return parseFloat(livePriceState) || 0;
@@ -1054,12 +1057,16 @@ const FuturesUI = () => {
   const [orderType, setOrderType] = useState('Limit');
   const [isOrderTypeModalVisible, setIsOrderTypeModalVisible] = useState(false);
   const orderTypeSheetRef = useRef(null);
-  const [marginMode, setMarginMode] = useState('Cross');
+  const [marginMode, setMarginMode] = useState('Isolated');
+  const [marginModeDraft, setMarginModeDraft] = useState('Isolated');
+  const [isMarginModeModalVisible, setIsMarginModeModalVisible] = useState(false);
   const marginModeSheetRef = useRef(null);
-  const tifSheetRef = useRef(null);
+  const [isTifModalVisible, setIsTifModalVisible] = useState(false);
+  const [tifDraft, setTifDraft] = useState('GTC');
   const [batchAdjustMarginMode, setBatchAdjustMarginMode] = useState(false);
   const [contractUnit, setContractUnit] = useState('Amount (BTC)');
   const [contractUnitDraft, setContractUnitDraft] = useState('Amount (BTC)');
+  const [isContractUnitModalVisible, setIsContractUnitModalVisible] = useState(false);
   const contractUnitSheetRef = useRef(null);
 
   const currentBaseAsset = selectedCoin?.short_name || selectedCoin?.base_asset || selectedCoin?.base_currency || (selectedCoin?.symbol ? selectedCoin.symbol.split('USDT')[0].replace(/[^A-Za-z0-9]/g, '') : '') || 'BTC';
@@ -1068,13 +1075,9 @@ const FuturesUI = () => {
   useEffect(() => {
     if (selectedCoin) {
       const isValueUnit = (contractUnit || '').includes('Value');
-      if (isValueUnit) {
-        setContractUnit(`Value (${currentQuoteAsset})`);
-        setContractUnitDraft(`Value (${currentQuoteAsset})`);
-      } else {
-        setContractUnit(`Amount (${currentBaseAsset})`);
-        setContractUnitDraft(`Amount (${currentBaseAsset})`);
-      }
+      const nextUnit = isValueUnit ? `Value (${currentQuoteAsset})` : `Amount (${currentBaseAsset})`;
+      setContractUnit(prev => (prev === nextUnit ? prev : nextUnit));
+      setContractUnitDraft(prev => (prev === nextUnit ? prev : nextUnit));
     }
   }, [selectedCoin?.symbol, selectedCoin?._id, currentBaseAsset, currentQuoteAsset]);
 
@@ -1253,7 +1256,7 @@ const FuturesUI = () => {
       : (futuresData?.contracts || futuresData?.pairs || []);
 
     if (pairsArray && pairsArray.length > 0) {
-      setPairData(pairsArray);
+      setPairData(prev => (prev?.length === pairsArray.length && prev === pairsArray ? prev : pairsArray));
 
       setPrice(prevPrice => {
         if (prevPrice && prevPrice !== "") return prevPrice;
@@ -1276,7 +1279,7 @@ const FuturesUI = () => {
         return initPair;
       });
     }
-  }, [futuresPairs, futuresData]);
+  }, [futuresPairs]);
 
   useEffect(() => {
     if (!isFocused) return undefined;
@@ -1287,17 +1290,16 @@ const FuturesUI = () => {
     });
 
     return () => task.cancel();
-  }, [isFocused, pairData.length, subscribeToFutures, unsubscribeFromFutures, dispatch, selectedCoin?.symbol]);
+  }, [isFocused, dispatch, selectedCoin?.symbol]);
 
   useEffect(() => {
-    if (isFocused && selectedCoin) {
+    if (isFocused && selectedCoin?.symbol) {
       subscribeToFutures({ symbol: selectedCoin.symbol });
       return () => {
-        dispatch(setFuturesData(null));
         unsubscribeFromFutures({ symbol: selectedCoin.symbol, base_currency_id: selectedCoin._id });
       };
     }
-  }, [isFocused, selectedCoin, subscribeToFutures, unsubscribeFromFutures, dispatch]);
+  }, [isFocused, selectedCoin?.symbol, selectedCoin?._id, subscribeToFutures, unsubscribeFromFutures]);
 
   useEffect(() => {
     if (isFocused) {
@@ -1330,84 +1332,96 @@ const FuturesUI = () => {
   };
 
 
-  const renderHeader = React.useCallback(() => (
-    <View style={{ paddingTop: 10, paddingBottom: 10, paddingHorizontal: 16, backgroundColor: themeColors.background }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <TouchableOpacity
-          style={styles.pairTouchTarget}
-          onPress={openPairSheet}
-          activeOpacity={0.75}
-          disabled={!liveCoin}
-          hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="Select trading pair"
-        >
-          {liveCoin ? (
-            <>
-              <View style={styles.pairRow}>
-                <AppText type={SIXTEEN} weight={SEMI_BOLD} style={{ fontSize: 20 }}>
-                  {`${liveCoin.short_name || liveCoin.base_asset}/${liveCoin.margin_asset}`}
-                </AppText>
-                <FastImage source={downIcon} style={styles.smallIcon} resizeMode="contain" tintColor={themeColors.text} />
-              </View>
-              <View style={styles.changeBadge}>
-                <AppText type={TWELVE} weight={MEDIUM} style={{ color: colors.white }}>
-                  {`${liveCoin.change_percentage >= 0 ? '+' : ''}${liveCoin.change_percentage || 0}%`}
-                </AppText>
-              </View>
-            </>
-          ) : (
-            <>
-              <ShimmerBox width={150} height={24} borderRadius={4} />
-              <View style={{ marginTop: 4 }}>
-                <ShimmerBox width={60} height={18} borderRadius={4} />
-              </View>
-            </>
-          )}
-        </TouchableOpacity>
+  const renderHeader = React.useCallback(() => {
+    const isChangePositive = (Number(liveCoin?.change_percentage) || 0) >= 0;
+    const formattedChange = `${isChangePositive ? '+' : ''}${Number(liveCoin?.change_percentage || 0).toFixed(2)}%`;
+    const changeColor = isChangePositive ? (colors.green || "#00C853") : (colors.red || "#FF3B30");
 
-        <View style={[styles.headerIcons, { flexDirection: 'row', gap: 4 }]}>
+    return (
+      <View style={{ paddingTop: 6, paddingBottom: 8, paddingHorizontal: 14, backgroundColor: themeColors.background }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* Left: Pair title + 24h change percentage */}
           <TouchableOpacity
-            style={styles.headerIconBtn}
-            activeOpacity={0.7}
-            onPress={() => {
-              if (liveCoin) {
-                NavigationService.navigate('FutureChartScreen', { coin: liveCoin, tradeType: 'Future' });
-              }
-            }}
+            style={styles.pairTouchTarget}
+            onPress={openPairSheet}
+            activeOpacity={0.75}
+            disabled={!liveCoin}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Select trading pair"
           >
-            <FastImage
-              source={candle}
-              style={{ width: 22, height: 22 }}
-              resizeMode="contain"
-              tintColor={themeColors.text}
-            />
+            {liveCoin ? (
+              <View style={styles.pairBlock}>
+                <View style={styles.pairRow}>
+                  <AppText weight={BOLD} style={[styles.pairTitle, { color: themeColors.text }]}>
+                    {`${liveCoin.short_name || liveCoin.base_asset}/${liveCoin.margin_asset}`}
+                  </AppText>
+                  <FastImage source={downIcon} style={{ width: 12, height: 12, marginLeft: 6, marginTop: 2 }} resizeMode="contain" tintColor={themeColors.text} />
+                </View>
+                <AppText weight={MEDIUM} style={[styles.changeText, { color: changeColor }]}>
+                  {formattedChange}
+                </AppText>
+              </View>
+            ) : (
+              <>
+                <ShimmerBox width={150} height={24} borderRadius={4} />
+                <View style={{ marginTop: 4 }}>
+                  <ShimmerBox width={60} height={18} borderRadius={4} />
+                </View>
+              </>
+            )}
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerIconBtn}
-            activeOpacity={0.7}
-            onPress={() => {
-              if (!userData) {
-                showError("Please login first to view futures history");
-                navigation.navigate(LOGIN_SCREEN);
-                return;
-              }
-              if (liveCoin) {
-                navigation.navigate('FutureHistoryScreen', { selectedCoin: liveCoin, initialTab: activeHistoryTab });
-              }
-            }}
-          >
-            <FastImage
-              source={history_line}
-              style={{ width: 22, height: 22 }}
-              resizeMode="contain"
-              tintColor={themeColors.text}
-            />
-          </TouchableOpacity>
+
+          {/* Right: MM badge + Candle / Trade segmented pills */}
+          <View style={styles.rightGroup}>
+            <View style={styles.badgeContainer}>
+              <View style={[styles.mmBadge, { backgroundColor: isDark ? "#002E15" : "#E8F8F0" }]}>
+                <AppText weight={MEDIUM} style={{ color: colors.green || "#00C853", fontSize: 10 }}>MM</AppText>
+              </View>
+              <AppText weight={MEDIUM} style={{ color: colors.green || "#00C853", fontSize: 11, marginTop: 3 }}>0.00%</AppText>
+            </View>
+
+            <View style={[styles.iconGroup, { backgroundColor: isDark ? "#111214" : "#F3F4F6" }]}>
+              <TouchableOpacity
+                style={[
+                  styles.iconWrapper,
+                  viewMode === "candles" && { backgroundColor: isDark ? "#35373F" : "#E5E7EB" },
+                ]}
+                onPress={() => setViewMode("candles")}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Open chart"
+              >
+                <FastImage
+                  source={candle}
+                  style={{ width: 18, height: 18 }}
+                  resizeMode="contain"
+                  tintColor={viewMode === "candles" ? (isDark ? colors.white : colors.black) : (isDark ? "#8E8E93" : "#6A7282")}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.iconWrapper,
+                  viewMode === "trade" && { backgroundColor: isDark ? "#35373F" : "#E5E7EB" },
+                ]}
+                onPress={() => setViewMode("trade")}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Open trade"
+              >
+                <FastImage
+                  source={defaultTrade}
+                  style={{ width: 18, height: 18 }}
+                  resizeMode="contain"
+                  tintColor={viewMode === "trade" ? (isDark ? colors.white : colors.black) : (isDark ? "#8E8E93" : "#6A7282")}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </View>
-    </View>
-  ), [activeHistoryTab, liveCoin, navigation, openPairSheet, themeColors.text, userData]);
+    );
+  }, [activeHistoryTab, liveCoin, navigation, openPairSheet, themeColors.text, themeColors.background, isDark, viewMode]);
 
   const visibleRowCount = viewModeIndex === 0 ? 6 : 12;
 
@@ -1494,7 +1508,7 @@ const FuturesUI = () => {
   }), []);
 
   const renderOrderBook = () => (
-    <View style={styles.leftColumn}>
+    <View style={styles.rightColumn}>
       <View style={styles.obHeader}>
         <AppText type={TEN} color={themeColors.secondaryText}>
           Price{"\n"}({selectedCoin?.margin_asset || selectedCoin?.quote_asset || 'USDT'})
@@ -1740,7 +1754,7 @@ const FuturesUI = () => {
     };
 
     return (
-      <View style={styles.rightColumn}>
+      <View style={styles.leftColumn}>
         {/* Buy / Sell Toggle */}
         <View style={[styles.toggleContainer, { backgroundColor: isDark ? '#2a2d35' : '#F7F7F7', marginBottom: 10 }]}>
           <TouchableOpacity style={[styles.toggleBtn, activeTab === 'Buy' && styles.toggleActive]} onPress={() => setActiveTab('Buy')}>
@@ -1766,7 +1780,10 @@ const FuturesUI = () => {
               justifyContent: 'space-between',
               alignItems: 'center',
             }}
-            onPress={() => marginModeSheetRef.current?.open()}
+            onPress={() => {
+              setMarginModeDraft(marginMode);
+              setIsMarginModeModalVisible(true);
+            }}
             activeOpacity={0.7}
           >
             <AppText weight={MEDIUM} style={{ color: themeColors.text, fontSize: 13 }}>
@@ -2033,7 +2050,7 @@ const FuturesUI = () => {
                 Keyboard.dismiss();
                 setIsAmountFocused(false);
                 setContractUnitDraft(contractUnit);
-                contractUnitSheetRef.current?.open();
+                setIsContractUnitModalVisible(true);
               }}
               activeOpacity={0.8}
             >
@@ -2300,7 +2317,10 @@ const FuturesUI = () => {
           <AppText type={TWELVE} color={themeColors.secondaryText}>TIF</AppText>
           <TouchableOpacity
             style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
-            onPress={() => tifSheetRef.current?.open()}
+            onPress={() => {
+              setTifDraft(tif);
+              setIsTifModalVisible(true);
+            }}
             activeOpacity={0.8}
           >
             <AppText type={TWELVE} weight={SEMI_BOLD}>{postOnly ? 'GTX' : tif}</AppText>
@@ -2409,7 +2429,7 @@ const FuturesUI = () => {
   ], [futuresPositions, futuresOpenOrders]);
 
   const renderBottomTabs = () => (
-    <View style={[styles.bottomTabsContainer, { flexDirection: "row", marginTop: 6, alignItems: "center", height: 40 }]}>
+    <View style={[styles.bottomTabsContainer, { flexDirection: "row", marginTop: 6, alignItems: "center", height: 40, paddingHorizontal: 14 }]}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -2435,10 +2455,10 @@ const FuturesUI = () => {
             </AppText>
             <View
               style={{
-                width: 22,
-                height: 2.5,
+                width: 24,
+                height: 3.5,
                 marginTop: 4,
-                backgroundColor: activeHistoryTab === t.id ? (isDark ? colors.white : colors.black) : "transparent",
+                backgroundColor: activeHistoryTab === t.id ? (colors.cyanTheme || "#0AA8C5") : "transparent",
                 borderRadius: 2,
               }}
             />
@@ -2446,6 +2466,36 @@ const FuturesUI = () => {
         ))}
       </ScrollView>
 
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => {
+          if (!userData) {
+            showError("Please login first to view futures history");
+            navigation.navigate(LOGIN_SCREEN);
+            return;
+          }
+          if (liveCoin) {
+            navigation.navigate('FutureHistoryScreen', { selectedCoin: liveCoin, initialTab: activeHistoryTab });
+          }
+        }}
+        style={{
+          paddingLeft: 10,
+          paddingRight: 4,
+          paddingVertical: 4,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel="Futures History"
+      >
+        <FastImage
+          source={historyIcon}
+          style={{ width: 18, height: 18 }}
+          tintColor={isDark ? colors.white : colors.black}
+          resizeMode="contain"
+        />
+      </TouchableOpacity>
     </View>
   );
 
@@ -2500,486 +2550,811 @@ const FuturesUI = () => {
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       {renderHeader()}
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.mainContent}>
-          {renderOrderBook()}
-          {renderOrderForm()}
-        </View>
-        <View style={styles.divider} />
-        {renderBottomTabs()}
-        {renderHistoryContent()}
-
-        {/* Margin Mode Sheet */}
-        <RBSheet
-          ref={marginModeSheetRef}
-          keyboardAvoidingViewEnabled={false}
-          customModalProps={{ statusBarTranslucent: true }}
-          closeOnDragDown={false}
-          closeOnPressMask={true}
-          height={520}
-          animationType="slide"
-          customStyles={{
-            container: {
-              backgroundColor: isDark ? colors.newThemeColor : (themeColors.background || "#FFFFFF"),
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              paddingHorizontal: 16,
-              paddingTop: 12,
-              paddingBottom: 20,
-            },
-            wrapper: {
-              backgroundColor: "#0006",
+      {viewMode === "candles" ? (
+        <FutureChartScreen
+          isEmbedded={true}
+          route={{
+            params: {
+              coin: liveCoin,
+              tradeType: 'Future',
             },
           }}
-        >
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingTop: 4, paddingBottom: 6 }}>
-              <AppText weight={BOLD} style={{ fontSize: 18, color: themeColors.text }}>
-                Margin Mode
-              </AppText>
-              <TouchableOpacity
-                onPress={() => marginModeSheetRef?.current?.close()}
-                style={{ padding: 6 }}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <FastImage
-                  source={closeIcon}
-                  resizeMode="contain"
-                  style={{ width: 14, height: 14 }}
-                  tintColor={themeColors.secondaryText}
-                />
-              </TouchableOpacity>
-            </View>
-            <AppText style={{ color: themeColors.secondaryText, fontSize: 13, marginBottom: 16 }}>
-              Select the unit type you want to use for placing your order.
-            </AppText>
+          navigation={navigation}
+          onTradePress={(action) => {
+            setViewMode("trade");
+            if (action) {
+              setActiveTab(action === "sell" || action === "Sell" ? "Sell" : "Buy");
+            }
+          }}
+        />
+      ) : (
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={styles.mainContent}>
+            {renderOrderForm()}
+            {renderOrderBook()}
+          </View>
+          <View style={styles.divider} />
+          {renderBottomTabs()}
+          {renderHistoryContent()}
+        </ScrollView>
+      )}
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10 }}>
-              {[
-                {
-                  name: "Isolated",
-                  description:
-                    "In isolated margin mode, the position margin is the allocated amount, and your loss is limited to it upon liquidation. You can also adjust the margin for positions in this mode.",
-                  type: "isolated",
-                },
-                {
-                  name: "Cross",
-                  description:
-                    "In cross margin mode, the entire account balance is used as margin, and you may lose it all upon liquidation.",
-                  type: "cross",
-                },
-              ].map((item) => {
-                const isSelected = marginMode === item.name;
-                const activeColor = colors.primaryColor || "#00BCD4";
-                return (
+      {/* Margin Mode Modal */}
+        <Modal
+          visible={isMarginModeModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setIsMarginModeModalVisible(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => setIsMarginModeModalVisible(false)}
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(0,0,0,0.6)",
+              justifyContent: "flex-end",
+            }}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={(e) => e?.stopPropagation?.()}
+              style={{
+                backgroundColor: "transparent",
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+                paddingHorizontal: 16,
+                paddingTop: 12,
+                paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+                overflow: "hidden",
+              }}
+            >
+              <BlurView
+                style={StyleSheet.absoluteFill}
+                blurType="light"
+                blurAmount={20}
+                reducedTransparencyFallbackColor="#111214"
+              />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+              {isDark && (
+                <>
+                  <LinearGradient
+                    colors={[
+                      "rgba(16, 185, 129, 0.10)",
+                      "rgba(6, 182, 212, 0.04)",
+                      "rgba(16, 185, 129, 0.02)",
+                      "rgba(16, 185, 129, 0.07)",
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                    pointerEvents="none"
+                  />
+                  <LinearGradient
+                    colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+                    start={{ x: 0, y: 0.5 }}
+                    end={{ x: 1, y: 0.5 }}
+                    style={StyleSheet.absoluteFill}
+                    pointerEvents="none"
+                  />
+                </>
+              )}
+              <View style={{ alignItems: "center", marginBottom: 8 }}>
+                <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255, 255, 255, 0.2)" }} />
+              </View>
+              <View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "flex-start",
+                    justifyContent: "space-between",
+                    marginBottom: 6,
+                    paddingBottom: 2,
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <AppText weight={BOLD} style={{ fontSize: 20, color: themeColors.text }}>
+                      Margin Mode
+                    </AppText>
+                    <AppText
+                      weight={MEDIUM}
+                      style={{
+                        fontSize: 13,
+                        color: isDark ? "#8E95A3" : "#6B7280",
+                        marginTop: 4,
+                      }}
+                    >
+                      Select the margin mode you want to use for placing your order.
+                    </AppText>
+                  </View>
                   <TouchableOpacity
-                    key={item.name}
-                    activeOpacity={0.8}
-                    onPress={() => {
-                      setMarginMode(item.name);
-                    }}
+                    onPress={() => setIsMarginModeModalVisible(false)}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                     style={{
-                      backgroundColor: isSelected
-                        ? (isDark ? "rgba(0, 188, 212, 0.08)" : "#EBF8FA")
-                        : (isDark ? (darkTheme.darkThemeInputColor || "#1E1E24") : "#F5F6F8"),
-                      borderWidth: isSelected ? 1.5 : 1,
-                      borderColor: isSelected
-                        ? activeColor
-                        : (isDark ? "rgba(255, 255, 255, 0.08)" : "#E5E7EB"),
-                      borderRadius: 12,
-                      padding: 14,
-                      marginBottom: 12,
-                      flexDirection: "row",
+                      padding: 4,
                       alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
-                    {/* Left Icon Badge */}
-                    <View
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 10,
-                        backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "#E9ECEF",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        marginRight: 12,
-                      }}
-                    >
-                      {item.type === "isolated" ? (
-                        <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-                          <Path
-                            d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
-                            stroke={isSelected ? activeColor : themeColors.secondaryText}
-                            strokeWidth={2}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <Circle
-                            cx={9}
-                            cy={7}
-                            r={4}
-                            stroke={isSelected ? activeColor : themeColors.secondaryText}
-                            strokeWidth={2}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <Path
-                            d="M19 8v6M22 11h-6"
-                            stroke={isSelected ? activeColor : themeColors.secondaryText}
-                            strokeWidth={1.8}
-                            strokeLinecap="round"
-                          />
-                        </Svg>
-                      ) : (
-                        <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-                          <Path
-                            d="M17 21v-2a4 4 0 0 0-3-3.87M9 20H4a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v2"
-                            stroke={isSelected ? activeColor : themeColors.secondaryText}
-                            strokeWidth={1.8}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <Circle
-                            cx={9}
-                            cy={7}
-                            r={4}
-                            stroke={isSelected ? activeColor : themeColors.secondaryText}
-                            strokeWidth={1.8}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <Path
-                            d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"
-                            stroke={isSelected ? activeColor : themeColors.secondaryText}
-                            strokeWidth={1.8}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </Svg>
-                      )}
-                    </View>
+                    <X color={isDark ? "#9CA3AF" : themeColors.text} size={20} strokeWidth={2} />
+                  </TouchableOpacity>
+                </View>
 
-                    {/* Middle Content */}
-                    <View style={{ flex: 1, marginRight: 10 }}>
-                      <AppText
-                        weight={SEMI_BOLD}
+                <View style={{ marginTop: 12 }}>
+                  {[
+                    {
+                      name: "Isolated",
+                      description:
+                        "In isolated margin mode, the position margin is the allocated amount, and your loss is limited to it upon liquidation. You can also adjust the margin for positions in this mode.",
+                      type: "isolated",
+                      gradientColors: ["rgba(124, 58, 237, 0.2)", "rgba(99, 102, 241, 0.2)"],
+                      iconColor: "#A78BFA",
+                    },
+                    {
+                      name: "Cross",
+                      description:
+                        "In cross margin mode, the entire account balance is used as margin, and you may lose it all upon liquidation.",
+                      type: "cross",
+                      gradientColors: ["rgba(6, 182, 212, 0.2)", "rgba(14, 165, 233, 0.2)"],
+                      iconColor: "#06B6D4",
+                    },
+                  ].map((item) => {
+                    const isSelected = marginModeDraft === item.name;
+                    const activeColor = colors.cyanTheme || "#0AA8C5";
+                    return (
+                      <TouchableOpacity
+                        key={item.name}
+                        activeOpacity={0.8}
+                        onPress={() => setMarginModeDraft(item.name)}
                         style={{
-                          color: themeColors.text,
-                          fontSize: 15,
-                          marginBottom: 4,
+                          backgroundColor: isSelected
+                            ? (isDark ? "rgba(6, 182, 212, 0.08)" : "rgba(6, 182, 212, 0.06)")
+                            : (isDark ? "rgba(255, 255, 255, 0.03)" : "#F8FAFC"),
+                          borderWidth: isSelected ? 1.5 : 1,
+                          borderColor: isSelected
+                            ? activeColor
+                            : (isDark ? "rgba(255, 255, 255, 0.08)" : "#E2E8F0"),
+                          borderRadius: 14,
+                          padding: 14,
+                          marginBottom: 12,
+                          flexDirection: "row",
+                          alignItems: "center",
                         }}
                       >
-                        {item.name}
-                      </AppText>
-                      <AppText
-                        style={{
-                          color: themeColors.secondaryText,
-                          fontSize: 12,
-                          lineHeight: 17,
-                        }}
-                      >
-                        {item.description}
-                      </AppText>
-                    </View>
+                        {/* Left Icon Badge with Subtle Gradient */}
+                        <LinearGradient
+                          colors={isSelected ? ["rgba(6, 182, 212, 0.25)", "rgba(14, 165, 233, 0.15)"] : item.gradientColors}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 12,
+                            justifyContent: "center",
+                            alignItems: "center",
+                            marginRight: 12,
+                            borderWidth: 1,
+                            borderColor: isSelected ? "rgba(6, 182, 212, 0.4)" : "rgba(255, 255, 255, 0.08)",
+                          }}
+                        >
+                          {item.type === "isolated" ? (
+                            <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+                              <Path
+                                d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
+                                stroke={isSelected ? activeColor : (isDark ? "#A0AEC0" : "#64748B")}
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <Circle
+                                cx={9}
+                                cy={7}
+                                r={4}
+                                stroke={isSelected ? activeColor : (isDark ? "#A0AEC0" : "#64748B")}
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <Path
+                                d="M19 8v6M22 11h-6"
+                                stroke={isSelected ? activeColor : (isDark ? "#A0AEC0" : "#64748B")}
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                              />
+                            </Svg>
+                          ) : (
+                            <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+                              <Path
+                                d="M17 21v-2a4 4 0 0 0-3-3.87M9 20H4a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v2"
+                                stroke={isSelected ? activeColor : (isDark ? "#A0AEC0" : "#64748B")}
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <Circle
+                                cx={9}
+                                cy={7}
+                                r={4}
+                                stroke={isSelected ? activeColor : (isDark ? "#A0AEC0" : "#64748B")}
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <Path
+                                d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"
+                                stroke={isSelected ? activeColor : (isDark ? "#A0AEC0" : "#64748B")}
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </Svg>
+                          )}
+                        </LinearGradient>
 
-                    {/* Right Radio Indicator */}
-                    <View
-                      style={{
-                        width: 22,
-                        height: 22,
-                        borderRadius: 11,
-                        borderWidth: 2,
-                        borderColor: isSelected
-                          ? activeColor
-                          : (isDark ? "rgba(255, 255, 255, 0.3)" : "#C7C7CC"),
-                        justifyContent: "center",
-                        alignItems: "center",
-                        backgroundColor: "transparent",
-                      }}
-                    >
-                      {isSelected && (
+                        {/* Middle Content */}
+                        <View style={{ flex: 1, marginRight: 10 }}>
+                          <AppText
+                            weight={BOLD}
+                            style={{
+                              color: isSelected ? (isDark ? "#FFFFFF" : "#0F172A") : themeColors.text,
+                              fontSize: 15,
+                              marginBottom: 4,
+                            }}
+                          >
+                            {item.name}
+                          </AppText>
+                          <AppText
+                            style={{
+                              color: isDark ? "#8E95A3" : "#64748B",
+                              fontSize: 12,
+                              lineHeight: 17,
+                            }}
+                          >
+                            {item.description}
+                          </AppText>
+                        </View>
+
+                        {/* Right Radio Indicator */}
                         <View
                           style={{
-                            width: 11,
-                            height: 11,
-                            borderRadius: 5.5,
-                            backgroundColor: activeColor,
+                            width: 22,
+                            height: 22,
+                            borderRadius: 11,
+                            borderWidth: 2,
+                            borderColor: isSelected
+                              ? activeColor
+                              : (isDark ? "rgba(255, 255, 255, 0.2)" : "#CBD5E1"),
+                            justifyContent: "center",
+                            alignItems: "center",
+                            backgroundColor: "transparent",
                           }}
-                        />
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
+                        >
+                          {isSelected && (
+                            <View
+                              style={{
+                                width: 11,
+                                height: 11,
+                                borderRadius: 5.5,
+                                backgroundColor: activeColor,
+                              }}
+                            />
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
 
-              {/* Info Note Row */}
-              <View
-                style={{
-                  backgroundColor: isDark
-                    ? (darkTheme.darkThemeInputColor || "rgba(255, 255, 255, 0.04)")
-                    : "#F5F6F8",
-                  borderRadius: 10,
-                  padding: 12,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginBottom: 16,
-                  marginTop: 4,
-                }}
-              >
-                <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-                  <Circle cx={12} cy={12} r={10} stroke={themeColors.secondaryText} strokeWidth={1.8} />
-                  <Path
-                    d="M12 16v-4M12 8h.01"
-                    stroke={themeColors.secondaryText}
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </Svg>
-                <AppText
-                  style={{
-                    color: themeColors.secondaryText,
-                    fontSize: 12,
-                    lineHeight: 16,
-                    marginLeft: 8,
-                    flex: 1,
-                  }}
-                >
-                  Switching margin modes only applies to the current contract.
-                </AppText>
-              </View>
-
-              {/* Batch Adjust Margin Mode Row */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 20,
-                  paddingHorizontal: 2,
-                }}
-              >
-                <AppText weight={MEDIUM} style={{ fontSize: 14, color: themeColors.text }}>
-                  Batch Adjust Margin Mode
-                </AppText>
-                <ToggleSwitch
-                  value={batchAdjustMarginMode}
-                  onValueChange={setBatchAdjustMarginMode}
-                  isDark={isDark}
-                />
-              </View>
-
-              {/* Continue Button */}
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={() => {
-                  marginModeSheetRef?.current?.close();
-                }}
-                style={{
-                  backgroundColor: colors.primaryColor || "#00BCD4",
-                  borderRadius: 24,
-                  paddingVertical: 14,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginTop: 4,
-                  marginBottom: 6,
-                }}
-              >
-                <AppText weight={SEMI_BOLD} style={{ color: "#FFFFFF", fontSize: 16 }}>
-                  Continue
-                </AppText>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </RBSheet>
-
-        {/* Contract Unit Preferences Sheet */}
-        <RBSheet
-          ref={contractUnitSheetRef}
-          keyboardAvoidingViewEnabled={false}
-          customModalProps={{ statusBarTranslucent: true }}
-          closeOnDragDown={true}
-          closeOnPressMask={true}
-          height={450}
-          animationType="slide"
-          customStyles={{
-            container: {
-              backgroundColor: themeColors.background,
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              paddingHorizontal: 20,
-            },
-            wrapper: {
-              backgroundColor: "#0006",
-            },
-            draggableIcon: {
-              backgroundColor: themeColors.themeBorderColor || "#ccc",
-              width: 40,
-            },
-          }}
-        >
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingTop: 8, paddingBottom: 20 }}>
-              <AppText weight={BOLD} style={{ fontSize: 18, color: themeColors.text }}>
-                Contract Unit Settings
-              </AppText>
-              <TouchableOpacity onPress={() => contractUnitSheetRef.current?.close()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <FastImage source={REMOVE} style={{ width: 16, height: 16 }} tintColor={themeColors.text} resizeMode="contain" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {[
-                {
-                  name: `Amount (${currentBaseAsset})`,
-                  description: `Order size is entered in ${currentBaseAsset} (base asset).`,
-                },
-                {
-                  name: `Value (${currentQuoteAsset})`,
-                  description: `Order size is entered in ${currentQuoteAsset} (notional / margin asset).`,
-                },
-              ].map((item) => {
-                const isSelected = contractUnitDraft === item.name;
-                return (
-                  <TouchableOpacity
-                    key={item.name}
-                    activeOpacity={0.8}
-                    onPress={() => {
-                      setContractUnitDraft(item.name);
-                    }}
+                  {/* Info Note Row */}
+                  <View
                     style={{
-                      backgroundColor: 'transparent',
+                      backgroundColor: isDark
+                        ? "rgba(255, 255, 255, 0.04)"
+                        : "rgba(0, 0, 0, 0.03)",
+                      borderRadius: 12,
                       borderWidth: 1,
-                      borderColor: isSelected
-                        ? themeColors.text
-                        : (themeColors.themeBorderColor || "#e0e0e0"),
-                      borderRadius: 6,
-                      paddingHorizontal: 16,
-                      paddingVertical: 14,
+                      borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.05)",
+                      padding: 12,
+                      flexDirection: "row",
+                      alignItems: "center",
                       marginBottom: 16,
+                      marginTop: 4,
                     }}
                   >
-                    <AppText
-                      weight={SEMI_BOLD}
-                      style={{
-                        color: themeColors.text,
-                        fontSize: 15,
-                        marginBottom: 6,
-                      }}
-                    >
-                      {item.name}
-                    </AppText>
+                    <Info size={16} color={isDark ? "#8E95A3" : "#64748B"} strokeWidth={2} />
                     <AppText
                       style={{
-                        color: themeColors.secondaryText,
+                        color: isDark ? "#8E95A3" : "#64748B",
                         fontSize: 12,
-                        lineHeight: 18,
+                        lineHeight: 16,
+                        marginLeft: 8,
+                        flex: 1,
                       }}
                     >
-                      {item.description}
+                      Switching margin modes only applies to the current contract.
+                    </AppText>
+                  </View>
+
+                  {/* Batch Adjust Margin Mode Row */}
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => setBatchAdjustMarginMode(prev => !prev)}
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 20,
+                      paddingHorizontal: 2,
+                    }}
+                  >
+                    <AppText weight={MEDIUM} style={{ fontSize: 14, color: themeColors.text }}>
+                      Batch Adjust Margin Mode
+                    </AppText>
+                    <View pointerEvents="none">
+                      <ToggleSwitch
+                        value={batchAdjustMarginMode}
+                        onValueChange={setBatchAdjustMarginMode}
+                        isDark={isDark}
+                        activeColor={colors.cyanTheme || "#0AA8C5"}
+                      />
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Continue Button */}
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      setMarginMode(marginModeDraft);
+                      setIsMarginModeModalVisible(false);
+                      marginModeSheetRef?.current?.close?.();
+                    }}
+                    style={{
+                      backgroundColor: colors.cyanTheme || "#0AA8C5",
+                      borderRadius: 24,
+                      paddingVertical: 14,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: 6,
+                    }}
+                  >
+                    <AppText weight={BOLD} style={{ color: "#FFFFFF", fontSize: 16 }}>
+                      Continue
                     </AppText>
                   </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-            <Button
-              children='Confirm'
-              onPress={() => {
-                if (contractUnit !== contractUnitDraft) {
-                  setSliderValue(0);
-                  setAmount('');
-                }
-                setContractUnit(contractUnitDraft);
-                contractUnitSheetRef.current?.close();
-              }}
-              containerStyle={{
-                height: 50,
-                justifyContent: 'center',
-                borderRadius: 25,
-                marginTop: 20,
-                marginBottom: 20,
-              }}
-              textStyle={{
-                fontSize: 15,
-                fontFamily: fontFamilySemiBold,
-              }}
-            />
+                </View>
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
 
-          </View>
-        </RBSheet>
-
-
-
-        <RBSheet
-          ref={tifSheetRef}
-          height={400}
-          animationType="slide"
-          keyboardAvoidingViewEnabled={false}
-          customModalProps={{ statusBarTranslucent: true }}
-          closeOnDragDown={true}
-          closeOnPressMask={true}
-          customStyles={{
-            container: {
-              backgroundColor: themeColors.background,
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              paddingHorizontal: 20,
-            },
-            wrapper: {
-              backgroundColor: "#0006",
-            },
-            draggableIcon: {
-              backgroundColor: themeColors.themeBorderColor || "#ccc",
-              width: 40,
-            },
-          }}
+        {/* Contract Unit Preferences Modal */}
+        <Modal
+          visible={isContractUnitModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setIsContractUnitModalVisible(false)}
         >
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingBottom: 16 }}>
-              <AppText weight={SEMI_BOLD} style={{ fontSize: 18, color: themeColors.text }}>
-                TIF
-              </AppText>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
-              {[
-                { id: 'GTC', label: 'GTC (Good Till Cancelled)', desc: 'Remain in effect until fully filled or cancelled' },
-                { id: 'IOC', label: 'IOC (Immediate or Cancel)', desc: 'Fill all or part of the order immediately and cancel the remaining unfilled part' },
-                { id: 'FOK', label: 'FOK (Fill or Kill)', desc: 'Must be filled immediately, otherwise it will be cancelled' },
-              ].map(item => (
-                <TouchableOpacity
-                  key={item.id}
-                  onPress={() => {
-                    setTif(item.id);
-                    tifSheetRef.current?.close();
-                  }}
-                  activeOpacity={0.8}
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => setIsContractUnitModalVisible(false)}
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(0,0,0,0.6)",
+              justifyContent: "flex-end",
+            }}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={(e) => e?.stopPropagation?.()}
+              style={{
+                backgroundColor: "transparent",
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+                paddingHorizontal: 16,
+                paddingTop: 12,
+                paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+                overflow: "hidden",
+              }}
+            >
+              <BlurView
+                style={StyleSheet.absoluteFill}
+                blurType="light"
+                blurAmount={20}
+                reducedTransparencyFallbackColor="#111214"
+              />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+              {isDark && (
+                <>
+                  <LinearGradient
+                    colors={[
+                      "rgba(16, 185, 129, 0.10)",
+                      "rgba(6, 182, 212, 0.04)",
+                      "rgba(16, 185, 129, 0.02)",
+                      "rgba(16, 185, 129, 0.07)",
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                    pointerEvents="none"
+                  />
+                  <LinearGradient
+                    colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+                    start={{ x: 0, y: 0.5 }}
+                    end={{ x: 1, y: 0.5 }}
+                    style={StyleSheet.absoluteFill}
+                    pointerEvents="none"
+                  />
+                </>
+              )}
+              <View style={{ alignItems: "center", marginBottom: 8 }}>
+                <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255, 255, 255, 0.2)" }} />
+              </View>
+              <View>
+                <View
                   style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    backgroundColor: isDark ? colors.themeElevationColor : themeColors.bg || (isDark ? '#1a1a1a' : '#f5f5f5'),
-                    padding: 16,
-                    borderRadius: 12,
-                    marginBottom: 12,
-                    borderWidth: 1,
-                    borderColor: tif === item.id ? isDark ? colors.themeElevationColor : (themeColors.primary || '#000') : 'transparent'
+                    flexDirection: "row",
+                    alignItems: "flex-start",
+                    justifyContent: "space-between",
+                    marginBottom: 6,
+                    paddingBottom: 2,
                   }}
                 >
-                  <View style={{ flex: 1, paddingRight: 12 }}>
-                    <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ marginBottom: 4 }}>{item.label}</AppText>
-                    <AppText type={TWELVE} color={themeColors.secondaryText}>{item.desc}</AppText>
+                  <View style={{ flex: 1 }}>
+                    <AppText weight={BOLD} style={{ fontSize: 20, color: themeColors.text }}>
+                      Contract Unit Settings
+                    </AppText>
+                    <AppText
+                      weight={MEDIUM}
+                      style={{
+                        fontSize: 13,
+                        color: isDark ? "#8E95A3" : "#6B7280",
+                        marginTop: 4,
+                      }}
+                    >
+                      Choose your preferred unit for entering order size.
+                    </AppText>
                   </View>
-                  <View style={[styles.checkbox, tif === item.id && { backgroundColor: themeColors.text, borderColor: themeColors.text, alignItems: 'center', justifyContent: 'center' }]}>
-                    {tif === item.id && <FastImage source={tick} style={{ width: 10, height: 10 }} tintColor={isDark ? colors.black : colors.white} resizeMode="contain" />}
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </RBSheet>
+                  <TouchableOpacity
+                    onPress={() => setIsContractUnitModalVisible(false)}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    style={{
+                      padding: 4,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <X color={isDark ? "#9CA3AF" : themeColors.text} size={20} strokeWidth={2} />
+                  </TouchableOpacity>
+                </View>
 
-      </ScrollView>
+                <View style={{ marginTop: 12 }}>
+                  {[
+                    {
+                      name: `Amount (${currentBaseAsset})`,
+                      description: `Order size is entered in ${currentBaseAsset} (base asset).`,
+                    },
+                    {
+                      name: `Value (${currentQuoteAsset})`,
+                      description: `Order size is entered in ${currentQuoteAsset} (notional / margin asset).`,
+                    },
+                  ].map((item) => {
+                    const isSelected = contractUnitDraft === item.name;
+                    const activeColor = colors.cyanTheme || "#0AA8C5";
+                    return (
+                      <TouchableOpacity
+                        key={item.name}
+                        activeOpacity={0.8}
+                        onPress={() => setContractUnitDraft(item.name)}
+                        style={{
+                          backgroundColor: isSelected
+                            ? (isDark ? "rgba(6, 182, 212, 0.08)" : "rgba(6, 182, 212, 0.06)")
+                            : (isDark ? "rgba(255, 255, 255, 0.03)" : "#F8FAFC"),
+                          borderWidth: isSelected ? 1.5 : 1,
+                          borderColor: isSelected
+                            ? activeColor
+                            : (isDark ? "rgba(255, 255, 255, 0.08)" : "#E2E8F0"),
+                          borderRadius: 14,
+                          padding: 14,
+                          marginBottom: 12,
+                          flexDirection: "row",
+                          alignItems: "center",
+                        }}
+                      >
+                        <View style={{ flex: 1, marginRight: 10 }}>
+                          <AppText
+                            weight={BOLD}
+                            style={{
+                              color: isSelected ? (isDark ? "#FFFFFF" : "#0F172A") : themeColors.text,
+                              fontSize: 15,
+                              marginBottom: 4,
+                            }}
+                          >
+                            {item.name}
+                          </AppText>
+                          <AppText
+                            style={{
+                              color: isDark ? "#8E95A3" : "#64748B",
+                              fontSize: 12,
+                              lineHeight: 17,
+                            }}
+                          >
+                            {item.description}
+                          </AppText>
+                        </View>
+
+                        <View
+                          style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: 11,
+                            borderWidth: 2,
+                            borderColor: isSelected
+                              ? activeColor
+                              : (isDark ? "rgba(255, 255, 255, 0.2)" : "#CBD5E1"),
+                            justifyContent: "center",
+                            alignItems: "center",
+                            backgroundColor: "transparent",
+                          }}
+                        >
+                          {isSelected && (
+                            <View
+                              style={{
+                                width: 11,
+                                height: 11,
+                                borderRadius: 5.5,
+                                backgroundColor: activeColor,
+                              }}
+                            />
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    if (contractUnit !== contractUnitDraft) {
+                      setSliderValue(0);
+                      setAmount('');
+                    }
+                    setContractUnit(contractUnitDraft);
+                    setIsContractUnitModalVisible(false);
+                  }}
+                  style={{
+                    height: 48,
+                    backgroundColor: colors.cyanTheme || "#0AA8C5",
+                    borderRadius: 24,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginTop: 8,
+                    marginBottom: 8,
+                  }}
+                >
+                  <AppText weight={BOLD} style={{ color: "#FFFFFF", fontSize: 16 }}>
+                    Confirm
+                  </AppText>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* TIF Modal */}
+        <Modal
+          visible={isTifModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setIsTifModalVisible(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => setIsTifModalVisible(false)}
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(0,0,0,0.6)",
+              justifyContent: "flex-end",
+            }}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={(e) => e?.stopPropagation?.()}
+              style={{
+                backgroundColor: "transparent",
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+                paddingHorizontal: 16,
+                paddingTop: 12,
+                paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+                overflow: "hidden",
+              }}
+            >
+              <BlurView
+                style={StyleSheet.absoluteFill}
+                blurType="light"
+                blurAmount={20}
+                reducedTransparencyFallbackColor="#111214"
+              />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+              {isDark && (
+                <>
+                  <LinearGradient
+                    colors={[
+                      "rgba(16, 185, 129, 0.10)",
+                      "rgba(6, 182, 212, 0.04)",
+                      "rgba(16, 185, 129, 0.02)",
+                      "rgba(16, 185, 129, 0.07)",
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                    pointerEvents="none"
+                  />
+                  <LinearGradient
+                    colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+                    start={{ x: 0, y: 0.5 }}
+                    end={{ x: 1, y: 0.5 }}
+                    style={StyleSheet.absoluteFill}
+                    pointerEvents="none"
+                  />
+                </>
+              )}
+              <View style={{ alignItems: "center", marginBottom: 8 }}>
+                <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255, 255, 255, 0.2)" }} />
+              </View>
+              <View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "flex-start",
+                    justifyContent: "space-between",
+                    marginBottom: 6,
+                    paddingBottom: 2,
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <AppText weight={BOLD} style={{ fontSize: 20, color: themeColors.text }}>
+                      Time in Force (TIF)
+                    </AppText>
+                    <AppText
+                      weight={MEDIUM}
+                      style={{
+                        fontSize: 13,
+                        color: isDark ? "#8E95A3" : "#6B7280",
+                        marginTop: 4,
+                      }}
+                    >
+                      Select order validity duration and execution rule.
+                    </AppText>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => setIsTifModalVisible(false)}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    style={{
+                      padding: 4,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <X color={isDark ? "#9CA3AF" : themeColors.text} size={20} strokeWidth={2} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={{ marginTop: 12 }}>
+                  {[
+                    { id: 'GTC', label: 'GTC (Good Till Cancelled)', desc: 'Remain in effect until fully filled or cancelled' },
+                    { id: 'IOC', label: 'IOC (Immediate or Cancel)', desc: 'Fill all or part of the order immediately and cancel the remaining unfilled part' },
+                    { id: 'FOK', label: 'FOK (Fill or Kill)', desc: 'Must be filled immediately, otherwise it will be cancelled' },
+                  ].map((item) => {
+                    const isSelected = (tifDraft || tif) === item.id;
+                    const activeColor = colors.cyanTheme || "#0AA8C5";
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        activeOpacity={0.8}
+                        onPress={() => setTifDraft(item.id)}
+                        style={{
+                          backgroundColor: isSelected
+                            ? (isDark ? "rgba(6, 182, 212, 0.08)" : "rgba(6, 182, 212, 0.06)")
+                            : (isDark ? "rgba(255, 255, 255, 0.03)" : "#F8FAFC"),
+                          borderWidth: isSelected ? 1.5 : 1,
+                          borderColor: isSelected
+                            ? activeColor
+                            : (isDark ? "rgba(255, 255, 255, 0.08)" : "#E2E8F0"),
+                          borderRadius: 14,
+                          padding: 14,
+                          marginBottom: 12,
+                          flexDirection: "row",
+                          alignItems: "center",
+                        }}
+                      >
+                        <View style={{ flex: 1, paddingRight: 10 }}>
+                          <AppText
+                            weight={BOLD}
+                            style={{
+                              color: isSelected ? (isDark ? "#FFFFFF" : "#0F172A") : themeColors.text,
+                              fontSize: 15,
+                              marginBottom: 4,
+                            }}
+                          >
+                            {item.label}
+                          </AppText>
+                          <AppText
+                            style={{
+                              color: isDark ? "#8E95A3" : "#64748B",
+                              fontSize: 12,
+                              lineHeight: 17,
+                            }}
+                          >
+                            {item.desc}
+                          </AppText>
+                        </View>
+
+                        <View
+                          style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: 11,
+                            borderWidth: 2,
+                            borderColor: isSelected
+                              ? activeColor
+                              : (isDark ? "rgba(255, 255, 255, 0.2)" : "#CBD5E1"),
+                            justifyContent: "center",
+                            alignItems: "center",
+                            backgroundColor: "transparent",
+                          }}
+                        >
+                          {isSelected && (
+                            <View
+                              style={{
+                                width: 11,
+                                height: 11,
+                                borderRadius: 5.5,
+                                backgroundColor: activeColor,
+                              }}
+                            />
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    setTif(tifDraft || tif);
+                    setIsTifModalVisible(false);
+                  }}
+                  style={{
+                    height: 48,
+                    backgroundColor: colors.cyanTheme || "#0AA8C5",
+                    borderRadius: 24,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginTop: 8,
+                    marginBottom: 8,
+                  }}
+                >
+                  <AppText weight={BOLD} style={{ color: "#FFFFFF", fontSize: 16 }}>
+                    Confirm
+                  </AppText>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
 
       {/* Adjust Leverage Modal (Native 0-lag slide) */}
       <Modal
@@ -3485,15 +3860,52 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
   },
   leftColumn: {
-    flex: 0.4,
-    paddingRight: 10,
+    flex: 1.05,
+    paddingRight: 6,
   },
   rightColumn: {
-    flex: 0.7,
-    paddingLeft: 10,
+    flex: 0.95,
+    paddingLeft: 6,
+  },
+  pairBlock: {
+    justifyContent: "center",
+  },
+  pairTitle: {
+    fontSize: 22,
+    letterSpacing: -0.2,
+  },
+  changeText: {
+    fontSize: 13,
+    marginTop: 3,
+  },
+  rightGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  badgeContainer: {
+    alignItems: "center",
+    marginRight: 14,
+  },
+  mmBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  iconGroup: {
+    flexDirection: "row",
+    borderRadius: 22,
+    padding: 3,
+    alignItems: "center",
+  },
+  iconWrapper: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
   },
   dashedUnderline: {
     borderBottomWidth: 1,
