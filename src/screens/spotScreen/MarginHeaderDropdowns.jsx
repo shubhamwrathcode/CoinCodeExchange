@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, TouchableOpacity, ScrollView, StyleSheet, Modal, TextInput, Platform } from "react-native";
+import { View, TouchableOpacity, ScrollView, StyleSheet, Modal, TextInput, Platform, Dimensions } from "react-native";
 import FastImage from "react-native-fast-image";
 import { BlurView } from "@react-native-community/blur";
 import LinearGradient from "react-native-linear-gradient";
@@ -8,6 +8,10 @@ import { AppText, BOLD, SEMI_BOLD, MEDIUM } from "../../shared";
 import { colors, darkTheme } from "../../theme/colors";
 import { closeIcon, downIcon } from "../../helper/ImageAssets";
 import { buildCoinIconUri } from "../../helper/utility";
+
+const { height: WindowHeight } = Dimensions.get('window');
+const LEVERAGE_MODAL_HEIGHT = Math.min(620, WindowHeight * 0.85);
+const MARGIN_MODE_MODAL_HEIGHT = Math.min(500, WindowHeight * 0.75);
 
 const MarginHeaderDropdowns = ({
   marginMode,
@@ -210,6 +214,7 @@ const MarginHeaderDropdowns = ({
             onPress={(e) => e?.stopPropagation?.()}
             style={{
               backgroundColor: "transparent",
+              height: MARGIN_MODE_MODAL_HEIGHT,
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
               borderTopWidth: 1,
@@ -428,7 +433,7 @@ const MarginHeaderDropdowns = ({
             onPress={(e) => e?.stopPropagation?.()}
             style={{
               backgroundColor: "transparent",
-              maxHeight: 640,
+              height: LEVERAGE_MODAL_HEIGHT,
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
               borderTopWidth: 1,
