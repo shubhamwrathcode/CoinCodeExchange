@@ -7,7 +7,7 @@ import {
   TextInput,
   StyleSheet,
   Platform,
-  
+  Modal,
   ActivityIndicator,
   Dimensions,
   Animated
@@ -31,6 +31,7 @@ import {
   tick,
   checkIc,
 } from "../../helper/ImageAssets";
+import { ArrowLeftRight, Percent, ArrowUp, AlertTriangle, ChevronRight, Search, X, Check } from "lucide-react-native";
 import NavigationService from "../../navigation/NavigationService";
 import SimpleToast from "react-native-simple-toast";
 import { useRoute, useFocusEffect } from "@react-navigation/native";
@@ -137,14 +138,42 @@ const MarginBorrowRepay = () => {
 
   const initialTab = route?.params?.activeTab || "Borrow";
   const loan = route?.params?.loan;
+  const currencyData = useSelector((state) => state.home.currencyData);
+  const coinPairs = useSelector((state) => state.home.coinPairs);
+  const spotSelectedPair = useSelector((state) => state.home.spotSelectedPair);
+  const coinBalance = useSelector((state) => state.home.coinBalance);
 
-  const [activeTab, setActiveTab] = useState(initialTab); // "Borrow" or "Repay"
+  const initialPair = route?.params?.pair ||
+    (currencyData?.base_currency && currencyData?.quote_currency ? `${currencyData.base_currency}/${currencyData.quote_currency}` : null) ||
+    (spotSelectedPair?.base_currency && spotSelectedPair?.quote_currency ? `${spotSelectedPair.base_currency}/${spotSelectedPair.quote_currency}` : null) ||
+    "BTC/USDT";
 
-  const [selectedPairStr, setSelectedPairStr] = useState(route?.params?.pair || "BTC/USDT");
-  const [baseSymbol, quoteSymbol] = selectedPairStr.split("/");
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [selectedPairStr, setSelectedPairStr] = useState(initialPair);
+  const [baseSymbol, quoteSymbol] = (selectedPairStr || "BTC/USDT").split("/");
 
-  const [selectedAsset, setSelectedAsset] = useState(route?.params?.coin || baseSymbol || "BTC");
+  const initialAsset = route?.params?.coin || baseSymbol || "BTC";
+  const [selectedAsset, setSelectedAsset] = useState(initialAsset);
+
+  // Sync selectedAsset when pair or route params change
+  useEffect(() => {
+    if (!isCross) {
+      if (route?.params?.coin && (route.params.coin === baseSymbol || route.params.coin === quoteSymbol)) {
+        setSelectedAsset(route.params.coin);
+      } else if (!selectedAsset || (selectedAsset !== baseSymbol && selectedAsset !== quoteSymbol)) {
+        if (baseSymbol) setSelectedAsset(baseSymbol);
+      }
+    } else {
+      if (route?.params?.coin) {
+        setSelectedAsset(route.params.coin);
+      } else if (!selectedAsset && baseSymbol) {
+        setSelectedAsset(baseSymbol);
+      }
+    }
+  }, [baseSymbol, quoteSymbol, route?.params?.coin, isCross]);
+
   const [amount, setAmount] = useState("");
+  const [isAmountFocused, setIsAmountFocused] = useState(false);
   const [repayFull, setRepayFull] = useState(false);
 
   const [liveData, setLiveData] = useState(null);
@@ -154,16 +183,12 @@ const MarginBorrowRepay = () => {
   const [busy, setBusy] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  const pairSheetRef = useRef(null);
-  const assetSheetRef = useRef(null);
+  const [isPairModalVisible, setIsPairModalVisible] = useState(false);
+  const [isAssetModalVisible, setIsAssetModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isPairSearchFocused, setIsPairSearchFocused] = useState(false);
+  const [isAssetSearchFocused, setIsAssetSearchFocused] = useState(false);
   const [marginBalances, setMarginBalances] = useState([]);
-
-  const currencyData = useSelector((state) => state.home.currencyData);
-  const coinPairs = useSelector((state) => state.home.coinPairs);
-  const spotSelectedPair = useSelector((state) => state.home.spotSelectedPair);
-
-  const coinBalance = useSelector((state) => state.home.coinBalance);
 
   const currentPairItem = useMemo(() => {
     if (!coinPairs || !Array.isArray(coinPairs)) return null;
@@ -302,9 +327,9 @@ const MarginBorrowRepay = () => {
   };
 
   const outstandingTotal = isCross
-    ? (!isBorrow && getCrossDebt(selectedAsset) 
-        ? (parseFloat(getCrossDebt(selectedAsset)?.principal || 0) + parseFloat(getCrossDebt(selectedAsset)?.interest_accrued || 0)).toFixed(8)
-        : (parseFloat(getCrossAsset(selectedAsset)?.borrowed || 0) + parseFloat(getCrossAsset(selectedAsset)?.interest_accrued || 0)).toFixed(8))
+    ? (!isBorrow && getCrossDebt(selectedAsset)
+      ? (parseFloat(getCrossDebt(selectedAsset)?.principal || 0) + parseFloat(getCrossDebt(selectedAsset)?.interest_accrued || 0)).toFixed(8)
+      : (parseFloat(getCrossAsset(selectedAsset)?.borrowed || 0) + parseFloat(getCrossAsset(selectedAsset)?.interest_accrued || 0)).toFixed(8))
     : (isCoinBase ? loan?.outstanding ?? liveData?.balances?.base_borrowed ?? "0" : loan?.outstanding ?? liveData?.balances?.quote_borrowed ?? "0"); // Note: isolated might have interest accrued separately if fetched
 
   const interestAccrued = isCross
@@ -435,25 +460,27 @@ const MarginBorrowRepay = () => {
           <View style={styles.headerTabsContainer}>
             <TouchableOpacity onPress={() => { setActiveTab("Borrow"); setAmount(""); }} style={styles.headerTabBtn}>
               <AppText
-                weight={SEMI_BOLD}
+                weight={BOLD}
                 style={{
                   fontSize: 18,
-                  color: activeTab === "Borrow" ? themeColors.text : themeColors.secondaryText,
+                  color: activeTab === "Borrow" ? (colors.cyanTheme || "#0AA8C5") : themeColors.secondaryText,
                 }}
               >
                 Borrow
               </AppText>
+              <View style={[styles.activeTabIndicator, { backgroundColor: activeTab === "Borrow" ? (colors.cyanTheme || "#0AA8C5") : "transparent" }]} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => { setActiveTab("Repay"); setAmount(""); }} style={styles.headerTabBtn}>
               <AppText
-                weight={SEMI_BOLD}
+                weight={BOLD}
                 style={{
                   fontSize: 18,
-                  color: activeTab === "Repay" ? themeColors.text : themeColors.secondaryText,
+                  color: activeTab === "Repay" ? (colors.cyanTheme || "#0AA8C5") : themeColors.secondaryText,
                 }}
               >
                 Repay
               </AppText>
+              <View style={[styles.activeTabIndicator, { backgroundColor: activeTab === "Repay" ? (colors.cyanTheme || "#0AA8C5") : "transparent" }]} />
             </TouchableOpacity>
           </View>
         </View>
@@ -474,553 +501,923 @@ const MarginBorrowRepay = () => {
       {initialLoading ? (
         <BorrowRepaySkeleton isDark={isDark} />
       ) : (
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}
+        >
+          {isCross ? (
+            <>
+              <AppText weight={SEMI_BOLD} style={{ fontSize: 14, color: themeColors.text, marginBottom: 8 }}>Cross Margin Asset</AppText>
+              <TouchableOpacity
+                onPress={() => { setSearchQuery(""); setIsAssetModalVisible(true); }}
+                style={[
+                  styles.inputContainer,
+                  {
+                    backgroundColor: isDark ? (darkTheme.darkThemeInputColor || "#111214") : "#F7F8FA",
+                    borderWidth: 1,
+                    borderColor: isDark ? "#2A2C33" : "#E5E7EB",
+                    borderRadius: 12,
+                    marginBottom: 16,
+                    justifyContent: "space-between",
+                  }
+                ]}
+              >
+                <AppText weight={BOLD} style={{ color: themeColors.text, fontSize: 15 }}>{selectedAsset}</AppText>
+                <AppText weight={SEMI_BOLD} style={{ color: themeColors.secondaryText, transform: [{ rotate: '90deg' }], fontSize: 18 }}>›</AppText>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              {/* Pair Selection (Isolated) */}
+              <AppText weight={SEMI_BOLD} style={{ fontSize: 14, color: themeColors.text, marginBottom: 8 }}>Isolated Margin Pair</AppText>
+              <TouchableOpacity
+                onPress={() => { setSearchQuery(""); setIsPairModalVisible(true); }}
+                style={[
+                  styles.inputContainer,
+                  {
+                    backgroundColor: isDark ? (darkTheme.darkThemeInputColor || "#111214") : "#F7F8FA",
+                    borderWidth: 1,
+                    borderColor: isDark ? "#2A2C33" : "#E5E7EB",
+                    borderRadius: 12,
+                    marginBottom: 16,
+                    justifyContent: "space-between",
+                  }
+                ]}
+              >
+                <AppText weight={BOLD} style={{ color: themeColors.text, fontSize: 15 }}>{selectedPairStr}</AppText>
+                <AppText weight={SEMI_BOLD} style={{ color: themeColors.secondaryText, transform: [{ rotate: '90deg' }], fontSize: 18 }}>›</AppText>
+              </TouchableOpacity>
+
+              {/* Coin Selection (Pairs) */}
+              <View style={{ marginBottom: 24 }}>
+                <View style={{ flexDirection: "row", gap: 12 }}>
+                  {[baseSymbol, quoteSymbol].map((symbol) => {
+                    if (!symbol) return null;
+                    const isSelected = selectedAsset === symbol;
+                    const isBase = symbol === baseSymbol;
+
+                    const getCoinBadge = (sym) => {
+                      switch (sym?.toUpperCase()) {
+                        case "BTC":
+                          return { name: "Bitcoin", iconBg: "#F7931A", symbolChar: "₿" };
+                        case "USDT":
+                          return { name: "Tether", iconBg: "#26A17B", symbolChar: "₮" };
+                        case "ETH":
+                          return { name: "Ethereum", iconBg: "#627EEA", symbolChar: "Ξ" };
+                        case "BNB":
+                          return { name: "BNB", iconBg: "#F3BA2F", symbolChar: "🔶" };
+                        case "SOL":
+                          return { name: "Solana", iconBg: "#14F195", symbolChar: "S" };
+                        case "XRP":
+                          return { name: "XRP", iconBg: "#23292F", symbolChar: "✕" };
+                        case "ADA":
+                          return { name: "Cardano", iconBg: "#0033AD", symbolChar: "₳" };
+                        case "DOGE":
+                          return { name: "Dogecoin", iconBg: "#C2A633", symbolChar: "Ð" };
+                        default:
+                          return { name: sym, iconBg: "#3B82F6", symbolChar: sym?.charAt(0) || "•" };
+                      }
+                    };
+
+                    const badgeInfo = getCoinBadge(symbol);
+                    const fullName = (isBase
+                      ? (currencyData?.base_currency_fullname || currencyData?.base_currency_name)
+                      : (currencyData?.quote_currency_fullname || currencyData?.quote_currency_name)) || badgeInfo.name;
+
+                    return (
+                      <TouchableOpacity
+                        key={symbol}
+                        onPress={() => { setSelectedAsset(symbol); setAmount(""); }}
+                        style={{
+                          flex: 1,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          paddingVertical: 14,
+                          paddingHorizontal: 14,
+                          borderRadius: 12,
+                          borderWidth: 1.5,
+                          borderColor: isSelected ? (colors.cyanTheme || "#0AA8C5") : (isDark ? "#2A2C33" : "#E5E7EB"),
+                          backgroundColor: isSelected
+                            ? (isDark ? "rgba(10, 168, 197, 0.12)" : "rgba(10, 168, 197, 0.08)")
+                            : (isDark ? (darkTheme.darkThemeInputColor || "#111214") : "#F7F8FA"),
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+                          {/* Coin Icon Circle */}
+                          <View
+                            style={{
+                              width: 34,
+                              height: 34,
+                              borderRadius: 17,
+                              backgroundColor: badgeInfo.iconBg,
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <AppText weight={BOLD} style={{ color: "#FFFFFF", fontSize: 16 }}>
+                              {badgeInfo.symbolChar}
+                            </AppText>
+                          </View>
+
+                          {/* Coin Text */}
+                          <View style={{ flex: 1 }}>
+                            <AppText weight={BOLD} style={{ fontSize: 15, color: themeColors.text }} numberOfLines={1}>
+                              {symbol}
+                            </AppText>
+                            <AppText style={{ fontSize: 12, color: themeColors.secondaryText, marginTop: 2 }} numberOfLines={1}>
+                              {fullName}
+                            </AppText>
+                          </View>
+                        </View>
+
+                        {/* Bullseye Radio Indicator */}
+                        <View
+                          style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: 11,
+                            borderWidth: 2,
+                            borderColor: isSelected ? (colors.cyanTheme || "#0AA8C5") : (isDark ? "#3A3D46" : "#D1D5DB"),
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginLeft: 4,
+                          }}
+                        >
+                          {isSelected && (
+                            <View
+                              style={{
+                                width: 10,
+                                height: 10,
+                                borderRadius: 5,
+                                backgroundColor: colors.cyanTheme || "#0AA8C5",
+                              }}
+                            />
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            </>
+          )}
+
+          {!isBorrow && !hasLoan && (
+            <View style={{
+              flexDirection: "row",
+              backgroundColor: isDark ? (darkTheme.darkThemeInputColor || "#111214") : "#F7F8FA",
+              borderWidth: 1,
+              borderColor: isDark ? "#2A2C33" : "#E5E7EB",
+              padding: 16,
+              borderRadius: 12,
+              marginTop: 12,
+              marginBottom: 24,
+              alignItems: "center",
+              gap: 12
+            }}>
+              <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: colors.cyanTheme || "#0AA8C5", alignItems: "center", justifyContent: "center" }}>
+                <AppText weight={BOLD} style={{ color: colors.white, fontSize: 12 }}>!</AppText>
+              </View>
+              <AppText style={{ fontSize: 14, color: themeColors.text }}>
+                You haven't borrowed any {selectedAsset} yet.
+              </AppText>
+            </View>
+          )}
+
+          {(isBorrow || hasLoan) && (
+            <>
+              {!isBorrow && (
+                <View style={{ gap: 12, marginBottom: 20 }}>
+                  {isCross ? (
+                    <>
+                      <View style={styles.detailRow}>
+                        <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Principal</AppText>
+                        <AppText weight={SEMI_BOLD} style={{ fontSize: 14, color: themeColors.text }}>
+                          {parseFloat(borrowed || 0).toFixed(8).replace(/\.?0+$/, "")} {selectedAsset}
+                        </AppText>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Accrued Interest</AppText>
+                        <AppText weight={SEMI_BOLD} style={{ fontSize: 14, color: parseFloat(interestAccrued) > 0 ? (colors.red || "#e45561") : themeColors.text }}>
+                          {parseFloat(interestAccrued || 0).toFixed(8).replace(/\.?0+$/, "")} {selectedAsset}
+                        </AppText>
+                      </View>
+                      <View style={[styles.detailRow, { borderTopWidth: 1, borderTopColor: isDark ? "#2A2C33" : themeColors.border, paddingTop: 10, marginTop: 4 }]}>
+                        <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Total Owed</AppText>
+                        <AppText weight={BOLD} style={{ fontSize: 14, color: themeColors.text }}>
+                          {parseFloat(outstandingTotal || 0).toFixed(8).replace(/\.?0+$/, "")} {selectedAsset}
+                        </AppText>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Free Balance</AppText>
+                        <AppText weight={SEMI_BOLD} style={{ fontSize: 14, color: themeColors.text }}>
+                          {parseFloat(available || 0).toFixed(8).replace(/\.?0+$/, "")} {selectedAsset}
+                        </AppText>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <View style={styles.detailRow}>
+                        <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Outstanding Loan</AppText>
+                        <AppText weight={SEMI_BOLD} style={{ fontSize: 14, color: themeColors.text }}>
+                          {parseFloat(borrowed || 0).toFixed(8).replace(/\.?0+$/, "")} {selectedAsset}
+                        </AppText>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Available Balance</AppText>
+                        <AppText weight={SEMI_BOLD} style={{ fontSize: 14, color: themeColors.text }}>
+                          {parseFloat(available || 0).toFixed(8).replace(/\.?0+$/, "")} {selectedAsset}
+                        </AppText>
+                      </View>
+                    </>
+                  )}
+
+                  <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }} onPress={() => { setRepayFull(!repayFull); setAmount(""); }}>
+                    <View style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: 4,
+                      borderWidth: 1.5,
+                      borderColor: repayFull ? (colors.cyanTheme || "#0AA8C5") : themeColors.secondaryText,
+                      backgroundColor: repayFull ? (colors.cyanTheme || "#0AA8C5") : "transparent",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 8
+                    }}>
+                      {repayFull && <FastImage source={checkIc} style={{ width: 11, height: 11 }} tintColor={colors.white} />}
+                    </View>
+                    <AppText style={{ flex: 1, fontSize: 13, color: themeColors.secondaryText }}>
+                      {isCross ? "Repay All (clears full debt including accrued interest)" : "Repay All"}
+                    </AppText>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Cross Margin Borrow Info (Above Input) */}
+              {isCross && isBorrow && (
+                <View style={{ gap: 12, marginBottom: 20 }}>
+                  <View style={styles.detailRow}>
+                    <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Borrowable</AppText>
+                    <AppText weight={SEMI_BOLD} style={{ fontSize: 14, color: themeColors.text }}>
+                      {parseFloat(finalBorrowable || 0).toFixed(8).replace(/\.?0+$/, "")} {selectedAsset}
+                    </AppText>
+                  </View>
+                  {crossBorrowableData?.binding && (
+                    <View style={styles.detailRow}>
+                      <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Limited by</AppText>
+                      <AppText weight={MEDIUM} style={{ fontSize: 14, color: themeColors.secondaryText }}>
+                        {crossBorrowableData.binding === "equity" ? "Your margin capacity"
+                          : crossBorrowableData.binding === "pool" ? "Lending pool liquidity"
+                            : crossBorrowableData.binding === "user_cap" ? "Per-user limit"
+                              : crossBorrowableData.binding}
+                      </AppText>
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {!repayFull && (
+                <>
+                  {/* Borrow / Repay Amount Label */}
+                  <AppText weight={SEMI_BOLD} style={{ fontSize: 14, color: themeColors.text, marginBottom: 8 }}>
+                    {isBorrow ? "Borrow Amount" : "Repayment Amount"}
+                  </AppText>
+
+                  {/* Input Container styled like Login & CoinCode Theme */}
+                  <View
+                    style={[
+                      styles.inputContainer,
+                      {
+                        backgroundColor: isDark ? (darkTheme.darkThemeInputColor || "#111214") : "#F7F8FA",
+                        borderWidth: 1,
+                        borderColor: isAmountFocused
+                          ? (colors.cyanTheme || "#0AA8C5")
+                          : (isDark ? "#2A2C33" : "#E5E7EB"),
+                        borderRadius: 12,
+                        height: 52,
+                        paddingHorizontal: 16,
+                        marginBottom: 8,
+                      },
+                    ]}
+                  >
+                    <TextInput
+                      placeholder={`Enter amount to ${isBorrow ? "borrow" : "repay"}`}
+                      placeholderTextColor={isDark ? (colors.darkShadeColorText || "#6A7282") : "#84888C"}
+                      value={amount}
+                      onChangeText={setAmount}
+                      keyboardType="numeric"
+                      cursorColor={themeColors.text}
+                      selectionColor={themeColors.text + "40"}
+                      onFocus={() => setIsAmountFocused(true)}
+                      onBlur={() => setIsAmountFocused(false)}
+                      style={{
+                        flex: 1,
+                        color: isDark ? colors.white : themeColors.text,
+                        fontSize: 15,
+                        fontFamily: fontFamilyMedium,
+                        paddingVertical: Platform.OS === "ios" ? 12 : 8,
+                      }}
+                    />
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <AppText weight={SEMI_BOLD} style={{ color: themeColors.text, fontSize: 14 }}>{selectedAsset}</AppText>
+                      <AppText style={{ color: themeColors.secondaryText, marginHorizontal: 8, opacity: 0.6 }}>|</AppText>
+                      <TouchableOpacity
+                        onPress={() => {
+                          const maxBorrowAmt = parseFloat(finalBorrowable || 0).toFixed(8).replace(/\.?0+$/, "");
+                          setAmount(String(isBorrow ? maxBorrowAmt : maxRepay));
+                        }}
+                        hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+                      >
+                        <AppText weight={BOLD} style={{ color: colors.cyanTheme || "#0AA8C5", fontSize: 13 }}>Max</AppText>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* Info Note for Cross Borrow */}
+                  {isCross && isBorrow && (
+                    <View style={{
+                      flexDirection: "row",
+                      alignItems: "flex-start",
+                      backgroundColor: isDark ? "rgba(10, 168, 197, 0.08)" : "#F0F9FF",
+                      borderWidth: 1,
+                      borderColor: isDark ? "rgba(10, 168, 197, 0.2)" : "rgba(10, 168, 197, 0.15)",
+                      padding: 12,
+                      borderRadius: 10,
+                      marginBottom: 20
+                    }}>
+                      <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: colors.cyanTheme || "#0AA8C5", alignItems: "center", justifyContent: "center", marginRight: 8, marginTop: 2 }}>
+                        <AppText weight={BOLD} style={{ color: colors.white, fontSize: 10 }}>i</AppText>
+                      </View>
+                      <AppText style={{ flex: 1, fontSize: 13, color: isDark ? "#A0C4D8" : "#2B6CB0", lineHeight: 18 }}>
+                        Borrowed funds are available immediately. Interest accrues against your shared collateral.
+                      </AppText>
+                    </View>
+                  )}
+
+                  {!isBorrow && (
+                    <View style={{ marginTop: 4, marginBottom: 20 }}>
+                      {isCross ? (
+                        <AppText style={{ fontSize: 13, color: themeColors.secondaryText }}>
+                          Max repayable: <AppText weight={SEMI_BOLD} style={{ color: themeColors.text }}>{maxRepay} {selectedAsset}</AppText>
+                        </AppText>
+                      ) : (
+                        <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>
+                          Available: <AppText weight={SEMI_BOLD} style={{ color: themeColors.text }}>{parseFloat(available || 0).toString()} {selectedAsset}</AppText>
+                        </AppText>
+                      )}
+                    </View>
+                  )}
+                  {isBorrow && !isCross && <View style={{ height: 12 }} />}
+                </>
+              )}
+
+              {/* Info Note for Cross Repay */}
+              {isCross && !isBorrow && hasLoan && (
+                <View style={{
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                  backgroundColor: isDark ? "rgba(10, 168, 197, 0.08)" : "#F0F9FF",
+                  borderWidth: 1,
+                  borderColor: isDark ? "rgba(10, 168, 197, 0.2)" : "rgba(10, 168, 197, 0.15)",
+                  padding: 12,
+                  borderRadius: 10,
+                  marginBottom: 20
+                }}>
+                  <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: colors.cyanTheme || "#0AA8C5", alignItems: "center", justifyContent: "center", marginRight: 8, marginTop: 2 }}>
+                    <AppText weight={BOLD} style={{ color: colors.white, fontSize: 10 }}>i</AppText>
+                  </View>
+                  <AppText style={{ flex: 1, fontSize: 13, color: isDark ? "#A0C4D8" : "#2B6CB0", lineHeight: 18 }}>
+                    Interest is settled first, then principal. Partial repayment is allowed at any time.
+                  </AppText>
+                </View>
+              )}
+
+              {/* Borrow Overview (Isolated Margin / Borrow) */}
+              {isBorrow && !isCross && (
+                <>
+                  <AppText weight={BOLD} style={{ fontSize: 16, color: themeColors.text, marginBottom: 12 }}>
+                    Borrow Overview
+                  </AppText>
+
+                  <View
+                    style={{
+                      backgroundColor: isDark ? (darkTheme.darkThemeInputColor || "#111214") : "#F7F8FA",
+                      borderWidth: 1,
+                      borderColor: isDark ? "#2A2C33" : "#E5E7EB",
+                      borderRadius: 14,
+                      paddingHorizontal: 16,
+                      paddingVertical: 4,
+                    }}
+                  >
+                    {/* Maximum Borrow Amount */}
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 13 }}>
+                      <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Maximum Borrow Amount</AppText>
+                      <AppText weight={SEMI_BOLD} style={{ fontSize: 14, color: themeColors.text }}>
+                        {parseFloat(finalBorrowable || 0).toFixed(8)} {selectedAsset}
+                      </AppText>
+                    </View>
+
+                    {/* Est. Liq Price */}
+                    {liqPrice && liqPrice !== "—" && (
+                      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 13, borderTopWidth: 1, borderTopColor: isDark ? "#1F2228" : "#EDEFF2" }}>
+                        <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Est. Liq Price</AppText>
+                        <AppText weight={SEMI_BOLD} style={{ fontSize: 14, color: themeColors.text }}>
+                          {liqPrice} {quoteSymbol}
+                        </AppText>
+                      </View>
+                    )}
+
+                    {/* Hourly Interest Rate */}
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 13, borderTopWidth: 1, borderTopColor: isDark ? "#1F2228" : "#EDEFF2" }}>
+                      <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Hourly Interest Rate</AppText>
+                      <AppText weight={SEMI_BOLD} style={{ fontSize: 14, color: themeColors.text }}>
+                        {hourlyRate}
+                      </AppText>
+                    </View>
+
+                    {/* Annualized Interest Rate */}
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 13, borderTopWidth: 1, borderTopColor: isDark ? "#1F2228" : "#EDEFF2" }}>
+                      <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Annualized Interest Rate</AppText>
+                      <AppText weight={SEMI_BOLD} style={{ fontSize: 14, color: themeColors.text }}>
+                        {annualRate}
+                      </AppText>
+                    </View>
+
+                    {/* Borrowed */}
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 13, borderTopWidth: 1, borderTopColor: isDark ? "#1F2228" : "#EDEFF2" }}>
+                      <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Borrowed</AppText>
+                      <AppText weight={SEMI_BOLD} style={{ fontSize: 14, color: themeColors.text }}>
+                        {parseFloat(borrowed || 0).toFixed(8)} {selectedAsset}
+                      </AppText>
+                    </View>
+
+                    {/* Borrow Margin Level */}
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 13, borderTopWidth: 1, borderTopColor: isDark ? "#1F2228" : "#EDEFF2" }}>
+                      <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Borrow Margin Level</AppText>
+                      <AppText weight={SEMI_BOLD} style={{ fontSize: 14, color: themeColors.text }}>
+                        {marginLevelDisplay}
+                      </AppText>
+                    </View>
+
+                    {/* Current Margin Tier */}
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 13, borderTopWidth: 1, borderTopColor: isDark ? "#1F2228" : "#EDEFF2" }}>
+                      <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Current Margin Tier</AppText>
+                      <AppText weight={SEMI_BOLD} style={{ fontSize: 14, color: themeColors.text }}>Tier 1</AppText>
+                    </View>
+                  </View>
+
+                  {/* Warning Notice Box */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "flex-start",
+                      backgroundColor: isDark ? "rgba(234, 179, 8, 0.08)" : "#FEFCE8",
+                      borderWidth: 1,
+                      borderColor: isDark ? "rgba(234, 179, 8, 0.35)" : "#FDE047",
+                      padding: 14,
+                      borderRadius: 12,
+                      marginTop: 16,
+                      marginBottom: 24,
+                      gap: 12,
+                    }}
+                  >
+                    <AlertTriangle size={18} color={isDark ? "#EAB308" : "#CA8A04"} style={{ marginTop: 2 }} />
+                    <AppText style={{ flex: 1, fontSize: 13, color: isDark ? "#EAB308" : "#854D0E", lineHeight: 18 }} weight={MEDIUM}>
+                      Borrowed funds are subject to hourly interest charges starting immediately. If your margin level falls below the maintenance threshold, your position may be automatically liquidated. Only borrow what you can afford to repay.
+                    </AppText>
+                  </View>
+                </>
+              )}
+
+              {/* Confirm Button */}
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handleConfirm}
+                disabled={busy}
+                style={[
+                  styles.actionBtn,
+                  {
+                    backgroundColor: colors.cyanTheme || "#0AA8C5",
+                    height: 48,
+                    borderRadius: 24,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: 16,
+                    flexDirection: "row",
+                    gap: 8,
+                    opacity: busy ? 0.7 : 1,
+                  },
+                ]}
+              >
+                {busy && <ActivityIndicator color={colors.white} size="small" />}
+                <AppText weight={BOLD} style={{ color: colors.white, fontSize: 16 }}>
+                  {busy ? "Confirming..." : "Confirm"}
+                </AppText>
+              </TouchableOpacity>
+            </>
+          )}
+
+        </ScrollView>
+      )}
+
+      {/* Pair Selection Modal (Exact Margin Mode Glass Styling) */}
+      <Modal
+        visible={isPairModalVisible}
+        transparent={true}
+        animationType="slide"
+        statusBarTranslucent={true}
+        onRequestClose={() => setIsPairModalVisible(false)}
       >
-        {isCross ? (
-          <>
-            <AppText weight={SEMI_BOLD} style={{ fontSize: 16, color: themeColors.text, marginBottom: 8 }}>Cross Margin Asset</AppText>
-            <TouchableOpacity
-              onPress={() => { setSearchQuery(""); assetSheetRef.current?.open(); }}
-              style={[styles.inputContainer, { backgroundColor: inputBgColor, marginBottom: 16, justifyContent: "space-between" }]}
-            >
-              <AppText weight={SEMI_BOLD} style={{ color: themeColors.text, fontSize: 15 }}>{selectedAsset}</AppText>
-              <AppText weight={SEMI_BOLD} style={{ color: themeColors.secondaryText, transform: [{ rotate: '90deg' }] }}>›</AppText>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            {/* Pair Selection (Isolated) */}
-            <AppText weight={SEMI_BOLD} style={{ fontSize: 16, color: themeColors.text, marginBottom: 8 }}>Isolated Margin Pair</AppText>
-            <TouchableOpacity
-              onPress={() => pairSheetRef.current?.open()}
-              style={[styles.inputContainer, { backgroundColor: inputBgColor, marginBottom: 16, justifyContent: "space-between" }]}
-            >
-              <AppText weight={SEMI_BOLD} style={{ color: themeColors.text, fontSize: 15 }}>{selectedPairStr}</AppText>
-              <AppText weight={SEMI_BOLD} style={{ color: themeColors.secondaryText, transform: [{ rotate: '90deg' }] }}>›</AppText>
-            </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setIsPairModalVisible(false)}
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            justifyContent: "flex-end",
+          }}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e?.stopPropagation?.()}
+            style={{
+              backgroundColor: "transparent",
+              height: Math.min(620, Dimensions.get("window").height * 0.78),
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              borderTopWidth: 1,
+              borderLeftWidth: 1,
+              borderRightWidth: 1,
+              borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+              paddingHorizontal: 16,
+              paddingTop: 12,
+              paddingBottom: Platform.OS === 'ios' ? 34 : 16,
+              overflow: "hidden",
+            }}
+          >
+            <BlurView
+              style={StyleSheet.absoluteFill}
+              blurType="light"
+              blurAmount={20}
+              reducedTransparencyFallbackColor="#111214"
+            />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+            {isDark && (
+              <>
+                <LinearGradient
+                  colors={[
+                    "rgba(16, 185, 129, 0.10)",
+                    "rgba(6, 182, 212, 0.04)",
+                    "rgba(16, 185, 129, 0.02)",
+                    "rgba(16, 185, 129, 0.07)",
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+                <LinearGradient
+                  colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+              </>
+            )}
 
-            {/* Coin Selection (Pairs) */}
-            <View style={{ marginBottom: 24 }}>
-              <View style={{ flexDirection: "row", gap: 12 }}>
-                {[baseSymbol, quoteSymbol].map((symbol) => {
-                  if (!symbol) return null;
-                  const isSelected = selectedAsset === symbol;
-                  const isBase = symbol === baseSymbol;
+            {/* Top Pill Handle */}
+            <View style={{ alignItems: "center", marginBottom: 8 }}>
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255, 255, 255, 0.2)" }} />
+            </View>
 
-                  const getFullName = (sym) => {
-                    if (isBase) {
-                      const baseName = currencyData?.base_currency_fullname || currencyData?.base_currency_name;
-                      if (baseName) return baseName;
-                    } else {
-                      const quoteName = currencyData?.quote_currency_fullname || currencyData?.quote_currency_name;
-                      if (quoteName) return quoteName;
-                    }
+            <View style={{ flex: 1, paddingHorizontal: 4 }}>
+              {/* Header */}
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingTop: 4, paddingBottom: 16 }}>
+                <AppText weight={BOLD} style={{ fontSize: 18, color: themeColors.text }}>
+                  Select Pair
+                </AppText>
+                <TouchableOpacity onPress={() => setIsPairModalVisible(false)} style={{ padding: 4 }}>
+                  <X size={18} color={themeColors.secondaryText} />
+                </TouchableOpacity>
+              </View>
 
-                    // Static fallbacks in case API data is missing full name
-                    if (sym === "BTC") return "Bitcoin";
-                    if (sym === "USDT") return "Tether";
-                    if (sym === "ETH") return "Ethereum";
-                    if (sym === "USDC") return "USD Coin";
-                    if (sym === "BNB") return "BNB";
-                    if (sym === "SOL") return "Solana";
-                    if (sym === "XRP") return "XRP";
-                    if (sym === "ADA") return "Cardano";
-                    if (sym === "DOGE") return "Dogecoin";
-                    return sym;
-                  };
-                  const fullName = getFullName(symbol);
+              {/* Search Bar */}
+              <View
+                style={{
+                  height: 46,
+                  borderRadius: 12,
+                  backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "#F7F8FA",
+                  borderWidth: 1,
+                  borderColor: isPairSearchFocused
+                    ? (colors.cyanTheme || "#0AA8C5")
+                    : (isDark ? "rgba(255, 255, 255, 0.12)" : "#E5E7EB"),
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 14,
+                  marginBottom: 16,
+                  gap: 10,
+                }}
+              >
+                <Search size={18} color={isPairSearchFocused ? (colors.cyanTheme || "#0AA8C5") : "rgba(255, 255, 255, 0.5)"} />
+                <TextInput
+                  placeholder="Search pair..."
+                  placeholderTextColor={isDark ? "rgba(255, 255, 255, 0.4)" : "#84888C"}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  onFocus={() => setIsPairSearchFocused(true)}
+                  onBlur={() => setIsPairSearchFocused(false)}
+                  cursorColor={themeColors.text}
+                  selectionColor={themeColors.text + "40"}
+                  style={{
+                    flex: 1,
+                    fontSize: 14,
+                    fontFamily: fontFamilyMedium,
+                    color: isDark ? colors.white : themeColors.text,
+                    paddingVertical: Platform.OS === "ios" ? 8 : 4,
+                  }}
+                />
+                {searchQuery ? (
+                  <TouchableOpacity onPress={() => setSearchQuery("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <X size={16} color={themeColors.secondaryText} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              {/* List Cards */}
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 16 }}>
+                {filteredPairs.map((p) => {
+                  const pStr = `${p.base_currency}/${p.quote_currency}`;
+                  const pStrFormatted = pStr.replace("/", "");
+                  const accountMatch = marginBalances.find(a => a.pair === pStrFormatted && a.asset_type === "base");
+                  const availableBase = accountMatch ? parseFloat(accountMatch.available || 0) : 0;
+                  const isSelected = selectedPairStr === pStr;
 
                   return (
                     <TouchableOpacity
-                      key={symbol}
-                      onPress={() => { setSelectedAsset(symbol); setAmount(""); }}
+                      key={pStr}
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        setSelectedPairStr(pStr);
+                        setSelectedAsset(p.base_currency);
+                        setAmount("");
+                        setIsPairModalVisible(false);
+                      }}
                       style={{
-                        flex: 1,
                         flexDirection: "row",
                         alignItems: "center",
                         justifyContent: "space-between",
-                        paddingVertical: 12,
-                        paddingHorizontal: 10,
-                        borderRadius: 12,
-                        borderWidth: 1.5,
-                        borderColor: isSelected ? "#D9B37E" : themeColors.themeBorderColor,
-                        backgroundColor: isSelected ? (isDark ? "#2A241C" : "#FDF6ED") : chipBgColor,
-                        shadowColor: "#000",
-                        shadowOffset: { width: 0, height: 1 },
-                        shadowOpacity: 0.05,
-                        shadowRadius: 2,
-                        elevation: 1,
+                        backgroundColor: isSelected
+                          ? "rgba(10, 168, 197, 0.12)"
+                          : isDark
+                            ? "rgba(255, 255, 255, 0.04)"
+                            : "rgba(0, 0, 0, 0.03)",
+                        borderRadius: 14,
+                        padding: 14,
+                        marginBottom: 10,
+                        borderWidth: 1.2,
+                        borderColor: isSelected
+                          ? (colors.cyanTheme || "#0AA8C5")
+                          : isDark
+                            ? "rgba(255, 255, 255, 0.10)"
+                            : "#E5E5EA",
                       }}
-                      activeOpacity={0.8}
                     >
-                      <View style={{ flexDirection: "row", alignItems: "center" }}>
-                        {/* Coin Text */}
-                        <View>
-                          <AppText weight={BOLD} style={{ fontSize: 14, color: themeColors.text }}>
-                            {symbol}
-                          </AppText>
-                          <AppText style={{ fontSize: 11, color: themeColors.secondaryText, marginTop: 1 }}>
-                            {fullName}
-                          </AppText>
-                        </View>
+                      <View>
+                        <AppText weight={BOLD} style={{ fontSize: 16, color: isSelected ? (colors.cyanTheme || "#0AA8C5") : themeColors.text }}>
+                          {pStr}
+                        </AppText>
+                        <AppText style={{ fontSize: 13, color: themeColors.secondaryText, marginTop: 2 }}>
+                          Available: {availableBase > 0 ? availableBase.toFixed(6) : "0"} {p.base_currency}
+                        </AppText>
                       </View>
 
-                      {/* Radio Indicator */}
-                      <View style={{
-                        width: 18, height: 18, borderRadius: 9,
-                        borderWidth: isSelected ? 0 : 1.5,
-                        borderColor: isDark ? "#4A4A4C" : "#E5E7EB",
-                        backgroundColor: isSelected ? "#C69C6D" : "transparent",
-                        alignItems: "center", justifyContent: "center"
-                      }}>
+                      {/* Bullseye Radio Indicator */}
+                      <View
+                        style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: 11,
+                          borderWidth: 2,
+                          borderColor: isSelected ? (colors.cyanTheme || "#0AA8C5") : (isDark ? "rgba(255, 255, 255, 0.25)" : "#D1D5DB"),
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
                         {isSelected && (
-                          <FastImage source={tick} style={{ width: 10, height: 10 }} tintColor={colors.white} resizeMode="contain" />
+                          <View
+                            style={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: 5,
+                              backgroundColor: colors.cyanTheme || "#0AA8C5",
+                            }}
+                          />
                         )}
                       </View>
                     </TouchableOpacity>
                   );
                 })}
-              </View>
+              </ScrollView>
             </View>
-          </>
-        )}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
-        {!isBorrow && !hasLoan && (
-          <View style={{
-            flexDirection: "row",
-            backgroundColor: inputBgColor,
-            padding: 16,
-            borderRadius: 8,
-            marginTop: 12,
-            marginBottom: 24,
-            alignItems: "center",
-            gap: 12
-          }}>
-            <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: themeColors.text, alignItems: "center", justifyContent: "center" }}>
-              <AppText weight={SEMI_BOLD} style={{ color: themeColors.text, fontSize: 11, marginTop: Platform.OS === 'ios' ? 0 : -2 }}>!</AppText>
-            </View>
-            <AppText style={{ fontSize: 14, color: themeColors.text }}>
-              You haven't borrowed any {selectedAsset} yet.
-            </AppText>
-          </View>
-        )}
-
-        {(isBorrow || hasLoan) && (
-          <>
-            {!isBorrow && (
-              <View style={{ gap: 12, marginBottom: 20 }}>
-                {isCross ? (
-                  <>
-                    <View style={styles.detailRow}>
-                      <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Principal</AppText>
-                      <AppText style={{ fontSize: 14, color: themeColors.text }}>
-                        {parseFloat(borrowed || 0).toFixed(8).replace(/\.?0+$/, "")} {selectedAsset}
-                      </AppText>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Accrued Interest</AppText>
-                      <AppText style={{ fontSize: 14, color: parseFloat(interestAccrued) > 0 ? "#e45561" : themeColors.text }}>
-                        {parseFloat(interestAccrued || 0).toFixed(8).replace(/\.?0+$/, "")} {selectedAsset}
-                      </AppText>
-                    </View>
-                    <View style={[styles.detailRow, { borderTopWidth: 1, borderTopColor: themeColors.border, paddingTop: 10, marginTop: 4 }]}>
-                      <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Total Owed</AppText>
-                      <AppText weight={SEMI_BOLD} style={{ fontSize: 14, color: themeColors.text }}>
-                        {parseFloat(outstandingTotal || 0).toFixed(8).replace(/\.?0+$/, "")} {selectedAsset}
-                      </AppText>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Free Balance</AppText>
-                      <AppText style={{ fontSize: 14, color: themeColors.text }}>
-                        {parseFloat(available || 0).toFixed(8).replace(/\.?0+$/, "")} {selectedAsset}
-                      </AppText>
-                    </View>
-                  </>
-                ) : (
-                  <>
-                    <View style={styles.detailRow}>
-                      <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Outstanding Loan</AppText>
-                      <AppText style={{ fontSize: 14, color: themeColors.text }}>
-                        {parseFloat(borrowed || 0).toFixed(8).replace(/\.?0+$/, "")} {selectedAsset}
-                      </AppText>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Available Balance</AppText>
-                      <AppText style={{ fontSize: 14, color: themeColors.text }}>
-                        {parseFloat(available || 0).toFixed(8).replace(/\.?0+$/, "")} {selectedAsset}
-                      </AppText>
-                    </View>
-                  </>
-                )}
-
-                <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }} onPress={() => { setRepayFull(!repayFull); setAmount(""); }}>
-                  <View style={{ width: 16, height: 16, borderRadius: 2, borderWidth: 1, borderColor: repayFull ? colors.buttonBg : themeColors.secondaryText, backgroundColor: repayFull ? colors.buttonBg : "transparent", alignItems: "center", justifyContent: "center", marginRight: 8 }}>
-                    {repayFull && <FastImage source={checkIc} style={{ width: 10, height: 10 }} tintColor={colors.white} />}
-                  </View>
-                  <AppText style={{ flex: 1, fontSize: 13, color: themeColors.secondaryText }}>
-                    {isCross ? "Repay All (clears full debt including accrued interest)" : "Repay All"}
-                  </AppText>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Cross Margin Borrow Info (Above Input) */}
-            {isCross && isBorrow && (
-              <View style={{ gap: 12, marginBottom: 20 }}>
-                <View style={styles.detailRow}>
-                  <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Borrowable</AppText>
-                  <AppText style={{ fontSize: 14, color: themeColors.text }}>
-                    {parseFloat(finalBorrowable || 0).toFixed(8).replace(/\.?0+$/, "")} {selectedAsset}
-                  </AppText>
-                </View>
-                {crossBorrowableData?.binding && (
-                  <View style={styles.detailRow}>
-                    <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Limited by</AppText>
-                    <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>
-                      {crossBorrowableData.binding === "equity" ? "Your margin capacity"
-                        : crossBorrowableData.binding === "pool" ? "Lending pool liquidity"
-                        : crossBorrowableData.binding === "user_cap" ? "Per-user limit"
-                        : crossBorrowableData.binding}
-                    </AppText>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {!repayFull && (
+      {/* Asset Selection Modal (Exact Margin Mode Glass Styling) */}
+      <Modal
+        visible={isAssetModalVisible}
+        transparent={true}
+        animationType="slide"
+        statusBarTranslucent={true}
+        onRequestClose={() => setIsAssetModalVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setIsAssetModalVisible(false)}
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            justifyContent: "flex-end",
+          }}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e?.stopPropagation?.()}
+            style={{
+              backgroundColor: "transparent",
+              height: Math.min(580, Dimensions.get("window").height * 0.75),
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              borderTopWidth: 1,
+              borderLeftWidth: 1,
+              borderRightWidth: 1,
+              borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+              paddingHorizontal: 16,
+              paddingTop: 12,
+              paddingBottom: Platform.OS === 'ios' ? 34 : 16,
+              overflow: "hidden",
+            }}
+          >
+            <BlurView
+              style={StyleSheet.absoluteFill}
+              blurType="light"
+              blurAmount={20}
+              reducedTransparencyFallbackColor="#111214"
+            />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
+            {isDark && (
               <>
-                {/* Loan Amount Label */}
-                <AppText weight={SEMI_BOLD} style={{ fontSize: 16, color: themeColors.text, marginBottom: 8 }}>
-                  {isBorrow ? "Loan Amount" : "Repayment Amount"}
-                </AppText>
-
-                {/* Input */}
-                <View style={[styles.inputContainer, { backgroundColor: inputBgColor, marginBottom: 8 }]}>
-                  <TextInput
-                    placeholder={`Enter amount to ${isBorrow ? "borrow" : "repay"}`}
-                    placeholderTextColor={themeColors.secondaryText}
-                    value={amount}
-                    onChangeText={setAmount}
-                    keyboardType="numeric"
-                    cursorColor={themeColors.text}
-                    style={{ flex: 1, color: themeColors.text, fontSize: 14, fontFamily: fontFamilyMedium, paddingVertical: Platform.OS === "ios" ? 12 : 8 }}
-                  />
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <AppText style={{ color: themeColors.text, fontSize: 14 }}>{selectedAsset}</AppText>
-                    <TouchableOpacity onPress={() => {
-                      const maxBorrowAmt = parseFloat(finalBorrowable || 0).toFixed(8).replace(/\.?0+$/, "");
-                      setAmount(String(isBorrow ? maxBorrowAmt : maxRepay));
-                    }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ backgroundColor: isDark ? themeColors.themeElevationColor : "#EEEEEE", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
-                      <AppText style={{ color: themeColors.text, fontSize: 12 }}>Max</AppText>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Info Note for Cross Borrow */}
-                {isCross && isBorrow && (
-                  <View style={{ flexDirection: "row", alignItems: "flex-start", backgroundColor: isDark ? "#1C2533" : "#F0F5FF", padding: 12, borderRadius: 8, marginBottom: 20 }}>
-                    <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: colors.buttonBg, alignItems: "center", justifyContent: "center", marginRight: 8, marginTop: 2 }}>
-                      <AppText weight={BOLD} style={{ color: colors.white, fontSize: 10 }}>i</AppText>
-                    </View>
-                    <AppText style={{ flex: 1, fontSize: 13, color: isDark ? "#93B2F0" : "#4A5568", lineHeight: 18 }}>
-                      Borrowed funds are available immediately. Interest accrues against your shared collateral.
-                    </AppText>
-                  </View>
-                )}
-
-                {!isBorrow && (
-                  <View style={{ marginTop: 4, marginBottom: 20 }}>
-                    {isCross ? (
-                      <AppText style={{ fontSize: 13, color: themeColors.secondaryText }}>
-                        Max repayable: <AppText weight={SEMI_BOLD} style={{ color: themeColors.text }}>{maxRepay} {selectedAsset}</AppText>
-                      </AppText>
-                    ) : (
-                      <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>
-                        Available: <AppText weight={SEMI_BOLD} style={{ color: themeColors.text }}>{parseFloat(available || 0).toString()} {selectedAsset}</AppText>
-                      </AppText>
-                    )}
-                  </View>
-                )}
-                {isBorrow && !isCross && <View style={{ height: 12 }} />}
+                <LinearGradient
+                  colors={[
+                    "rgba(16, 185, 129, 0.10)",
+                    "rgba(6, 182, 212, 0.04)",
+                    "rgba(16, 185, 129, 0.02)",
+                    "rgba(16, 185, 129, 0.07)",
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+                <LinearGradient
+                  colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
               </>
             )}
 
-            {/* Info Note for Cross Repay */}
-            {isCross && !isBorrow && hasLoan && (
-              <View style={{ flexDirection: "row", alignItems: "flex-start", backgroundColor: isDark ? "#1C2533" : "#F0F5FF", padding: 12, borderRadius: 8, marginBottom: 20 }}>
-                <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: colors.buttonBg, alignItems: "center", justifyContent: "center", marginRight: 8, marginTop: 2 }}>
-                  <AppText weight={BOLD} style={{ color: colors.white, fontSize: 10 }}>i</AppText>
-                </View>
-                <AppText style={{ flex: 1, fontSize: 13, color: isDark ? "#93B2F0" : "#4A5568", lineHeight: 18 }}>
-                  Interest is settled first, then principal. Partial repayment is allowed at any time.
+            {/* Top Pill Handle */}
+            <View style={{ alignItems: "center", marginBottom: 8 }}>
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255, 255, 255, 0.2)" }} />
+            </View>
+
+            <View style={{ flex: 1, paddingHorizontal: 4 }}>
+              {/* Header */}
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingTop: 4, paddingBottom: 16 }}>
+                <AppText weight={BOLD} style={{ fontSize: 18, color: themeColors.text }}>
+                  Select Asset
                 </AppText>
-              </View>
-            )}
-
-            {/* Detail Rows (Borrow Only, Isolated Margin) */}
-            {isBorrow && !isCross && (
-              <View style={{ gap: 12, marginBottom: 20 }}>
-                <View style={styles.detailRow}>
-                  <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Maximum Borrow Amount</AppText>
-                  <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>
-                    {parseFloat(finalBorrowable || 0).toFixed(8)} {selectedAsset}
-                  </AppText>
-                </View>
-                {liqPrice && liqPrice !== "—" && (
-                  <View style={styles.detailRow}>
-                    <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Est. Liq Price</AppText>
-                    <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>
-                      {liqPrice} {quoteSymbol}
-                    </AppText>
-                  </View>
-                )}
-                <View style={styles.detailRow}>
-                  <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Hourly Interest Rate</AppText>
-                  <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>
-                    {hourlyRate}
-                  </AppText>
-                </View>
-                <View style={styles.detailRow}>
-                  <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Annualized Interest Rate</AppText>
-                  <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>
-                    {annualRate}
-                  </AppText>
-                </View>
-                <View style={styles.detailRow}>
-                  <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Borrowed</AppText>
-                  <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>
-                    {parseFloat(borrowed || 0).toFixed(8)} {selectedAsset}
-                  </AppText>
-                </View>
-                <View style={styles.detailRow}>
-                  <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Borrow Margin Level</AppText>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                    <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>
-                      {marginLevelDisplay}
-                    </AppText>
-                  </View>
-                </View>
-                <View style={styles.detailRow}>
-                  <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Current Margin Tier</AppText>
-                  <AppText style={{ fontSize: 14, color: themeColors.secondaryText }}>Tier 1</AppText>
-                </View>
-              </View>
-            )}
-
-            {/* Blue Info Box */}
-            {!isCross && (
-              <View style={{
-                flexDirection: "row",
-                backgroundColor: isDark ? "#1C273D" : "#EEF4FF",
-                padding: 12,
-                borderRadius: 8,
-                marginBottom: 24,
-                alignItems: "flex-start",
-                gap: 10
-              }}>
-                <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: "#3375E0", alignItems: "center", justifyContent: "center", marginTop: 2 }}>
-                  <AppText weight={MEDIUM} style={{ color: colors.white, fontSize: 10, }}>i</AppText>
-                </View>
-                <AppText style={{ flex: 1, fontSize: 13, color: isDark ? "#A0B5D8" : "#4A5A7B", lineHeight: 18 }} weight={MEDIUM}>
-                  {isBorrow
-                    ? "Borrowed funds are subject to hourly interest charges starting immediately. If your margin level falls below the maintenance threshold, your position may be automatically liquidated. Only borrow what you can afford to repay."
-                    : "Interest is settled first from your repayment amount, with the remainder applied to the principal. You may repay partially or in full at any time. After repayment, your margin level and liquidation price will update accordingly."}
-                </AppText>
-              </View>
-            )}
-
-            {/* Confirm Button */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={handleConfirm}
-              disabled={busy}
-              style={[styles.actionBtn, { backgroundColor: isDark ? themeColors.button : "#11141D", marginBottom: 16, flexDirection: "row", gap: 8 }]}
-            >
-              {busy && <ActivityIndicator color={colors.white} size="small" />}
-              <AppText weight={SEMI_BOLD} style={{ color: colors.white, fontSize: 16 }}>
-                {busy ? "Confirming..." : "Confirm"}
-              </AppText>
-            </TouchableOpacity>
-          </>
-        )}
-
-      </ScrollView>
-      )}
-
-      <RBSheet
-        ref={pairSheetRef}
-        height={Dimensions.get("window").height * 0.7}
-        openDuration={250}
-        customStyles={{
-          container: {
-            backgroundColor: "transparent",
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            borderTopWidth: 1,
-            borderLeftWidth: 1,
-            borderRightWidth: 1,
-            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
-            overflow: "hidden",
-          },
-          wrapper: {
-            backgroundColor: "rgba(0, 0, 0, 0.7)",
-          },
-          draggableIcon: { backgroundColor: "rgba(255, 255, 255, 0.2)", width: 40, marginTop: 10 },
-        }}
-      >
-        <BlurView
-          style={StyleSheet.absoluteFill}
-          blurType="light"
-          blurAmount={20}
-          reducedTransparencyFallbackColor="#111214"
-        />
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
-        {isDark && (
-          <>
-            <LinearGradient
-              colors={[
-                "rgba(16, 185, 129, 0.10)",
-                "rgba(6, 182, 212, 0.04)",
-                "rgba(16, 185, 129, 0.02)",
-                "rgba(16, 185, 129, 0.07)",
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
-              pointerEvents="none"
-            />
-            <LinearGradient
-              colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
-              style={StyleSheet.absoluteFill}
-              pointerEvents="none"
-            />
-          </>
-        )}
-        <View style={{ flex: 1, padding: 16 }}>
-          <AppText weight={SEMI_BOLD} style={{ fontSize: 18, marginBottom: 16, color: themeColors.text }}>Select Pair</AppText>
-          <TextInput
-            placeholder="Search pair..."
-            placeholderTextColor={themeColors.secondaryText}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            style={[styles.inputContainer, { backgroundColor: inputBgColor, color: themeColors.text, marginBottom: 16 }]}
-          />
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {filteredPairs.map((p) => {
-              const pStr = `${p.base_currency}/${p.quote_currency}`;
-              const pStrFormatted = pStr.replace("/", "");
-              const accountMatch = marginBalances.find(a => a.pair === pStrFormatted && a.asset_type === "base");
-              const availableBase = accountMatch ? parseFloat(accountMatch.available || 0) : 0;
-
-              return (
-                <TouchableOpacity
-                  key={pStr}
-                  style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: themeColors.border }}
-                  onPress={() => {
-                    setSelectedPairStr(pStr);
-                    setSelectedAsset(p.base_currency);
-                    setAmount("");
-                    pairSheetRef.current?.close();
-                  }}
-                >
-                  <AppText weight={MEDIUM} style={{ fontSize: 16, color: themeColors.text }}>{pStr}</AppText>
-                  <View style={{ alignItems: "flex-end" }}>
-                    <AppText weight={MEDIUM} style={{ fontSize: 14, color: themeColors.text }}>
-                      {availableBase > 0 ? availableBase.toFixed(6) : "0"}
-                    </AppText>
-                    <AppText style={{ fontSize: 12, color: themeColors.secondaryText }}>$0.00</AppText>
-                  </View>
+                <TouchableOpacity onPress={() => setIsAssetModalVisible(false)} style={{ padding: 4 }}>
+                  <X size={18} color={themeColors.secondaryText} />
                 </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-      </RBSheet>
+              </View>
 
-      <RBSheet
-        ref={assetSheetRef}
-        height={Dimensions.get("window").height * 0.7 - 50}
-        openDuration={250}
-        customStyles={{
-          container: {
-            backgroundColor: "transparent",
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            borderTopWidth: 1,
-            borderLeftWidth: 1,
-            borderRightWidth: 1,
-            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
-            overflow: "hidden",
-          },
-          wrapper: {
-            backgroundColor: "rgba(0, 0, 0, 0.7)",
-          },
-          draggableIcon: { backgroundColor: "rgba(255, 255, 255, 0.2)", width: 40, marginTop: 10 },
-        }}
-      >
-        <BlurView
-          style={StyleSheet.absoluteFill}
-          blurType="light"
-          blurAmount={20}
-          reducedTransparencyFallbackColor="#111214"
-        />
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "rgba(10, 12, 16, 0.68)" : "rgba(255, 255, 255, 0.85)" }]} />
-        {isDark && (
-          <>
-            <LinearGradient
-              colors={[
-                "rgba(16, 185, 129, 0.10)",
-                "rgba(6, 182, 212, 0.04)",
-                "rgba(16, 185, 129, 0.02)",
-                "rgba(16, 185, 129, 0.07)",
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
-              pointerEvents="none"
-            />
-            <LinearGradient
-              colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
-              style={StyleSheet.absoluteFill}
-              pointerEvents="none"
-            />
-          </>
-        )}
-        <View style={{ flex: 1, padding: 16 }}>
-          <AppText weight={SEMI_BOLD} style={{ fontSize: 18, marginBottom: 16, color: themeColors.text }}>Select Asset</AppText>
-          <TextInput
-            placeholder="Search asset..."
-            placeholderTextColor={themeColors.secondaryText}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            style={[styles.inputContainer, { backgroundColor: inputBgColor, color: themeColors.text, marginBottom: 16 }]}
-          />
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {filteredCrossAssets.map((a) => (
-              <TouchableOpacity
-                key={a.currency}
-                style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: themeColors.border }}
-                onPress={() => {
-                  setSelectedAsset(a.currency);
-                  setAmount("");
-                  assetSheetRef.current?.close();
+              {/* Search Bar */}
+              <View
+                style={{
+                  height: 46,
+                  borderRadius: 12,
+                  backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "#F7F8FA",
+                  borderWidth: 1,
+                  borderColor: isAssetSearchFocused
+                    ? (colors.cyanTheme || "#0AA8C5")
+                    : (isDark ? "rgba(255, 255, 255, 0.12)" : "#E5E7EB"),
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 14,
+                  marginBottom: 16,
+                  gap: 10,
                 }}
               >
-                <AppText weight={MEDIUM} style={{ fontSize: 16, color: themeColors.text }}>{a.currency}</AppText>
-                {selectedAsset === a.currency && (
-                  <FastImage source={checkIc} style={{ width: 14, height: 14 }} tintColor={isDark ? colors.white : themeColors.button} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      </RBSheet>
+                <Search size={18} color={isAssetSearchFocused ? (colors.cyanTheme || "#0AA8C5") : "rgba(255, 255, 255, 0.5)"} />
+                <TextInput
+                  placeholder="Search asset..."
+                  placeholderTextColor={isDark ? "rgba(255, 255, 255, 0.4)" : "#84888C"}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  onFocus={() => setIsAssetSearchFocused(true)}
+                  onBlur={() => setIsAssetSearchFocused(false)}
+                  cursorColor={themeColors.text}
+                  selectionColor={themeColors.text + "40"}
+                  style={{
+                    flex: 1,
+                    fontSize: 14,
+                    fontFamily: fontFamilyMedium,
+                    color: isDark ? colors.white : themeColors.text,
+                    paddingVertical: Platform.OS === "ios" ? 8 : 4,
+                  }}
+                />
+                {searchQuery ? (
+                  <TouchableOpacity onPress={() => setSearchQuery("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <X size={16} color={themeColors.secondaryText} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              {/* List Cards */}
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 16 }}>
+                {filteredCrossAssets.map((a) => {
+                  const isSelected = selectedAsset === a.currency;
+                  return (
+                    <TouchableOpacity
+                      key={a.currency}
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        setSelectedAsset(a.currency);
+                        setAmount("");
+                        setIsAssetModalVisible(false);
+                      }}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        backgroundColor: isSelected
+                          ? "rgba(10, 168, 197, 0.12)"
+                          : isDark
+                            ? "rgba(255, 255, 255, 0.04)"
+                            : "rgba(0, 0, 0, 0.03)",
+                        borderRadius: 14,
+                        padding: 14,
+                        marginBottom: 10,
+                        borderWidth: 1.2,
+                        borderColor: isSelected
+                          ? (colors.cyanTheme || "#0AA8C5")
+                          : isDark
+                            ? "rgba(255, 255, 255, 0.10)"
+                            : "#E5E5EA",
+                      }}
+                    >
+                      <AppText weight={BOLD} style={{ fontSize: 16, color: isSelected ? (colors.cyanTheme || "#0AA8C5") : themeColors.text }}>
+                        {a.currency}
+                      </AppText>
+
+                      {/* Bullseye Radio Indicator */}
+                      <View
+                        style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: 11,
+                          borderWidth: 2,
+                          borderColor: isSelected ? (colors.cyanTheme || "#0AA8C5") : (isDark ? "rgba(255, 255, 255, 0.25)" : "#D1D5DB"),
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {isSelected && (
+                          <View
+                            style={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: 5,
+                              backgroundColor: colors.cyanTheme || "#0AA8C5",
+                            }}
+                          />
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
     </SafeAreaView>
   );
@@ -1038,27 +1435,36 @@ const styles = StyleSheet.create({
   },
   headerTabsContainer: {
     flexDirection: "row",
-    gap: 15,
+    gap: 20,
+    alignItems: "center",
   },
   headerTabBtn: {
-    paddingVertical: 8,
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  activeTabIndicator: {
+    width: 20,
+    height: 3,
+    borderRadius: 2,
+    marginTop: 4,
   },
   inputContainer: {
-    height: 50,
-    borderRadius: 8,
+    height: 52,
+    borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
   },
   detailRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingVertical: 2,
   },
   actionBtn: {
-    flex: 1,
-    height: 50,
-    borderRadius: 25,
+    width: "100%",
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
   },

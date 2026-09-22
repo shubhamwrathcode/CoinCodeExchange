@@ -164,7 +164,7 @@ const SpotWalletTab = ({
       />
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 14 }}>
-        <View style={[styles.searchBox, { backgroundColor: theme === 'Dark' ? darkTheme.darkThemeInputColor: '#F7F7F7' }]}>
+        <View style={[styles.searchBox, { backgroundColor: theme === 'Dark' ? darkTheme.darkThemeInputColor : '#F7F7F7' }]}>
           <FastImage source={searchIcon} style={{ width: 14, height: 14 }} resizeMode="contain" tintColor={themeColors.secondaryText} />
           <TextInput
             value={spotSearch}
