@@ -7,7 +7,9 @@ export const marginWalletImg = require('../../assets/images/marginWalletImg.png'
 export const earningWalletImg = require('../../assets/images/earningWalletImg.png');
 export const earnAsset2 = require('../../assets/images/earnAsset2.png');
 export const search_Img = require('../../assets/images/searchImg.png');
-export const back_ic = require('../../assets/images/back_ic.png');
+export const backChevronIcon = require('../../assets/images/back_ic.png');
+/** Screen back control — CoinCode profile back glyph (use across headers). */
+export const back_ic = require('../../assets/images/profileBackButtonImg.png');
 export const home_ic = require('../../assets/images/home_ic.png');
 export const wallet_ic = require('../../assets/images/wallet_ic.png');
 export const account_ic = require('../../assets/images/account.png');
@@ -656,3 +658,45 @@ export const RectangleRed = require('../../assets/images/RectangleRed.png');
 
 
 export const activities_icon = require('../../assets/images/activities_icon.png');
+
+/** CoinCode MyProfile-style icons */
+export const profileDepositIcon = require('../../assets/images/profileDepositIcon.png');
+export const profileWithdrawalIcon = require('../../assets/images/profileWithdrawalIcon.png');
+export const profileInviteFriendsIcon = require('../../assets/images/profileInviteFriendsIcon.png');
+export const profileCopyTradeIcon = require('../../assets/images/profileCopyTradeIcon.png');
+export const profileNewsIcon = require('../../assets/images/profileNewsIcon.png');
+export const profileReferProgramIcon = require('../../assets/images/profileReferProgramIcon.png');
+export const profileUserAvtar = require('../../assets/images/profileUserAvtar.png');
+export const profileScanImg = require('../../assets/images/profileScanImg.png');
+export const profileSettingImg = require('../../assets/images/profileSettingImg.png');
+export const profileHeadphoneImg = require('../../assets/images/profileHeadphoneImg.png');
+export const profileBackButtonImg = require('../../assets/images/profileBackButtonImg.png');
+export const profileMoreIcon = require('../../assets/images/profileMoreIcon.png');
+export const profileConvertIcon = require('../../assets/images/profileConvertIcon.png');
+export const profileP2pIcon = require('../../assets/images/profileP2pIcon.png');
+export const profileTradeIcon = require('../../assets/images/profileTradeIcon.png');
+
+/** More Services screen icons (CoinCode) */
+export const moreSvcSpotIcon = require('../../assets/images/moreSvc_spotIcon.png');
+export const moreSvcMarginIcon = require('../../assets/images/moreSvc_marginIcon.png');
+export const moreSvcReferIcon = require('../../assets/images/moreSvc_referIcon.png');
+export const moreSvcBlogIcon = require('../../assets/images/moreSvc_blogIcon.png');
+export const buyCryptoIcon = require('../../assets/images/buyCryptoIcon.png');
+export const otpDeskIcon = require('../../assets/images/otpDeskIcon.png');
+export const botIcon = require('../../assets/images/botIcon.png');
+export const futureIcon = require('../../assets/images/futureIcon.png');
+export const coinMIcon = require('../../assets/images/coinMIcon.png');
+export const optionTradeIcon = require('../../assets/images/optionTradeIcon.png');
+export const launchpadIcon = require('../../assets/images/launchpadIcon.png');
+export const vipIcon = require('../../assets/images/vipIcon.png');
+export const softStakingIcon = require('../../assets/images/softStakingIcon.png');
+export const simpleEarnIcon = require('../../assets/images/simpleEarnIcon.png');
+export const vipServicesIcon = require('../../assets/images/vipServicesIcon.png');
+export const squareIcon = require('../../assets/images/squareIcon.png');
+export const proofOfReserveIcon = require('../../assets/images/proofOfReserveIcon.png');
+export const partnersIcon = require('../../assets/images/partnersIcon.png');
+export const newsIcon1 = require('../../assets/images/newsIcon1.png');
+export const helpCenterIcon = require('../../assets/images/helpCenterIcon.png');
+export const announcementIcon = require('../../assets/images/announcementIcon.png');
+export const affilateIcon = require('../../assets/images/affilateIcon.png');
+export const chatIcon = require('../../assets/images/chatIcon.png');

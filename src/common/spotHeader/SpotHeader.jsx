@@ -146,8 +146,7 @@ const SpotHeader = ({
             </AppText>
             <FastImage
               source={downIcon}
-              style={{ width: 12, height: 12, marginLeft: 6, marginTop: 2 }}
-              tintColor={iconTint}
+              style={{ width: 35, height: 35, marginLeft: 6, marginTop: 2 }}
               resizeMode="contain"
             />
           </View>
@@ -170,7 +169,7 @@ const SpotHeader = ({
             disabled={!onBackPress}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <FastImage source={back_ic} style={{ width: 20, height: 20 }} resizeMode="contain" tintColor={darkMode ? colors.white : colors.black} />
+            <FastImage source={back_ic} style={{ width: 35, height: 35 }} resizeMode="contain" />
           </TouchableOpacity>
           <View style={styles.topTabs}>
             {["Spot", "Margin", /* "Buy Crypto", */ "Futures"].map((t, idx, arr) => {

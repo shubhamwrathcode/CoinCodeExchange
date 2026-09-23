@@ -3,7 +3,7 @@ import { Dimensions, ScrollView, StyleSheet, TextInput, TouchableOpacity, View }
 import { AppSafeAreaView, AppText, BLACK, BOLD, Button, DISCLAIMTEXT, FOURTEEN, MEDIUM, SEMI_BOLD, SIXTEEN, TEN, TWELVE, TWENTY, WHITE } from "../../shared";
 import KeyBoardAware from "../../shared/components/KeyboardAware";
 import FastImage from "react-native-fast-image";
-import { back_ic, BACK_ICON, activities_icon, moreOption, printIcon, sideIcon } from "../../helper/ImageAssets";
+import { back_ic, backChevronIcon, BACK_ICON, activities_icon, moreOption, printIcon, sideIcon } from "../../helper/ImageAssets";
 import NavigationService from "../../navigation/NavigationService";
 import { colors } from "../../theme/colors";
 import { fontFamilyMedium } from "../../theme/typography";
@@ -166,8 +166,7 @@ const Transfer = () => {
             <FastImage
               source={back_ic}
               resizeMode="contain"
-              tintColor={themeColors.text}
-              style={{ width: 20, height: 20 }}
+              style={{ width: 35, height: 35 }}
             />
           </TouchableOpacity>
           <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 10 }} onPress={() => NavigationService.navigate('Interanl_Trade_History')}>
@@ -212,7 +211,7 @@ const Transfer = () => {
                       </AppText>
                     </View>
                     <FastImage
-                      source={back_ic}
+                      source={backChevronIcon}
                       resizeMode="contain"
                       style={styles.walletPickerChevron}
                       tintColor={themeColors.text}
@@ -234,7 +233,7 @@ const Transfer = () => {
                       </AppText>
                     </View>
                     <FastImage
-                      source={back_ic}
+                      source={backChevronIcon}
                       resizeMode="contain"
                       style={styles.walletPickerChevron}
                       tintColor={themeColors.text}
@@ -261,7 +260,7 @@ const Transfer = () => {
               </View>
 
               <FastImage
-                source={back_ic}
+                source={backChevronIcon}
                 resizeMode="contain"
                 style={{
                   width: 15,

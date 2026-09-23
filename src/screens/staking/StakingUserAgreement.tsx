@@ -14,7 +14,7 @@ const StakingUserAgreement = () => {
     <AppSafeAreaView style={{ flex: 1, backgroundColor: themeColors.background }} forceBarStyle={isDark ? "light-content" : "dark-content"}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => NavigationService.goBack()}>
-          <FastImage source={back_ic} style={styles.icon} resizeMode="contain" tintColor={themeColors.text} />
+          <FastImage source={back_ic} style={styles.icon} resizeMode="contain" />
         </TouchableOpacity>
         <AppText style={[styles.headerTitle, { color: themeColors.text }]}>Staking User Agreement</AppText>
         <View style={styles.iconBtn} />

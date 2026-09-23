@@ -1139,7 +1139,7 @@ const DepositCoin = () => {
                                     disabled={!addrFull}
                                     style={styles.depHistIconBtn}
                                 >
-                                    <FastImage source={copyIcon} style={styles.depHistIcon} resizeMode="contain" tintColor={themeColors.secondaryText} />
+                                    <FastImage source={copyIcon} style={styles.depHistIcon} resizeMode="contain" />
                                 </TouchableOpacity>
                                 {addressUrl ? (
                                     <TouchableOpacity
@@ -1151,7 +1151,6 @@ const DepositCoin = () => {
                                             source={externalLinkIcon}
                                             style={styles.depHistIcon}
                                             resizeMode="contain"
-                                            tintColor={themeColors.secondaryText}
                                         />
                                     </TouchableOpacity>
                                 ) : null}
@@ -1173,7 +1172,7 @@ const DepositCoin = () => {
                                     disabled={!txFull}
                                     style={styles.depHistIconBtn}
                                 >
-                                    <FastImage source={copyIcon} style={styles.depHistIcon} resizeMode="contain" tintColor={themeColors.secondaryText} />
+                                    <FastImage source={copyIcon} style={styles.depHistIcon} resizeMode="contain" />
                                 </TouchableOpacity>
                                 {txUrl ? (
                                     <TouchableOpacity
@@ -1185,7 +1184,6 @@ const DepositCoin = () => {
                                             source={externalLinkIcon}
                                             style={styles.depHistIcon}
                                             resizeMode="contain"
-                                            tintColor={themeColors.secondaryText}
                                         />
                                     </TouchableOpacity>
                                 ) : null}
@@ -1237,7 +1235,6 @@ const DepositCoin = () => {
                                     source={binIcon}
                                     style={styles.depositHistoryClearIcon}
                                     resizeMode="contain"
-                                    tintColor={themeColors.secondaryText}
                                 />
                             </TouchableOpacity>
                         </View>
@@ -1329,8 +1326,7 @@ const DepositCoin = () => {
                     <FastImage
                         source={back_ic}
                         resizeMode="contain"
-                        style={{ width: 16, height: 16 }}
-                        tintColor={themeColors.text}
+                        style={{ width: 35, height: 35 }}
                     />
                 </TouchableOpacity>
                 <AppText
@@ -2554,8 +2550,8 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     backIcon: {
-        width: 24,
-        height: 24,
+        width: 35,
+        height: 35,
     },
     section: {
         marginBottom: 12,

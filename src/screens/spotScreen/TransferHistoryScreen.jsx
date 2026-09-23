@@ -263,7 +263,7 @@ const TransferHistoryScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <FastImage source={back_ic} style={{ width: 20, height: 20 }} resizeMode="contain" tintColor={themeColors.text} />
+          <FastImage source={back_ic} style={{ width: 35, height: 35 }} resizeMode="contain" />
         </TouchableOpacity>
         <AppText weight={SEMI_BOLD} style={{ fontSize: 18, color: themeColors.text }}>Transfer History</AppText>
         <TouchableOpacity onPress={openFilterSheet} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>

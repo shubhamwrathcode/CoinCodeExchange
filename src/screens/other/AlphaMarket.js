@@ -4,7 +4,7 @@ import FastImage from "react-native-fast-image";
 import { AppText, MEDIUM, TWELVE, FOURTEEN, TEN, SEMI_BOLD, BOLD, FIFTEEN, THIRTEEN } from "../../shared";
 import { useTheme } from "../../hooks/useTheme";
 import MarketList from "./MarketList";
-import { back_ic, favCheck, closeIcon, checkIc } from "../../helper/ImageAssets";
+import { back_ic, backChevronIcon, favCheck, closeIcon, checkIc } from "../../helper/ImageAssets";
 import { colors } from "../../theme/colors";
 import RBSheet from "react-native-raw-bottom-sheet";
 import NavigationService from "../../navigation/NavigationService";
@@ -113,10 +113,9 @@ const AlphaMarket = ({ coinPairs, search, hideStar = true, favoriteArray, onTogg
             </View>
           </View>
           <FastImage
-            source={back_ic}
+            source={backChevronIcon}
             style={styles.arrowIcon}
             resizeMode="contain"
-            tintColor={themeColors.text}
           />
         </TouchableOpacity>
 
@@ -131,10 +130,9 @@ const AlphaMarket = ({ coinPairs, search, hideStar = true, favoriteArray, onTogg
             {selectedPool.id === "all_dex" ? "Select Pool (All)" : selectedPool.label}
           </AppText>
           <FastImage
-            source={back_ic}
+            source={backChevronIcon}
             style={styles.arrowIcon}
             resizeMode="contain"
-            tintColor={themeColors.text}
           />
         </TouchableOpacity>
       </View>

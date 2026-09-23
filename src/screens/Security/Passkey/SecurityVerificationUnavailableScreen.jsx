@@ -138,7 +138,6 @@ export default function SecurityVerificationUnavailableScreen() {
           <FastImage
             source={back_ic}
             resizeMode="contain"
-            tintColor={isDark ? colors.white : colors.black}
             style={styles.backIcon}
           />
         </TouchableOpacity>
@@ -633,8 +632,8 @@ const styles = StyleSheet.create({
     marginLeft: -4,
   },
   backIcon: {
-    width: 18,
-    height: 18,
+    width: 35,
+    height: 35,
   },
   headerTitle: {
     position: 'absolute',

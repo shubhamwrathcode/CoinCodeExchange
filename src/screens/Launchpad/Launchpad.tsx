@@ -170,7 +170,7 @@ const Launchpad = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => NavigationService.goBack()} style={{ padding: 8 }}>
-          <FastImage source={back_ic} style={styles.backIcon} tintColor={themeColors.text} resizeMode="contain" />
+          <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
         </TouchableOpacity>
         <AppText style={[styles.headerTitle, { color: themeColors.text }]} weight={SEMI_BOLD}>Launchpad</AppText>
         <TouchableOpacity style={{ padding: 8 }}>
@@ -384,8 +384,8 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
     height: 56,
   },
   backIcon: {
-    width: 20,
-    height: 20,
+    width: 35,
+    height: 35,
   },
   headerTitle: {
     fontSize: 18,

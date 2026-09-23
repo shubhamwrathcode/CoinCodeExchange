@@ -23,9 +23,8 @@ const WebLink = () => {
         <TouchableOpacity onPress={() => NavigationService.goBack()}>
         <FastImage
           source={back_ic}
-          style={{ width: 13, height: 13 }}
+          style={{ width: 35, height: 35 }}
           resizeMode="contain"
-          tintColor={theme !== "Dark" ? colors.black : colors.white}
         />
       </TouchableOpacity>
       <AppText weight={SEMI_BOLD} type={FOURTEEN} color={BLACK}>{title}</AppText>

@@ -51,7 +51,7 @@ export const VerificationOptionsSheet = ({
           style={styles.sheetBackBtn}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
-          <FastImage source={back_ic} style={styles.sheetBackIcon} tintColor={themeColors.text} resizeMode="contain" />
+          <FastImage source={back_ic} style={styles.sheetBackIcon} resizeMode="contain" />
         </TouchableOpacity>
         <AppText weight={BOLD} type={SIXTEEN} style={{ color: themeColors.text, marginLeft: 14 }}>
           Verification Options

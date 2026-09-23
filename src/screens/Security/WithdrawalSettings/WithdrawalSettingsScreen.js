@@ -665,7 +665,6 @@ const WithdrawalSettingsScreen = () => {
                 <FastImage
                   source={pasteImg}
                   style={styles.pasteIcon}
-                  tintColor={textColor}
                   resizeMode="contain"
                 />
                 <AppText type={FOURTEEN} weight={MEDIUM} style={{ color: textColor }}>
@@ -695,7 +694,6 @@ const WithdrawalSettingsScreen = () => {
                 <FastImage
                   source={isPasswordVisible ? eye_open_icon : eye_close_icon}
                   style={styles.eyeIcon}
-                  tintColor={subTextColor}
                   resizeMode="contain"
                 />
               </TouchableOpacity>
@@ -757,7 +755,6 @@ const WithdrawalSettingsScreen = () => {
             <FastImage
               source={back_ic}
               style={styles.backIcon}
-              tintColor={textColor}
               resizeMode="contain"
             />
           </TouchableOpacity>
@@ -929,8 +926,8 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   backIcon: {
-    width: 20,
-    height: 20,
+    width: 35,
+    height: 35,
   },
   titleContainer: {
     flex: 1,

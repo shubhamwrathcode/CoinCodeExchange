@@ -20,6 +20,7 @@ import NavigationService from "../../navigation/NavigationService";
 import {
   ACCOUNT_SCREEN,
   BUY_CRYPTO_SCREEN,
+  MORE_SERVICES_SCREEN,
   NAVIGATION_BOTTOM_TAB_STACK,
   TRADE_SCREEN,
   WALLET_SCREEN,
@@ -126,7 +127,7 @@ const HomeMenuBar = () => {
       id: "5",
       title: "More",
       icon: moreIcon,
-      onPress: () => NavigationService.navigate(ACCOUNT_SCREEN),
+      onPress: () => NavigationService.navigate(MORE_SERVICES_SCREEN),
     },
   ];
 

@@ -7,8 +7,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
-  Animated,
-  Easing,
   Platform,
   Modal,
 } from "react-native";
@@ -16,115 +14,98 @@ import LinearGradient from "react-native-linear-gradient";
 import FastImage from "react-native-fast-image";
 import Toast from "react-native-simple-toast";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Check, ChevronRight } from "lucide-react-native";
 import DepositChoiceSheet from "../wallet/sheets/DepositChoiceSheet";
 import WithdrawChoiceSheet from "../wallet/sheets/WithdrawChoiceSheet";
-
-const showComingSoonToast = () =>
-  Toast.showWithGravity("Coming soon", Toast.LONG, Toast.BOTTOM);
-
-// import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons'; // or use react-native-vector-icons
-// import MaterialIcons from 'react-native-vector-icon/MaterialIcons'
-const screenWidth = Dimensions.get("window").width;
-import Feather from "react-native-vector-icons/Feather";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-import LottieView from "lottie-react-native";
 import {
   alarm,
-  back_ic,
-  helpicon,
-  kycixon,
-  lock,
-  logoutIcon,
-  newDepositIcon,
-  newWidthrawIcon,
-  orderIcon,
-  rewardHubIcon,
-  inviteIcon,
-  buyCrypto,
-  convertIcon,
-  settings,
-  spottradingIcon,
-  swapHistory,
-  tradehistory,
-  transactionhis,
-  walletIcon,
-  walletTransferIcon,
-  copyIcon,
-  INFERNAL_TRANSFER,
-  memeXProfile,
-  memeXProfileDark,
-  stakingDrawer,
-  stakingDrawerDark,
-  walletDrawerDark,
-  settingsDark,
   alarmDark,
-  kycixonLight,
-  lockLight,
-  helpiconLight,
-  currencyPreferLight,
-  orderIconLight,
-  walletTransferIconLight,
-  tradehistoryLight,
-  swapHistoryLight,
-  bonusHistoryLight,
-  INFERNAL_TRANSFER_Light,
   airdropDark,
   airdropLight,
-  headPhoneIcon,
-  setting_icon,
-  referralProfile,
-  bots_ic,
-  newsicon,
-  p2pIcon,
-  spottradingIconNew,
-  right_ic,
-  editnew,
-  softStaking,
+  helpicon,
+  helpiconLight,
+  INFERNAL_TRANSFER,
+  INFERNAL_TRANSFER_Light,
+  kycixon,
+  kycixonLight,
+  lock,
+  lockLight,
+  logoutIcon,
+  memeXProfile,
+  memeXProfileDark,
+  orderIcon,
+  orderIconLight,
+  settings,
+  settingsDark,
+  stakingDrawer,
+  stakingDrawerDark,
+  swapHistory,
+  swapHistoryLight,
+  tradehistory,
+  tradehistoryLight,
+  transactionhis,
+  bonusHistoryLight,
+  walletIcon,
+  walletDrawerDark,
+  walletTransferIcon,
+  walletTransferIconLight,
+  TradeIcon,
+  profileDepositIcon,
+  profileWithdrawalIcon,
+  profileInviteFriendsIcon,
+  profileCopyTradeIcon,
+  profileNewsIcon,
+  profileReferProgramIcon,
+  profileUserAvtar,
+  profileSettingImg,
+  profileHeadphoneImg,
+  profileBackButtonImg,
+  profileMoreIcon,
+  profileConvertIcon,
+  profileP2pIcon,
   themeIcon,
-  spotIconDarkTheme,
-  stakingImgBlack,
-  launchpad,
-  vip,
+  newsIcon1,
 } from "../../helper/ImageAssets";
-import { AppText, BLACK, BOLD, DISCLAIMTEXT, ELEVEN, FOURTEEN, SEMI_BOLD, SIXTEEN, THIRTEEN, TWELVE, YELLOW } from "../../shared";
+import { AppText, BOLD, SEMI_BOLD, SIXTEEN, THIRTEEN } from "../../shared";
 import NavigationService from "../../navigation/NavigationService";
 import { languages } from "../../helper/languages";
 import { checkValue, copyText } from "../../helper/utility";
 import {
   STAKING_DASHBOARD_SCREEN,
-  SOFT_STAKING_SCREEN,
   REFER_AND_EARN_SCREEN,
-  DEPOSIT_COIN_SCREEN,
   EARING_SCREEN,
   ACCOUNT_SCREEN,
   KYC_STATUS_SCREEN,
   MARKET_SCREEN,
   OPEN_ORDER_SCREEN,
   NOTIFICATION_SCREEN,
-  PAYMENT_OPTIONS_SCREEN,
   SETTING_SCREEN_New,
   AIRDROP_HISTORY_SCREEN,
-  WALLET_WITHDRAW_SCREEN,
-  SELECT_COIN_SCREEN,
-  REFERRAL_LIST,
+  BUY_CRYPTO_SCREEN,
   NAVIGATION_BOTTOM_TAB_STACK,
   TRADE_SCREEN,
-  LAUNCHPAD_SCREEN,
-  VIP_SERVICES_SCREEN,
+  WALLET_SCREEN,
+  MORE_SERVICES_SCREEN,
 } from "../../navigation/routes";
 import { useAppSelector } from "../../store/hooks";
 import { getUserProfile } from "../../actions/accountActions";
 import { useFocusEffect } from "@react-navigation/native";
 import { appOperation } from "../../appOperation";
 import { BASE_URL } from "../../helper/Constants";
-import { colors, darkTheme } from "../../theme/colors";
+import { colors } from "../../theme/colors";
 import { fontFamilySemiBold } from "../../theme/typography";
 import { useTheme } from "../../hooks/useTheme";
 import { useDispatch } from "react-redux";
 import { setTheme } from "../../slices/authSlice";
+import ToggleSwitch from "../../common/ToggleSwitch";
 
+const showComingSoonToast = () =>
+  Toast.showWithGravity("Coming soon", Toast.LONG, Toast.BOTTOM);
 
-const Width = Dimensions.get("window").width;
+const screenWidth = Dimensions.get("window").width;
+
+const CYAN = colors.cyanTheme || "#0AA8C5";
 
 const getGeneralFeaturesData = (theme) => [
   {
@@ -134,7 +115,6 @@ const getGeneralFeaturesData = (theme) => [
     onPress: () =>
       NavigationService.navigate(MARKET_SCREEN, { from: "home", tab: "MemeX" }),
   },
-
   {
     id: "4",
     title: "Staking",
@@ -151,9 +131,7 @@ const getGeneralFeaturesData = (theme) => [
     id: "6",
     title: "Settings",
     icon: theme !== "Dark" ? settings : settingsDark,
-    onPress: () => {
-      NavigationService.navigate(SETTING_SCREEN_New);
-    },
+    onPress: () => NavigationService.navigate(SETTING_SCREEN_New),
   },
 ];
 
@@ -164,7 +142,6 @@ const getSupportToolsData = (theme) => [
     icon: theme == "Dark" ? alarmDark : alarm,
     onPress: () => NavigationService.navigate(NOTIFICATION_SCREEN),
   },
-
   {
     id: "2",
     title: "Verification",
@@ -172,23 +149,20 @@ const getSupportToolsData = (theme) => [
     onPress: () =>
       NavigationService.navigate(KYC_STATUS_SCREEN, { from: "home" }),
   },
-
   {
     id: "4",
     title: "Security",
     icon: theme !== "Dark" ? lockLight : lock,
-    onPress: () =>
-      NavigationService.navigate(ACCOUNT_SCREEN, { from: "home" }),
+    onPress: () => NavigationService.navigate(ACCOUNT_SCREEN, { from: "home" }),
   },
-
   {
     id: "6",
     title: "Help Center",
     icon: theme !== "Dark" ? helpiconLight : helpicon,
     onPress: () => NavigationService.navigate("Support"),
   },
-
 ];
+
 const getHistoryData = (theme) => [
   {
     id: "1",
@@ -196,7 +170,6 @@ const getHistoryData = (theme) => [
     icon: theme == "Dark" ? orderIcon : orderIconLight,
     onPress: () => NavigationService.navigate(OPEN_ORDER_SCREEN),
   },
-
   {
     id: "2",
     title: "Transaction History",
@@ -207,9 +180,7 @@ const getHistoryData = (theme) => [
     id: "3",
     title: "Spot Order",
     icon: theme == "Dark" ? tradehistoryLight : tradehistory,
-    onPress: () => {
-      NavigationService.navigate("Trade_History");
-    },
+    onPress: () => NavigationService.navigate("Trade_History"),
   },
   {
     id: "4",
@@ -218,7 +189,7 @@ const getHistoryData = (theme) => [
     onPress: () => NavigationService.navigate("Swap_History"),
   },
   {
-    id: "4",
+    id: "4b",
     title: "Interal Transfer",
     icon: theme !== "Dark" ? INFERNAL_TRANSFER_Light : INFERNAL_TRANSFER,
     onPress: () => NavigationService.navigate("Interanl_Trade_History"),
@@ -237,135 +208,6 @@ const getHistoryData = (theme) => [
   },
 ];
 
-const GRID_COLUMNS = 4;
-const gridSpacing = 10;
-const gridItemWidth = (Width - 32 - gridSpacing * (GRID_COLUMNS - 1)) / GRID_COLUMNS;
-
-const getShortcutMenuItems = (theme) => [
-  // {
-  //   id: "sh1",
-  //   title: "Rewards Hub",
-  //   icon: rewardHubIcon,
-  //   onPress: showComingSoonToast,
-  // },
-  {
-    id: "sh2",
-    title: "Invite Friends",
-    icon: inviteIcon,
-    onPress: () => NavigationService.navigate(REFER_AND_EARN_SCREEN),
-  },
-  // {
-  //   id: "sh3",
-  //   title: "Bots",
-  //   icon: bots_ic,
-  //   onPress: showComingSoonToast,
-  // },
-  // {
-  //   id: "sh4",
-  //   title: "Copy Trading",
-  //   icon: spottradingIcon,
-  //   onPress: showComingSoonToast,
-  // },
-  // {
-  //   id: "sh5",
-  //   title: "Edit",
-  //   icon: editnew,
-  //   onPress: showComingSoonToast,
-  // },
-  {
-    id: "sh6",
-    title: "News",
-    icon: newsicon,
-    onPress: () => NavigationService.navigate(NOTIFICATION_SCREEN),
-  },
-  {
-    id: "sh7",
-    title: "Launchpad",
-    icon: launchpad,
-    onPress: () => NavigationService.navigate(LAUNCHPAD_SCREEN),
-  },
-  {
-    id: "sh8",
-    title: "VIP Services",
-    icon: vip,
-    onPress: () => NavigationService.navigate(VIP_SERVICES_SCREEN),
-  },
-
-];
-
-const getPopularMenuItems = (theme, callbacks = {}) => [
-  {
-    id: "p1",
-    title: "Deposit",
-    icon: newDepositIcon,
-    onPress: callbacks.onOpenDeposit || (() => NavigationService.navigate(DEPOSIT_COIN_SCREEN)),
-  },
-  // {
-  //   id: "p2",
-  //   title: "P2P",
-  //   icon: p2pIcon,
-  //   onPress: showComingSoonToast,
-  // },
-  {
-    id: "p3",
-    title: "Withdrawal",
-    icon: newWidthrawIcon,
-    onPress: callbacks.onOpenWithdraw || (() => NavigationService.navigate(SELECT_COIN_SCREEN)),
-  },
-  // {
-  //   id: "p4",
-  //   title: "Convert",
-  //   icon: convertIcon,
-  //   onPress: showComingSoonToast,
-  // },
-  {
-    id: "p5",
-    title: "Spot",
-    icon: theme == "Dark" ? spotIconDarkTheme : spottradingIconNew,
-    ignoreTint: true,
-    iconSize: theme == "Dark" ? 42 : undefined,
-    onPress: () =>
-      NavigationService.navigate(NAVIGATION_BOTTOM_TAB_STACK, { screen: TRADE_SCREEN }),
-  },
-  // {
-  //   id: "p6",
-  //   title: "Buy Crypto",
-  //   icon: buyCrypto,
-  //   onPress: showComingSoonToast,
-  // },
-  {
-    id: "p6_staking",
-    title: "Staking",
-    icon: stakingImgBlack,
-    onPress: () => NavigationService.navigate(STAKING_DASHBOARD_SCREEN),
-  },
-  {
-    id: "p7",
-    title: "Soft Staking",
-    icon: softStaking,
-    onPress: () => NavigationService.navigate(SOFT_STAKING_SCREEN),
-  },
-];
-
-const getSecurityVerificationItems = (theme) => [
-  {
-    id: "sv2",
-    title: "Identification",
-    icon: kycixon,
-    onPress: () => NavigationService.navigate(KYC_STATUS_SCREEN),
-  },
-  {
-    id: "sv1",
-    title: "Security",
-    icon: theme !== "Dark" ? lockLight : lock,
-    // onPress: showComingSoonToast,
-    onPress: () => NavigationService.navigate(ACCOUNT_SCREEN),
-  },
-];
-
-/**
- * Same 0–4 meaning as KycStatus.js. Only accept plain integers (no parseInt("3abc") === 3).
- */
 function normalizeKycTierFromProfile(raw) {
   if (raw === null || raw === undefined || raw === "" || raw === false) return 0;
   if (raw === true) return 1;
@@ -378,10 +220,6 @@ function normalizeKycTierFromProfile(raw) {
   return t;
 }
 
-/**
- * KYC pill: 0/1/4 → orange pending, 2 → green verified, 3 → red failed.
- * If profile has kyc_status hint "pending/review" but tier is still 3, treat as in-review (orange).
- */
 function getKycTierBadge(userData, isDark) {
   const raw = userData?.kycVerified ?? userData?.kyc_verified;
   let tier = normalizeKycTierFromProfile(raw);
@@ -398,7 +236,6 @@ function getKycTierBadge(userData, isDark) {
   if (tier === 2) {
     return {
       label: "Verified",
-      borderColor: "#22C55E",
       fg: isDark ? "#86EFAC" : "#166534",
       bg: isDark ? "rgba(34, 197, 94, 0.14)" : "#DCFCE7",
     };
@@ -406,22 +243,19 @@ function getKycTierBadge(userData, isDark) {
   if (tier === 3) {
     return {
       label: "Failed",
-      borderColor: "#EF4444",
-      fg: isDark ? "#FCA5A5" : "#B91C1C",
-      bg: isDark ? "rgba(239, 68, 68, 0.14)" : "#FEE2E2",
+      fg: "#F44336",
+      bg: "rgba(244, 67, 54, 0.15)",
     };
   }
   if (tier === 0) {
     return {
       label: "Unverified",
-      borderColor: colors.cyanTheme,
       fg: isDark ? "#FDBA74" : "#C2410C",
       bg: isDark ? "rgba(249, 115, 22, 0.16)" : "#FFEDD5",
     };
   }
   return {
     label: "Pending",
-    borderColor: "#F97316",
     fg: isDark ? "#FDBA74" : "#C2410C",
     bg: isDark ? "rgba(249, 115, 22, 0.16)" : "#FFEDD5",
   };
@@ -442,7 +276,14 @@ const KYC_AVATAR_GRADIENT = ["#a684ff", "#ad46ff", "#4f39f6"];
 const KYC_AVATAR_GRADIENT_LOCATIONS = [0, 0.5, 1];
 
 function getInitials(userData, serverNick) {
-  const name = serverNick || userData?.display_name || userData?.user_login || userData?.user_nicename || userData?.first_name || userData?.firstName || "User";
+  const name =
+    serverNick ||
+    userData?.display_name ||
+    userData?.user_login ||
+    userData?.user_nicename ||
+    userData?.first_name ||
+    userData?.firstName ||
+    "User";
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) {
     return (parts[0][0] + parts[1][0]).toUpperCase();
@@ -450,86 +291,18 @@ function getInitials(userData, serverNick) {
   return name.slice(0, 2).toUpperCase();
 }
 
-const PROFILE_GRID_ICON_WRAP = 42;
-const PROFILE_GRID_ICON_INNER = 25;
-
-const ProfileGridItem = ({ title, iconSource, onPress, themeColors, isDark, itemWidth, ignoreTint, iconSize }) => (
-  <TouchableOpacity
-    style={{ width: itemWidth, alignItems: "center", marginBottom: 8 }}
-    onPress={onPress}
-    activeOpacity={0.78}
-  >
-    <View
-      style={{
-        width: PROFILE_GRID_ICON_WRAP,
-        height: PROFILE_GRID_ICON_WRAP,
-        borderRadius: 20,
-        backgroundColor: isDark ? "#2A2A2E" : colors.iconBgColor,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <FastImage
-        source={iconSource}
-        style={{ width: iconSize || PROFILE_GRID_ICON_INNER, height: iconSize || PROFILE_GRID_ICON_INNER }}
-        resizeMode="contain"
-        {...(ignoreTint ? {} : { tintColor: isDark ? "#FFFFFF" : "#000000" })}
-      />
-    </View>
-    <AppText
-      numberOfLines={title.includes(" ") ? 2 : 1}
-      adjustsFontSizeToFit={true}
-      minimumFontScale={0.65}
-      type={THIRTEEN}
-      style={{
-        marginTop: 8,
-        textAlign: "center",
-        color: themeColors.text,
-        lineHeight: 16,
-        paddingHorizontal: 1,
-      }}
-    >
-      {title}
-    </AppText>
-  </TouchableOpacity>
-);
-
-const STAGGER_DELAY = 45;
-const ENTRANCE_DURATION = 380;
-
-const AnimatedIconBox = ({ theme, children, themeColors }) => {
-  return (
-    <View
-      style={{
-        width: 40,
-        height: 40,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: theme !== "Dark" ? themeColors.themeElevationColor : themeColors.themeSelection,
-        borderRadius: 5,
-      }}
-    >
-      {children}
-    </View>
-  );
-};
-
-
 const ProfileDrawer = () => {
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const { colors: themeColors, theme, isDark } = useTheme();
-  const drawerColors = themeColors;
   const effectiveTheme = theme ?? (isDark ? "Dark" : "Light");
   const userData = useAppSelector((state) => state.auth.userData);
 
   const Data = getGeneralFeaturesData(effectiveTheme);
   const Data2 = getSupportToolsData(effectiveTheme);
   const Data3 = getHistoryData(effectiveTheme);
-  const [refresh, setRefresh] = useState(true);
-  const emailTextOpacity = useRef(new Animated.Value(0)).current;
-  const emailTextTranslateY = useRef(new Animated.Value(10)).current;
 
+  const [productChangelog, setProductChangelog] = useState(true);
   const [showAllServicesModal, setShowAllServicesModal] = useState(false);
   const depositChoiceSheetRef = useRef(null);
   const withdrawChoiceSheetRef = useRef(null);
@@ -542,44 +315,37 @@ const ProfileDrawer = () => {
     withdrawChoiceSheetRef.current?.open?.();
   }, []);
 
-  const shortcutItems = useMemo(() => getShortcutMenuItems(effectiveTheme), [effectiveTheme]);
-  const popularItems = useMemo(
-    () =>
-      getPopularMenuItems(effectiveTheme, {
-        onOpenDeposit: handleOpenDepositChoice,
-        onOpenWithdraw: handleOpenWithdrawChoice,
-      }),
-    [effectiveTheme, handleOpenDepositChoice, handleOpenWithdrawChoice]
-  );
-  const securityVerificationItems = useMemo(
-    () => getSecurityVerificationItems(effectiveTheme),
-    [effectiveTheme]
-  );
   const kycBadge = useMemo(
     () => getKycTierBadge(userData, isDark),
     [userData?.kycVerified, userData?.kyc_verified, userData?.kyc_status, userData?.kycStatus, isDark]
   );
   const vipLevel = userData?.vipLevel ?? userData?.vip ?? 0;
 
+  const [serverNickname, setServerNickname] = useState(null);
+  const [serverAvatar, setServerAvatar] = useState(null);
+
   const getResolvedName = () => {
     if (serverNickname) return serverNickname;
     if (userData?.firstName && userData?.lastName) return `${userData.firstName} ${userData.lastName}`;
     if (userData?.first_name && userData?.last_name) return `${userData.first_name} ${userData.last_name}`;
-    return userData?.firstName || userData?.first_name || userData?.display_name || userData?.userName || userData?.user_login || userData?.user_nicename || "User";
+    return (
+      userData?.firstName ||
+      userData?.first_name ||
+      userData?.display_name ||
+      userData?.userName ||
+      userData?.user_login ||
+      userData?.user_nicename ||
+      "User"
+    );
   };
   const displayName = getResolvedName();
-
   const displayAccountLine = userData?.emailId
     ? maskProfileEmail(userData.emailId)
     : displayName;
 
-
   useEffect(() => {
     dispatch(getUserProfile());
-  }, [refresh]);
-
-  const [serverNickname, setServerNickname] = useState(null);
-  const [serverAvatar, setServerAvatar] = useState(null);
+  }, []);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -601,15 +367,17 @@ const ProfileDrawer = () => {
         }
       };
       fetchNickAndAvatar();
-      return () => { active = false; };
+      return () => {
+        active = false;
+      };
     }, [])
   );
 
   const getFullAvatarUrl = (url) => {
     if (!url) return null;
-    if (url.startsWith('http')) return url;
-    if (url.startsWith('uploads/')) {
-      const baseUrl = BASE_URL.endsWith('/') ? BASE_URL : `${BASE_URL}/`;
+    if (url.startsWith("http")) return url;
+    if (url.startsWith("uploads/")) {
+      const baseUrl = BASE_URL.endsWith("/") ? BASE_URL : `${BASE_URL}/`;
       return `${baseUrl}${url}`;
     }
     return url;
@@ -617,266 +385,361 @@ const ProfileDrawer = () => {
 
   const finalAvatarUri = getFullAvatarUrl(serverAvatar || userData?.profilepicture);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(emailTextOpacity, {
-          toValue: 1,
-          duration: 480,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(emailTextTranslateY, {
-          toValue: 0,
-          duration: 480,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }, 180);
-    return () => clearTimeout(timer);
-  }, []);
-
-
-
-  const paperBg = isDark ? colors.newThemeColor : "#FFFFFF";
   const allServicesList = [
     ...Data.map((item, i) => ({ ...item, rowKey: `g-${item.id}-${i}` })),
     ...Data2.map((item, i) => ({ ...item, rowKey: `s-${item.id}-${i}` })),
     ...Data3.map((item, i) => ({ ...item, rowKey: `h-${item.id}-${i}` })),
   ];
 
+  const actionButtons = useMemo(
+    () => [
+      { img: profileDepositIcon, label: "Deposit", onPress: handleOpenDepositChoice },
+      // { img: profileP2pIcon, label: "P2P", onPress: showComingSoonToast },
+      { img: profileWithdrawalIcon, label: "Withdrawal", onPress: handleOpenWithdrawChoice },
+      {
+        img: profileConvertIcon,
+        label: "Convert",
+        onPress: () => NavigationService.navigate(BUY_CRYPTO_SCREEN),
+      },
+      {
+        img: profileInviteFriendsIcon,
+        label: "Referral",
+        onPress: () => NavigationService.navigate(REFER_AND_EARN_SCREEN),
+      },
+      // { img: profileCopyTradeIcon, label: "Copy Trading", onPress: showComingSoonToast },
+      {
+        img: TradeIcon,
+        iconSize: 22,
+        tintColor: isDark ? "#FFFFFF" : "#000000",
+        label: "Trade",
+        onPress: () =>
+          NavigationService.navigate(NAVIGATION_BOTTOM_TAB_STACK, { screen: TRADE_SCREEN }),
+      },
+      {
+        img: walletIcon,
+        iconSize: 22,
+        label: "Wallet",
+        onPress: () =>
+          NavigationService.navigate(NAVIGATION_BOTTOM_TAB_STACK, { screen: WALLET_SCREEN }),
+      },
+      {
+        img: newsIcon1,
+        label: "News",
+        onPress: () => NavigationService.navigate(NOTIFICATION_SCREEN),
+      },
+      {
+        img: profileMoreIcon,
+        label: "More",
+        onPress: () => NavigationService.navigate(MORE_SERVICES_SCREEN),
+      },
+    ],
+    [handleOpenDepositChoice, handleOpenWithdrawChoice, isDark]
+  );
+
+  const listCardBg = isDark ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.03)";
+  const listCardBorder = isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)";
+  const muted = isDark ? colors.darkShadeColorText || "#8E8E93" : themeColors.secondaryText;
+  const textColor = themeColors.text;
+
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background, paddingTop: insets.top }]}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingHorizontal: 16,
-          paddingTop: Platform.OS === "ios" ? 12 : 20,
-          paddingBottom: 100,
-        }}
-      >
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
-          <TouchableOpacity onPress={() => NavigationService.goBack()} hitSlop={12}>
-            <FastImage source={back_ic} resizeMode="contain" style={{ width: 20, height: 20 }} tintColor={themeColors.text} />
-          </TouchableOpacity>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <TouchableOpacity
-              onPress={() => {
-                const newTheme = isDark ? 'Light' : 'Dark';
-                dispatch(setTheme(newTheme));
-                AsyncStorage.setItem('theme', newTheme);
-              }}
-              hitSlop={8}
-            >
-              <FastImage source={themeIcon} resizeMode="contain" style={{ width: 25, height: 25 }} tintColor={themeColors.text} />
-            </TouchableOpacity>
-            {/* <TouchableOpacity onPress={() => NavigationService.navigate(SETTING_SCREEN_New)} hitSlop={8}>
-              <FastImage source={setting_icon} resizeMode="contain" style={{ width: 22, height: 22 }} tintColor={themeColors.text} />
-            </TouchableOpacity> */}
-            <TouchableOpacity onPress={() => NavigationService.navigate("Support")} hitSlop={8}>
-              <FastImage source={headPhoneIcon} resizeMode="contain" style={{ width: 22, height: 22 }} tintColor={themeColors.text} />
-            </TouchableOpacity>
-          </View>
-        </View>
-        <TouchableOpacity
-          onPress={() => NavigationService.navigate(ACCOUNT_SCREEN)}
-          activeOpacity={0.9}
-          style={{
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: isDark ? "rgba(255,255,255,0.18)" : "#E8E8E8",
-            overflow: "hidden",
-            backgroundColor: isDark ? "#23242a" : "#FFFFFF",
-          }}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              padding: 5,
+      {/* Header — CoinCode MyProfile */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => NavigationService.goBack()} hitSlop={12}>
+          <FastImage
+            source={profileBackButtonImg}
+            style={{ width: 35, height: 35 }}
+            resizeMode="contain"
+            tintColor={isDark ? undefined : textColor}
+          />
+        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.headerIconBtn}
+            onPress={() => {
+              const newTheme = isDark ? "Light" : "Dark";
+              dispatch(setTheme(newTheme));
+              AsyncStorage.setItem("theme", newTheme);
             }}
+            hitSlop={8}
           >
-            <View
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 28,
-                overflow: "hidden",
-                borderWidth: 1,
-                borderColor: colors.disclaimDarText,
-                bottom: 10
-              }}
-            >
-              {finalAvatarUri ? (
-                <FastImage
-                  source={{ uri: finalAvatarUri }}
-                  style={{ width: 56, height: 56, borderRadius: 28 }}
-                />
-              ) : (
-                <LinearGradient
-                  colors={KYC_AVATAR_GRADIENT}
-                  locations={KYC_AVATAR_GRADIENT_LOCATIONS}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{
-                    width: 56,
-                    height: 56,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <AppText weight={BOLD} style={{ color: "#FFFFFF", fontSize: 18 }}>
-                    {getInitials(userData, serverNickname)}
-                  </AppText>
-                </LinearGradient>
-              )}
-            </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Animated.View style={{ opacity: emailTextOpacity, transform: [{ translateY: emailTextTranslateY }] }}>
-                <AppText style={{ color: themeColors.text, fontSize: 18, }} weight={SEMI_BOLD} numberOfLines={1}>
-                  {displayAccountLine}
+            <FastImage
+              source={themeIcon}
+              style={{ width: 25, height: 25 }}
+              resizeMode="contain"
+              tintColor={textColor}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerIconBtn}
+            onPress={() => NavigationService.navigate(SETTING_SCREEN_New)}
+            hitSlop={8}
+          >
+            <FastImage
+              source={profileSettingImg}
+              style={{ width: 35, height: 35 }}
+              resizeMode="contain"
+              tintColor={isDark ? undefined : textColor}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerIconBtn}
+            onPress={() => NavigationService.navigate("Support")}
+            hitSlop={8}
+          >
+            <FastImage
+              source={profileHeadphoneImg}
+              style={{ width: 35, height: 35 }}
+              resizeMode="contain"
+              tintColor={isDark ? undefined : textColor}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* User Info */}
+        <TouchableOpacity
+          style={styles.userInfoContainer}
+          activeOpacity={0.85}
+          onPress={() => NavigationService.navigate(ACCOUNT_SCREEN)}
+        >
+          <View style={[styles.avatarContainer, { borderColor: CYAN }]}>
+            {finalAvatarUri ? (
+              <FastImage
+                source={{ uri: finalAvatarUri }}
+                style={styles.avatarImg}
+                resizeMode="cover"
+              />
+            ) : (
+              <LinearGradient
+                colors={KYC_AVATAR_GRADIENT}
+                locations={KYC_AVATAR_GRADIENT_LOCATIONS}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.avatarFallback}
+              >
+                <AppText weight={BOLD} style={{ color: "#FFFFFF", fontSize: 18 }}>
+                  {getInitials(userData, serverNickname)}
                 </AppText>
-              </Animated.View>
-              <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4, gap: 6 }}>
-                <AppText type={TWELVE} style={{ color: themeColors.secondaryText }}>
-                  UID: {userData?.uuid || "—"}
-                </AppText>
-                {userData?.uuid ? (
-                  <TouchableOpacity onPress={() => copyText(userData.uuid)} hitSlop={8}>
-                    <FastImage source={copyIcon} style={{ width: 12, height: 12 }} tintColor={themeColors.secondaryText} />
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
-                <View style={[styles.profileBadge, { backgroundColor: isDark ? "#2F3138" : "#F3F4F6" }]}>
-                  <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: themeColors.secondaryText }}>
-                    VIP {vipLevel}
-                  </AppText>
-                </View>
-                <View
-                  style={[
-                    styles.profileBadge,
-                    {
-                      backgroundColor: kycBadge.bg,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      fontFamily: fontFamilySemiBold,
-                      color: kycBadge.fg,
-                    }}
-                  >
-                    {kycBadge.label}
-                  </Text>
-                </View>
-              </View>
-            </View>
-            <TouchableOpacity
-              disabled
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              style={{ flexShrink: 0, justifyContent: "center", paddingLeft: 8 }}
-            >
-              <FastImage source={right_ic} style={{ width: 18, height: 18, right: 15 }} tintColor={themeColors.text} resizeMode="contain" />
-            </TouchableOpacity>
+              </LinearGradient>
+            )}
           </View>
+
+          <View style={styles.userDetails}>
+            <View style={styles.emailRow}>
+              <AppText
+                weight={SEMI_BOLD}
+                style={{ color: textColor, fontSize: 16, marginRight: 6, flexShrink: 1 }}
+                numberOfLines={1}
+              >
+                {displayAccountLine}
+              </AppText>
+              <View style={styles.checkCircle}>
+                <Check color="#000000" size={12} strokeWidth={3} />
+              </View>
+            </View>
+
+            <View style={styles.uidRow}>
+              <AppText style={{ color: muted, fontSize: 13 }}>
+                UID: {userData?.uuid || "—"}
+              </AppText>
+              {userData?.uuid ? (
+                <TouchableOpacity onPress={() => copyText(userData.uuid)} hitSlop={8} style={{ marginLeft: 6 }}>
+                  <MaterialIcons name="content-copy" size={14} color={muted} />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            <View style={styles.badgesRow}>
+              <View style={[styles.badge, { backgroundColor: "rgba(0, 255, 255, 0.1)" }]}>
+                <Text style={{ color: CYAN, fontSize: 10, fontFamily: fontFamilySemiBold }}>
+                  VIP {vipLevel}
+                </Text>
+              </View>
+              <View style={[styles.badge, { backgroundColor: kycBadge.bg }]}>
+                <Text style={{ color: kycBadge.fg, fontSize: 10, fontFamily: fontFamilySemiBold }}>
+                  {kycBadge.label}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <ChevronRight color={textColor} size={20} />
         </TouchableOpacity>
 
+        {/* Referral Program Banner */}
         <TouchableOpacity
-          activeOpacity={0.9}
           style={[
-            styles.referralCard,
+            styles.referralBanner,
             {
-              backgroundColor: isDark ? "#2A2A2E" : "#F4F4F6",
-              borderColor: isDark ? themeColors.border : "#E8E8E8",
+              backgroundColor: isDark ? "rgba(0, 255, 255, 0.05)" : "rgba(10, 168, 197, 0.06)",
+              borderColor: isDark ? "rgba(0, 255, 255, 0.3)" : "rgba(10, 168, 197, 0.35)",
             },
           ]}
+          activeOpacity={0.85}
+          onPress={() => NavigationService.navigate(REFER_AND_EARN_SCREEN)}
         >
-          <View style={{ flex: 1, paddingRight: 8 }}>
-            <AppText type={SIXTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text }}>
+          <View style={styles.referralContent}>
+            <AppText weight={SEMI_BOLD} style={{ color: CYAN, fontSize: 16, marginBottom: 4 }}>
               Referral Program
             </AppText>
-            <AppText type={FOURTEEN} color={themeColors.secondaryText} style={{ marginTop: 6, lineHeight: 18 }}>
-              {`Refer friends to earn a 35% \n commission`}
+            <AppText style={{ color: muted, fontSize: 13, lineHeight: 18 }}>
+              {"Refer friends to earn a 35%\ncommission"}
             </AppText>
           </View>
-          <View style={styles.referralArtWrap}>
-            <FastImage source={referralProfile} style={{ width: 58, height: 58 }} resizeMode="contain" />
+          <View style={styles.referralImagePlaceholder}>
+            <FastImage
+              source={profileReferProgramIcon}
+              style={styles.referralArt}
+              resizeMode="contain"
+            />
           </View>
         </TouchableOpacity>
 
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 22 }}>
-          <AppText type={SIXTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text }}>
-            Security & verification
-          </AppText>
+        {/* Action Grid */}
+        <View
+          style={[
+            styles.gridContainer,
+            { backgroundColor: listCardBg, borderColor: listCardBorder },
+          ]}
+        >
+          {actionButtons.map((action, index) => {
+            const IconCmp = action.Icon;
+            const size = action.iconSize || 22;
+            return (
+              <TouchableOpacity key={index} style={styles.gridItem} onPress={action.onPress} activeOpacity={0.75}>
+                <View
+                  style={[
+                    styles.gridIconContainer,
+                    { backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.04)" },
+                  ]}
+                >
+                  {IconCmp ? (
+                    <IconCmp size={size} color={action.iconColor || CYAN} strokeWidth={2} />
+                  ) : (
+                    <FastImage
+                      source={action.img}
+                      style={{ width: size, height: size }}
+                      resizeMode="contain"
+                      {...(action.tintColor ? { tintColor: action.tintColor } : {})}
+                    />
+                  )}
+                </View>
+                <AppText
+                  style={{
+                    color: textColor,
+                    textAlign: "center",
+                    fontSize: 12,
+                  }}
+                  numberOfLines={2}
+                >
+                  {action.label}
+                </AppText>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-        <View style={[styles.profileIconGrid, { marginTop: 14 }]}>
-          {securityVerificationItems.map((item) => (
-            <ProfileGridItem
-              key={item.id}
-              title={item.title}
-              iconSource={item.icon}
-              ignoreTint={item.ignoreTint}
-              iconSize={item.iconSize}
-              onPress={item.onPress}
-              themeColors={drawerColors}
+
+        {/* List Items */}
+        <View style={styles.listSection}>
+          <TouchableOpacity
+            style={[styles.listItem, { backgroundColor: listCardBg, borderColor: listCardBorder }]}
+            onPress={showComingSoonToast}
+            activeOpacity={0.75}
+          >
+            <AppText weight={SEMI_BOLD} style={{ color: textColor, fontSize: 14 }}>
+              Suggestions
+            </AppText>
+            <ChevronRight color={muted} size={20} />
+          </TouchableOpacity>
+
+          <View style={[styles.listItem, { backgroundColor: listCardBg, borderColor: listCardBorder }]}>
+            <AppText weight={SEMI_BOLD} style={{ color: textColor, fontSize: 14 }}>
+              Product Changelog
+            </AppText>
+            <ToggleSwitch
+              value={productChangelog}
+              onValueChange={setProductChangelog}
               isDark={isDark}
-              itemWidth={gridItemWidth}
+              activeColor={CYAN}
             />
-          ))}
-        </View>
+          </View>
 
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 26 }}>
-          <AppText type={SIXTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text }}>
-            Shortcut
-          </AppText>
+          <TouchableOpacity
+            style={[styles.listItem, { backgroundColor: listCardBg, borderColor: listCardBorder }]}
+            onPress={() => NavigationService.navigate("Support")}
+            activeOpacity={0.75}
+          >
+            <AppText weight={SEMI_BOLD} style={{ color: textColor, fontSize: 14 }}>
+              Customer Support
+            </AppText>
+            <ChevronRight color={muted} size={20} />
+          </TouchableOpacity>
 
-        </View>
+          <TouchableOpacity
+            style={[styles.listItem, { backgroundColor: listCardBg, borderColor: listCardBorder }]}
+            onPress={() => NavigationService.navigate("Support")}
+            activeOpacity={0.75}
+          >
+            <AppText weight={SEMI_BOLD} style={{ color: textColor, fontSize: 14 }}>
+              Help Center
+            </AppText>
+            <ChevronRight color={muted} size={20} />
+          </TouchableOpacity>
 
-        <View style={[styles.profileIconGrid, { marginTop: 14 }]}>
-          {shortcutItems.map((item) => (
-            <ProfileGridItem
-              key={item.id}
-              title={item.title}
-              iconSource={item.icon}
-              ignoreTint={item.ignoreTint}
-              iconSize={item.iconSize}
-              onPress={item.onPress}
-              themeColors={drawerColors}
-              isDark={isDark}
-              itemWidth={gridItemWidth}
-            />
-          ))}
-        </View>
+          <TouchableOpacity
+            style={[styles.listItem, { backgroundColor: listCardBg, borderColor: listCardBorder }]}
+            onPress={showComingSoonToast}
+            activeOpacity={0.75}
+          >
+            <AppText weight={SEMI_BOLD} style={{ color: textColor, fontSize: 14 }}>
+              About
+            </AppText>
+            <ChevronRight color={muted} size={20} />
+          </TouchableOpacity>
 
-        <AppText type={SIXTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text, marginTop: 22 }}>
-          Popular
-        </AppText>
-        <View style={[styles.profileIconGrid, { marginTop: 14 }]}>
-          {popularItems.map((item) => (
-            <ProfileGridItem
-              key={item.id}
-              title={item.title}
-              iconSource={item.icon}
-              ignoreTint={item.ignoreTint}
-              iconSize={item.iconSize}
-              onPress={item.onPress}
-              themeColors={drawerColors}
-              isDark={isDark}
-              itemWidth={gridItemWidth}
-            />
-          ))}
+          <TouchableOpacity
+            style={[styles.listItem, { backgroundColor: listCardBg, borderColor: listCardBorder }]}
+            onPress={showComingSoonToast}
+            activeOpacity={0.75}
+          >
+            <AppText weight={SEMI_BOLD} style={{ color: textColor, fontSize: 14 }}>
+              Select Server
+            </AppText>
+            <AppText weight={SEMI_BOLD} style={{ color: CYAN, fontSize: 14 }}>
+              Auto Select
+            </AppText>
+          </TouchableOpacity>
         </View>
       </ScrollView>
-      <Modal visible={showAllServicesModal} transparent animationType="fade" onRequestClose={() => setShowAllServicesModal(false)}>
+
+      <Modal
+        visible={showAllServicesModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAllServicesModal(false)}
+      >
         <View style={styles.allServicesModalRoot}>
-          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setShowAllServicesModal(false)} />
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setShowAllServicesModal(false)}
+          />
           <View
             style={[
               styles.allServicesCard,
-              { backgroundColor: themeColors.background, borderColor: themeColors.border, zIndex: 2, alignSelf: "center", width: "100%", maxWidth: 400 },
+              {
+                backgroundColor: themeColors.background,
+                borderColor: themeColors.border,
+                zIndex: 2,
+                alignSelf: "center",
+                width: "100%",
+                maxWidth: 400,
+              },
             ]}
           >
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -908,12 +771,12 @@ const ProfileDrawer = () => {
                 style={[styles.allServicesRow, { borderBottomWidth: 0 }]}
                 onPress={() => {
                   setShowAllServicesModal(false);
-                  openLogoutModal();
+                  NavigationService.navigate(ACCOUNT_SCREEN);
                 }}
               >
                 <FastImage source={logoutIcon} style={{ width: 18, height: 18 }} resizeMode="contain" tintColor="#C62828" />
                 <AppText type={THIRTEEN} weight={SEMI_BOLD} style={{ marginLeft: 12, color: "#C62828", flex: 1 }}>
-                  Logout
+                  Account / Logout
                 </AppText>
               </TouchableOpacity>
             </ScrollView>
@@ -921,10 +784,8 @@ const ProfileDrawer = () => {
         </View>
       </Modal>
 
-      {/* Deposit & Withdraw Choice Sheets */}
       <DepositChoiceSheet sheetRef={depositChoiceSheetRef} isDark={isDark} />
       <WithdrawChoiceSheet sheetRef={withdrawChoiceSheetRef} isDark={isDark} />
-
     </View>
   );
 };
@@ -934,153 +795,157 @@ export default ProfileDrawer;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
     width: screenWidth,
   },
-  logoutModalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.62)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 18,
+  scrollContent: {
+    paddingBottom: 40,
   },
-  logoutModalCard: {
-
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    overflow: "hidden",
-    width: "100%",
-    maxWidth: 360,
-  },
-  logoutLottieWrap: {
-    width: 120,
-    height: 120,
-    borderRadius: 24,
-    alignSelf: "center",
-    overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.04)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-    marginBottom: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoutLottie: {
-    width: 140,
-    height: 140,
-  },
-  logoutTitle: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 6,
-    textAlign: "center",
-  },
-  logoutDesc: {
-    color: "rgba(255,255,255,0.72)",
-    fontSize: 12,
-    lineHeight: 18,
-    marginBottom: 14,
-    textAlign: "center",
-  },
-  logoutActionsRow: {
+  header: {
     flexDirection: "row",
-    gap: 10,
-  },
-  logoutBtn: {
-    flex: 1,
-    height: 44,
-    borderRadius: 14,
+    justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === "ios" ? 10 : 12,
+    paddingBottom: 20,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
     justifyContent: "center",
   },
-  logoutBtnSecondary: {
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-  },
-  logoutBtnSecondaryText: {
-    color: colors.white,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  logoutBtnPrimary: {
-    backgroundColor: colors.buttonBg,
-  },
-  logoutBtnPrimaryText: {
-    color: colors.white,
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  secondcontainer: {
-    // width: Width*0.92,
+  headerRight: {
     flexDirection: "row",
-    flexWrap: "wrap",
     alignItems: "center",
-    justifyContent: "space-start",
-    paddingVertical: 10,
-    marginHorizontal: 15,
   },
-
-  icon: {
-    height: 18,
-    width: 18,
-    // marginBottom: 10,
-  },
-  singleItem: {
-    width: "20%",
-    gap: 8,
+  headerIconBtn: {
+    width: 40,
+    height: 40,
+    marginLeft: 12,
+    justifyContent: "center",
     alignItems: "center",
-    marginTop: 20,
+  },
+  userInfoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    marginBottom: 24,
+    marginTop: 4,
+  },
+  avatarContainer: {
+    width: 60,
     height: 60,
+    borderRadius: 42,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+    borderWidth: 1.5,
+    overflow: "hidden",
   },
-  profileBadge: {
+  avatarImg: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  avatarFallback: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  userDetails: {
+    flex: 1,
+  },
+  emailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  checkCircle: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: CYAN,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  uidRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  badgesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  badge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 12,
+    marginRight: 8,
   },
-  referralCard: {
-    marginTop: 20,
-    padding: 10,
-    borderRadius: 14,
+  referralBanner: {
     flexDirection: "row",
+    marginHorizontal: 16,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    marginBottom: 24,
     alignItems: "center",
+    height: 85,
+    position: "relative",
+    overflow: "visible",
   },
-  referralArtWrap: {
-    width: 52,
-    height: 52,
-    alignItems: "center",
+  referralContent: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  referralImagePlaceholder: {
+    width: 60,
+    height: 60,
     justifyContent: "center",
+    alignItems: "center",
   },
-  profileIconGrid: {
+  referralArt: {
+    width: 180,
+    height: 160,
+    position: "absolute",
+    right: -10,
+    bottom: -25,
+  },
+  gridContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: gridSpacing,
+    marginHorizontal: 10,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1.5,
   },
-  homeCheckOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
+  gridItem: {
+    width: "25%",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  gridIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 8,
   },
-  allServicesBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    borderTopWidth: StyleSheet.hairlineWidth,
+  listSection: {
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: Platform.OS === "ios" ? 28 : 16,
   },
-  allServicesBtn: {
-    height: 48,
-    borderRadius: 24,
+  listItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    justifyContent: "center",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1.5,
   },
   allServicesModalRoot: {
     flex: 1,

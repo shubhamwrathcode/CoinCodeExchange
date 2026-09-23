@@ -62,7 +62,7 @@ const RuleItem = ({ state, label, doneColor }: { state: string; label: string; d
   const textColor = state === 'ok' ? doneColor : state === 'bad' ? '#e74c3c' : '#aaa';
   return (
     <View style={ruleStyles.row}>
-      <FastImage source={iconSource} style={ruleStyles.icon} tintColor={tint} resizeMode="contain" />
+      <FastImage source={iconSource} style={ruleStyles.icon} resizeMode="contain" />
       <AppText type={ELEVEN} style={{ color: textColor, flex: 1 }}>{label}</AppText>
     </View>
   );
@@ -70,7 +70,7 @@ const RuleItem = ({ state, label, doneColor }: { state: string; label: string; d
 
 const ruleStyles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 2, paddingLeft: 4 },
-  icon: { width: 14, height: 14 },
+  icon: { width: 35, height: 35 },
 });
 
 // ─── Phases ────────────────────────────────────────────────────────
@@ -207,7 +207,7 @@ const ResetPassword = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <FastImage source={back_ic} style={styles.backIcon} tintColor={textColor} resizeMode="contain" />
+          <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
         </TouchableOpacity>
         <AppText weight={BOLD} type={TWENTY} style={{ color: textColor, flex: 1, textAlign: 'center' }}>
           Reset Password
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backIcon: { width: 20, height: 20 },
+  backIcon: { width: 35, height: 35 },
   card: {
     borderRadius: 16,
     borderWidth: 1,

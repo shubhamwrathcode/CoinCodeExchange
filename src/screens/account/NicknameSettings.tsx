@@ -83,7 +83,7 @@ const NicknameSettings = () => {
       {/* Custom Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => NavigationService.goBack()}>
-          <FastImage source={back_ic} style={styles.backIcon} tintColor={isDark ? colors.white : colors.black} resizeMode="contain" />
+          <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
         </TouchableOpacity>
         <AppText weight={SEMI_BOLD} type={SIXTEEN} style={[styles.headerTitle, { color: themeColors.text }]}>
           Nickname Settings
@@ -167,8 +167,8 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   backIcon: {
-    width: 16,
-    height: 16,
+    width: 35,
+    height: 35,
   },
   headerTitle: {
 

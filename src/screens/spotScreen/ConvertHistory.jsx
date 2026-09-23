@@ -148,8 +148,7 @@ const ConvertHistory = () => {
         {/* Card Footer */}
         <View style={styles.cardFooter}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <FastImage source={calendarIcon} style={{ width: 12, height: 12 }}
-              tintColor={themeColors.secondaryText}
+            <FastImage source={calendarIcon} style={{ width: 35, height: 35 }}
               resizeMode="contain" />
             <AppText style={{ fontSize: 11, color: themeColors.secondaryText }}>
               {item.dateTime}
@@ -175,7 +174,7 @@ const ConvertHistory = () => {
           style={styles.backBtn}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <FastImage source={back_ic} style={{ width: 20, height: 20 }} resizeMode="contain" tintColor={themeColors.text} />
+          <FastImage source={back_ic} style={{ width: 35, height: 35 }} resizeMode="contain" />
         </TouchableOpacity>
         <View style={{ flex: 1, alignItems: "center", marginRight: 36 }}>
           <AppText weight={BOLD} style={{ fontSize: 18, color: themeColors.text }}>

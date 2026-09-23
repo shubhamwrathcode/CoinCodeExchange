@@ -90,7 +90,6 @@ const PhoneSettingsScreen = () => {
             <FastImage
               source={back_ic}
               style={styles.backIcon}
-              tintColor={isDark ? colors.white : colors.black}
               resizeMode="contain"
             />
           </TouchableOpacity>
@@ -184,8 +183,8 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   backIcon: {
-    width: 20,
-    height: 20
+    width: 35,
+    height: 35
   },
   titleContainer: {
     flex: 1,

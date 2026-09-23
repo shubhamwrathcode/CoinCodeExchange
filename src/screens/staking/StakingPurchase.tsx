@@ -221,7 +221,7 @@ const StakingPurchase = ({ route, navigation }: any) => {
     <AppSafeAreaView style={{ ...styles.container, backgroundColor: themeColors.background }}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => NavigationService.goBack()}>
-          <FastImage source={back_ic} style={styles.icon} resizeMode="contain" tintColor={themeColors.text} />
+          <FastImage source={back_ic} style={styles.icon} resizeMode="contain" />
         </TouchableOpacity>
         <AppText style={styles.headerTitle}>{stakeSelectedPlan.currency} {isTopUp ? "Top Up" : "Staking"}</AppText>
         <View style={styles.iconBtn} />

@@ -182,8 +182,7 @@ const TwoFaSimpleRow = ({
         {isBooleanStatus && (
           <FastImage
             source={checkIc}
-            style={{ width: 14, height: 14, marginRight: 4 }}
-            tintColor={hasValue ? themeColors.text : themeColors.secondaryText}
+            style={{ width: 35, height: 35, marginRight: 4 }}
             resizeMode="contain"
           />
         )}
@@ -473,7 +472,7 @@ const TwoFactor = () => {
           style={[styles.headerIconBtn,]}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <FastImage source={back_ic} style={styles.headerIconImg} tintColor={themeColors.text} resizeMode="contain" />
+          <FastImage source={back_ic} style={styles.headerIconImg} resizeMode="contain" />
         </TouchableOpacity>
         <View style={styles.securityHeaderTitleWrap}>
           <AppText type={SIXTEEN} weight={BOLD} style={{ color: themeColors.text }}>

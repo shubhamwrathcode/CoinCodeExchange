@@ -9,7 +9,7 @@ import { FUTURES_SCREEN } from "../../navigation/routes";
 import { toFixedFive, toFixedThree } from "../../helper/utility";
 import FastImage from "react-native-fast-image";
 import { Star } from "lucide-react-native";
-import { Coin, tetherIcon, bitcoinIcon, bnbIcon, NO_NOTIFICATION_ICON, NO_NOTIFICATION_ICON_LIGHT, back_ic } from "../../helper/ImageAssets";
+import { Coin, tetherIcon, bitcoinIcon, bnbIcon, NO_NOTIFICATION_ICON, NO_NOTIFICATION_ICON_LIGHT, back_ic, backChevronIcon } from "../../helper/ImageAssets";
 import { IMAGE_BASE_URL } from "../../helper/Constants";
 import { buildCoinImageUri } from "../../helper/coinIconUrl";
 import { useTheme } from "../../hooks/useTheme";
@@ -359,8 +359,8 @@ export const FuturesList = ({ data, onPress, favoriteArray = [], onToggleFavorit
             Last Price
           </AppText>
           <View style={styles.sortArrowCol}>
-            <FastImage source={back_ic} style={styles.arrowUp} resizeMode="contain" tintColor="#9CA3AF" />
-            <FastImage source={back_ic} style={styles.arrowDown} resizeMode="contain" tintColor="#9CA3AF" />
+            <FastImage source={backChevronIcon} style={styles.arrowUp} resizeMode="contain" tintColor="#9CA3AF" />
+            <FastImage source={backChevronIcon} style={styles.arrowDown} resizeMode="contain" tintColor="#9CA3AF" />
           </View>
         </View>
 
@@ -369,8 +369,8 @@ export const FuturesList = ({ data, onPress, favoriteArray = [], onToggleFavorit
             24h Change
           </AppText>
           <View style={[styles.sortArrowCol, { marginRight: hideStar ? 0 : 28 }]}>
-            <FastImage source={back_ic} style={styles.arrowUp} resizeMode="contain" tintColor="#9CA3AF" />
-            <FastImage source={back_ic} style={styles.arrowDown} resizeMode="contain" tintColor="#9CA3AF" />
+            <FastImage source={backChevronIcon} style={styles.arrowUp} resizeMode="contain" tintColor="#9CA3AF" />
+            <FastImage source={backChevronIcon} style={styles.arrowDown} resizeMode="contain" tintColor="#9CA3AF" />
           </View>
         </View>
       </View>

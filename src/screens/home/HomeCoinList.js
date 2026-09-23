@@ -1,7 +1,7 @@
 import FastImage from "react-native-fast-image";
 import TouchableOpacityView from "../../shared/components/TouchableOpacityView";
 import {
-  back_ic,
+  back_ic, backChevronIcon,
   bell_ic,
   NO_NOTIFICATION_ICON,
   NO_NOTIFICATION_ICON_LIGHT,
@@ -118,7 +118,7 @@ const HomeCoinList = ({ filterData, activeTabList, hideViewMore = false }) => {
             {`View More`}{" "}
           </AppText>
           <FastImage
-            source={back_ic}
+            source={backChevronIcon}
             resizeMode="contain"
             style={{
               width: 10,
@@ -167,7 +167,7 @@ const HomeCoinList = ({ filterData, activeTabList, hideViewMore = false }) => {
             {`More`}{" "}
           </AppText>
           <FastImage
-            source={back_ic}
+            source={backChevronIcon}
             resizeMode="contain"
             style={{
               width: 10,

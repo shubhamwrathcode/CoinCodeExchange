@@ -1522,7 +1522,6 @@ const WithdrawFiatScreen = () => {
             source={back_ic}
             style={styles.backIcon}
             resizeMode={FastImage.resizeMode.contain}
-            tintColor={textColor}
           />
         </TouchableOpacity>
 
@@ -2103,8 +2102,8 @@ const styles = StyleSheet.create({
     height: 18,
   },
   backIcon: {
-    width: 18,
-    height: 18,
+    width: 35,
+    height: 35,
   },
   historyHeaderIcon: {
     width: 22,

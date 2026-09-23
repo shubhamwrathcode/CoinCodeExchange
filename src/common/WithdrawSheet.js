@@ -35,7 +35,7 @@ import {
 } from "../theme/dimens";
 import {
   arrowRightIcon,
-  back_ic,
+  back_ic, backChevronIcon,
   closeIcon,
   convertBg,
   depositIcon,
@@ -92,7 +92,7 @@ const WithdrawSheet = ({theme}) => {
                   </View>
                 </View>
                 <FastImage
-                  source={back_ic}
+                  source={backChevronIcon}
                   resizeMode="contain"
                   style={{
                     width: 15,
@@ -128,7 +128,7 @@ const WithdrawSheet = ({theme}) => {
                   </View>
                 </View>
                 <FastImage
-                  source={back_ic}
+                  source={backChevronIcon}
                   resizeMode="contain"
                   style={{
                     width: 15,

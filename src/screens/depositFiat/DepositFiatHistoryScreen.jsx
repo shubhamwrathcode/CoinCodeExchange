@@ -293,7 +293,6 @@ const DepositFiatHistoryScreen = () => {
             source={back_ic}
             style={styles.backIcon}
             resizeMode={FastImage.resizeMode.contain}
-            tintColor={textColor}
           />
         </TouchableOpacity>
         <AppText type={EIGHTEEN} weight={BOLD} color={textColor}>
@@ -735,8 +734,8 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   backIcon: {
-    width: 18,
-    height: 18,
+    width: 35,
+    height: 35,
   },
   headerRightSpacer: {
     width: 30,

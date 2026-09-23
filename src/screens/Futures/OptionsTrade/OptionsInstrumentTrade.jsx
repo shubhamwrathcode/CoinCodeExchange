@@ -610,7 +610,7 @@ const OptionsInstrumentTrade = () => {
   const renderHeader = () => (
     <View style={styles.header}>
       <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 10, marginLeft: -10 }}>
-        <FastImage source={back_ic} style={{ width: 18, height: 18 }} resizeMode="contain" tintColor={themeColors.text} />
+        <FastImage source={back_ic} style={{ width: 35, height: 35 }} resizeMode="contain" />
       </TouchableOpacity>
       <TouchableOpacity disabled style={styles.symbolSelector}>
         <AppText type={SIXTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text }}>{symbol}</AppText>

@@ -48,7 +48,7 @@ const ViewPasskeysScreen = () => {
     <AppSafeAreaView style={{ backgroundColor: themeColors.background }}>
       <View style={[styles.header, { borderBottomColor: themeColors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <FastImage source={back_ic} style={styles.backIcon} tintColor={themeColors.text} resizeMode="contain" />
+          <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
         </TouchableOpacity>
         <AppText weight={BOLD} type={EIGHTEEN} style={[styles.headerTitle, { color: themeColors.text }]}>Registered Passkeys</AppText>
       </View>
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16
   },
   backBtn: { padding: 4 },
-  backIcon: { width: 22, height: 22 },
+  backIcon: { width: 35, height: 35 },
   headerTitle: { fontSize: 18, marginLeft: 12 },
   scroll: { flex: 1 },
   scrollContent: { padding: 20, paddingBottom: 40 },

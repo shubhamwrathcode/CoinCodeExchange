@@ -48,7 +48,7 @@ const SectionTitle = ({ title, themeColors, styles }) => (
     </AppText>
     <View style={styles.titleUnderlineContainer}>
       <View style={styles.titleLine} />
-      <FastImage source={vipOverride} style={{ width: 20, height: 20 }} resizeMode="contain" />
+      <FastImage source={vipOverride} style={{ width: 35, height: 35 }} resizeMode="contain" />
       <View style={styles.titleLine} />
     </View>
   </View>
@@ -98,7 +98,7 @@ const VipServices = () => {
     <AppSafeAreaView style={{ backgroundColor: themeColors.background, flex: 1 }}>
       <View style={styles.customHeader}>
         <TouchableOpacity style={styles.backBtn} onPress={() => NavigationService.goBack()}>
-          <FastImage source={back_ic} style={styles.backIcon} tintColor={themeColors.text} resizeMode="contain" />
+          <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
         </TouchableOpacity>
         <AppText weight={SEMI_BOLD} style={{ color: themeColors.text, fontSize: 20 }}>
           VIP Services
@@ -239,8 +239,8 @@ const getStyles = (themeColors, isDark) => StyleSheet.create({
   backBtn: {
   },
   backIcon: {
-    width: 18,
-    height: 18,
+    width: 35,
+    height: 35,
   },
   headerSpacer: {
     width: 26,

@@ -81,7 +81,6 @@ const Toolbar = ({
           source={back_ic}
           style={styles.backIcon}
           resizeMode="contain"
-          tintColor={themeColors.text}
         />
       </TouchableOpacityView>}
 
@@ -164,8 +163,8 @@ const styles = StyleSheet.create({
 
   },
   backIcon: {
-    height: 16,
-    width: 16,
+    height: 35,
+    width: 35,
     // marginTop: 20
   },
   mainLogo: {

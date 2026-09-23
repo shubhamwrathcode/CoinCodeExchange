@@ -54,8 +54,7 @@ const ResetFundPassword = () => {
         >
           <FastImage
             source={back_ic}
-            tintColor={isDark ? colors.white : colors.black}
-            style={{ width: 18, height: 18 }}
+            style={{ width: 35, height: 35 }}
             resizeMode='contain'
           />
         </TouchableOpacity>

@@ -114,7 +114,6 @@ const EnterOtp = () => {
                     source={back_ic}
                     resizeMode="contain"
                     style={styles.backIcon}
-                    tintColor={themeColors.text}
                     />
                 </TouchableOpacity>
                 <AppText weight={BOLD} type={EIGHTEEN} style={{ color: themeColors.text, marginLeft: 12 }}>
@@ -218,7 +217,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   backBtn: { padding: 4 },
-  backIcon: { width: 22, height: 22 },
+  backIcon: { width: 35, height: 35 },
   scrollContent: { paddingHorizontal: 20 },
   infoBox: { marginTop: 16, marginBottom: 30 },
   card: {

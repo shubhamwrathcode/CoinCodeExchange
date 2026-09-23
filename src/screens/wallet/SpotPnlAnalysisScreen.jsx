@@ -172,7 +172,6 @@ const SpotPnlAnalysisScreen = () => {
             source={back_ic}
             style={styles.backIcon}
             resizeMode="contain"
-            tintColor={isDark ? colors.white : themeColors.text}
           />
         </TouchableOpacity>
         <AppText type={SIXTEEN} weight={SEMI_BOLD} style={{ color: defaultTextColor }}>
@@ -597,8 +596,8 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   backIcon: {
-    width: 20,
-    height: 20,
+    width: 35,
+    height: 35,
   },
   eyeBtn: {
     padding: 6,

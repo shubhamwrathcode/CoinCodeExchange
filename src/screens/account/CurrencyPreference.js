@@ -95,7 +95,7 @@ const CurrencyPreference = () => {
       <KeyBoardAware >
         <View style={{ flexDirection: "row", justifyContent: "space-between", width: "65%", marginTop: 20, marginHorizontal: 10 }}>
           <TouchableOpacity onPress={() => NavigationService.goBack()}>
-            <FastImage source={back_ic} resizeMode="contain" style={{ width: 20, height: 20 }} tintColor={themeColors.text} />
+            <FastImage source={back_ic} resizeMode="contain" style={{ width: 35, height: 35 }} />
           </TouchableOpacity>
           <AppText weight={SEMI_BOLD} type={SIXTEEN}>Currency Preference</AppText>
         </View>

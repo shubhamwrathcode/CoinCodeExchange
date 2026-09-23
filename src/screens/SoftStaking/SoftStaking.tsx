@@ -209,11 +209,11 @@ const SoftStaking = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => NavigationService.goBack()} style={{ padding: 8 }}>
-          <FastImage source={back_ic} style={styles.backIcon} tintColor={themeColors.text} resizeMode="contain" />
+          <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
         </TouchableOpacity>
         <AppText style={[styles.headerTitle, { color: themeColors.text }]} weight={SEMI_BOLD}>Soft Staking</AppText>
         <TouchableOpacity style={{ padding: 8 }} onPress={() => faqSheetRef.current?.open()}>
-          <FastImage source={INFO} style={styles.backIcon} tintColor={themeColors.text} resizeMode="contain" />
+          <FastImage source={INFO} style={styles.infoIcon} tintColor={themeColors.text} resizeMode="contain" />
         </TouchableOpacity>
       </View>
 
@@ -558,6 +558,10 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
     paddingVertical: 8,
   },
   backIcon: {
+    width: 35,
+    height: 35,
+  },
+  infoIcon: {
     width: 20,
     height: 20,
   },

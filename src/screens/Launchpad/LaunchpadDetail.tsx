@@ -219,7 +219,7 @@ const LaunchpadDetail = ({ route }: any) => {
       <AppSafeAreaView style={{ backgroundColor: themeColors.background }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => NavigationService.goBack()} style={{ padding: 8 }}>
-            <FastImage source={back_ic} style={styles.backIcon} tintColor={themeColors.text} resizeMode="contain" />
+            <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
           </TouchableOpacity>
         </View>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -234,7 +234,7 @@ const LaunchpadDetail = ({ route }: any) => {
       <AppSafeAreaView style={{ backgroundColor: themeColors.background }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => NavigationService.goBack()} style={{ padding: 8 }}>
-            <FastImage source={back_ic} style={styles.backIcon} tintColor={themeColors.text} resizeMode="contain" />
+            <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
           </TouchableOpacity>
         </View>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -331,7 +331,7 @@ const LaunchpadDetail = ({ route }: any) => {
       {/* Header Area */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => NavigationService.goBack()} style={{ padding: 8 }}>
-          <FastImage source={back_ic} style={styles.backIcon} tintColor={themeColors.text} resizeMode="contain" />
+          <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
         </TouchableOpacity>
       </View>
 
@@ -633,8 +633,8 @@ const styles = StyleSheet.create({
     height: 56,
   },
   backIcon: {
-    width: 22,
-    height: 22,
+    width: 35,
+    height: 35,
   },
   titleSection: {
     flexDirection: 'row',

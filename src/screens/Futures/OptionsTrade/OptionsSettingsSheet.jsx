@@ -56,7 +56,7 @@ const OptionsSettingsSheet = ({ visible, onClose }) => {
           onPress={() => setCurrentView('atm_options')}
         >
           <AppText style={{ color: themeColors.text, fontSize: 15, fontFamily: fontFamilyMedium }}>ATM Options</AppText>
-          <FastImage source={right_ic} style={{ width: 16, height: 16 }} tintColor={themeColors.secondaryText} resizeMode="contain" />
+          <FastImage source={right_ic} style={{ width: 35, height: 35 }} resizeMode="contain" />
         </TouchableOpacity>
       </ScrollView>
 
@@ -77,7 +77,7 @@ const OptionsSettingsSheet = ({ visible, onClose }) => {
       {/* Header */}
       <View style={[styles.header, { justifyContent: 'space-between', paddingTop: 20 }]}>
         <TouchableOpacity onPress={() => setCurrentView('settings')} style={{ padding: 4, }}>
-          <FastImage source={back_ic} style={{ width: 20, height: 20 }} tintColor={themeColors.text} resizeMode="contain" />
+          <FastImage source={back_ic} style={{ width: 35, height: 35 }} resizeMode="contain" />
         </TouchableOpacity>
         <AppText style={{ fontFamily: fontFamilySemiBold, fontSize: 18, color: themeColors.text, marginRight: 20 }}>ATM Options</AppText>
         <View></View>

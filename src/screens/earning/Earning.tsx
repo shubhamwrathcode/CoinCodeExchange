@@ -4,7 +4,7 @@ import FastImage from 'react-native-fast-image';
 import { AppSafeAreaView, AppText, SEMI_BOLD } from '../../shared';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  back_ic, searchIcon, historyIcon, eye_open_icon, eye_close_icon,
+  back_ic, backChevronIcon, searchIcon, historyIcon, eye_open_icon, eye_close_icon,
   launchpad, referAndEarn, vip, simpleEarn, stakingNew,
   upDown, NO_NOTIFICATION_ICON, closeIcon, usdtIcon,
   infoNewIc,
@@ -190,7 +190,7 @@ const Earning = () => {
         <View style={styles.header}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <TouchableOpacity onPress={() => NavigationService.goBack()} style={{ paddingRight: 12 }}>
-              <FastImage source={back_ic} style={styles.backIcon} tintColor={themeColors.text} resizeMode="contain" />
+              <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
             </TouchableOpacity>
             <AppText style={[styles.title, { color: themeColors.text }]} weight={SEMI_BOLD}>Earn</AppText>
           </View>
@@ -247,7 +247,7 @@ const Earning = () => {
             {gridItems.length > 4 && (
               <TouchableOpacity style={styles.gridExpander} onPress={() => setIsExpanded(!isExpanded)}>
                 <FastImage
-                  source={back_ic}
+                  source={backChevronIcon}
                   style={{ width: 12, height: 12, transform: [{ rotate: isExpanded ? '90deg' : '-90deg' }] }}
                   tintColor={themeColors.secondaryText}
                   resizeMode="contain"
@@ -477,7 +477,7 @@ const Earning = () => {
               >
                 <AppText style={[styles.faqQuestionText, { color: themeColors.text }]}>{faq.question}</AppText>
                 <FastImage
-                  source={back_ic}
+                  source={backChevronIcon}
                   style={{ width: 12, height: 12, transform: [{ rotate: expandedFaqIndex === index ? '90deg' : '-90deg' }] }}
                   tintColor={themeColors.secondaryText}
                   resizeMode="contain"
@@ -503,8 +503,8 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
     paddingVertical: 8,
   },
   backIcon: {
-    width: 20,
-    height: 20,
+    width: 35,
+    height: 35,
   },
   title: {
     fontSize: 20,

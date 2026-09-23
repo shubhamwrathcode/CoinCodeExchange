@@ -135,7 +135,7 @@ export default function WithdrawAddressBookModal({
               onPress={() => onDelete && onDelete(item)}
               style={styles.removeBtn}
             >
-              <FastImage source={moreOption} style={{ width: 15, height: 15 }} tintColor={isDark ? colors.white : colors.black} resizeMode='contain' />
+              <FastImage source={moreOption} style={{ width: 35, height: 35 }} resizeMode='contain' />
             </TouchableOpacity>
           )}
         </View>
@@ -187,7 +187,7 @@ export default function WithdrawAddressBookModal({
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: isDark ? "#2A2E39" : "#E5E7EB" }]}>
           <TouchableOpacity onPress={onClose} style={{ width: 40 }}>
-            <FastImage source={back_ic} resizeMode='contain' style={{ width: 20, height: 20 }} tintColor={isDark ? colors.white : colors.black} />
+            <FastImage source={back_ic} resizeMode='contain' style={{ width: 35, height: 35 }} />
           </TouchableOpacity>
 
           <View style={styles.headerCenter}>

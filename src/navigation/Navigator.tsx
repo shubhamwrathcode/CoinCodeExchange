@@ -129,6 +129,7 @@ import FutureChartScreen from "../screens/Futures/FutureChartScreen";
 import MarginBorrowRepay from "../screens/spotScreen/MarginBorrowRepay";
 import MarginTransfer from "../screens/spotScreen/MarginTransfer";
 import ProfileDrawer from "../screens/profileDrawer/ProfileDrawer";
+import MoreServicesScreen from "../screens/profileDrawer/MoreServicesScreen";
 import SupportIssueList from "../screens/supportSreen/SupportIssueList";
 import CreateTicket from "../screens/supportSreen/CreateTicket";
 import CurrencyPrefer from "../screens/currencyPrefer/CurrencyPrefer";
@@ -381,6 +382,7 @@ const MyAuthLoadingStack = () => {
         component={DrawerNavigation}
         /> */}
       <Stack.Screen name="ProfileDrawer" component={ProfileDrawer} />
+      <Stack.Screen name={routes.MORE_SERVICES_SCREEN} component={MoreServicesScreen} />
       <Stack.Screen
         name={routes.NAVIGATION_BOTTOM_TAB_STACK}
         component={BottomNavigation}

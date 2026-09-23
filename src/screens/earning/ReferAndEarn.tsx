@@ -229,7 +229,7 @@ const ReferAndEarn = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => NavigationService.goBack()}>
-          <FastImage source={back_ic} style={styles.backIcon} tintColor={themeColors.text} resizeMode="contain" />
+          <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
         </TouchableOpacity>
         <AppText style={[styles.headerTitle, { color: themeColors.text }]}>Referral Program</AppText>
         <TouchableOpacity style={styles.backBtn} onPress={() => faqSheetRef.current?.open()}>
@@ -495,8 +495,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backIcon: {
-    width: 20,
-    height: 20,
+    width: 35,
+    height: 35,
   },
   headerTitle: {
     fontSize: 18,

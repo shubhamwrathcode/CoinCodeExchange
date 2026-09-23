@@ -93,7 +93,7 @@ const SwitchAccountScreen = ({ route }: any) => {
       {/* Custom Header */}
       <View style={[styles.headerContainer,]}>
         <TouchableOpacity style={styles.backButton} onPress={() => NavigationService.goBack()}>
-          <FastImage source={back_ic} style={{ width: 18, height: 18 }} tintColor={themeColors.text} resizeMode="contain" />
+          <FastImage source={back_ic} style={{ width: 35, height: 35 }} resizeMode="contain" />
         </TouchableOpacity>
 
         <AppText type={EIGHTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text }}>

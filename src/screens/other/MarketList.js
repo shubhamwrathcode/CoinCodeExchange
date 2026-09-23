@@ -7,7 +7,7 @@ import { Star } from "lucide-react-native";
 import {
   NO_NOTIFICATION_ICON,
   NO_NOTIFICATION_ICON_LIGHT,
-  back_ic,
+  back_ic, backChevronIcon,
 } from "../../helper/ImageAssets";
 import { useAppSelector } from "../../store/hooks";
 import { toFixedFive, toFixedThree } from "../../helper/utility";
@@ -317,8 +317,8 @@ const MarketList = React.memo(
               Last Price
             </AppText>
             <View style={styles.sortArrowCol}>
-              <FastImage source={back_ic} style={styles.arrowUp} resizeMode="contain" tintColor="#9CA3AF" />
-              <FastImage source={back_ic} style={styles.arrowDown} resizeMode="contain" tintColor="#9CA3AF" />
+              <FastImage source={backChevronIcon} style={styles.arrowUp} resizeMode="contain" tintColor="#9CA3AF" />
+              <FastImage source={backChevronIcon} style={styles.arrowDown} resizeMode="contain" tintColor="#9CA3AF" />
             </View>
           </View>
 
@@ -327,8 +327,8 @@ const MarketList = React.memo(
               24h Change
             </AppText>
             <View style={[styles.sortArrowCol, { marginRight: hideStar ? 0 : 28 }]}>
-              <FastImage source={back_ic} style={styles.arrowUp} resizeMode="contain" tintColor="#9CA3AF" />
-              <FastImage source={back_ic} style={styles.arrowDown} resizeMode="contain" tintColor="#9CA3AF" />
+              <FastImage source={backChevronIcon} style={styles.arrowUp} resizeMode="contain" tintColor="#9CA3AF" />
+              <FastImage source={backChevronIcon} style={styles.arrowDown} resizeMode="contain" tintColor="#9CA3AF" />
             </View>
           </View>
         </View>

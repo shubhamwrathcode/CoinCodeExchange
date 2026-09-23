@@ -188,7 +188,7 @@ const OptionsHistoryCard = React.memo(({ item, tabKey, userId, onPress, onCancel
             <AppText type={FIFTEEN} weight={BOLD} style={{ color: textColor }}>
               {isTransTab ? transType : (isOrderTab || isTradeTab) ? symbolStr : symDisplay.primary}
             </AppText>
-            <FastImage source={right_ic} style={{ width: 12, height: 12, marginLeft: 4 }} resizeMode="contain" tintColor={labelColor} />
+            <FastImage source={right_ic} style={{ width: 35, height: 35, marginLeft: 4 }} resizeMode="contain" />
           </View>
           <AppText style={{ color: textColor, marginTop: 4 }} type={FOURTEEN}>
             {isOrderTab
@@ -404,7 +404,7 @@ const OptionHistory = () => {
 
       <View style={styles.headerContainer}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <FastImage source={back_ic} style={styles.backIcon} tintColor={themeColors.text} resizeMode="contain" />
+          <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
         </TouchableOpacity>
 
         <View style={styles.headerTitleContainer}>
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   headerContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
   backBtn: { width: 40, height: 40, justifyContent: 'center' },
-  backIcon: { width: 20, height: 20 },
+  backIcon: { width: 35, height: 35 },
   headerTitleContainer: { alignItems: 'center' },
   headerTitle: { fontSize: 18, fontFamily: fontFamilyBold },
   headerSubtitle: { fontSize: 12, fontFamily: fontFamilyMedium, marginTop: 2 },

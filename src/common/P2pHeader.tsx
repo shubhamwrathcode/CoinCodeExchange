@@ -170,8 +170,8 @@ const styles = StyleSheet.create({
     padding: universalPaddingHorizontalHigh,
   },
   backIcon: {
-    height: 16,
-    width: 16,
+    height: 35,
+    width: 35,
   },
 
   title: {

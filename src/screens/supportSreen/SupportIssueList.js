@@ -243,7 +243,7 @@ export default function SupportIssueList() {
     <AppSafeAreaView style={{ backgroundColor: themeColors.background, flex: 1 }}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => NavigationService.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <FastImage source={back_ic} resizeMode="contain" style={{ width: 18, height: 18 }} tintColor={themeColors.text} />
+          <FastImage source={back_ic} resizeMode="contain" style={{ width: 35, height: 35 }} />
         </TouchableOpacity>
         <AppText weight={SEMI_BOLD} type={EIGHTEEN} style={{ color: themeColors.text }}>
           My Tickets

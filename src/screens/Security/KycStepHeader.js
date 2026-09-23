@@ -21,7 +21,7 @@ const getInitials = (name) => {
 };
 
 
-const BACK_ICON_SIZE = 18;
+const BACK_ICON_SIZE = 35;
 const INFO_ICON_SIZE = 22;
 
 const KycStepHeader = ({ title, onBackPress, onInfoPress, onSupportPress, onSwitchProfilePress }) => {
@@ -45,7 +45,6 @@ const KycStepHeader = ({ title, onBackPress, onInfoPress, onSupportPress, onSwit
           source={back_ic}
           resizeMode="contain"
           style={[styles.backIcon, { width: BACK_ICON_SIZE, height: BACK_ICON_SIZE }]}
-          tintColor={textColor}
         />
       </TouchableOpacity>
 

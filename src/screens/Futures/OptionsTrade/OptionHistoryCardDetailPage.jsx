@@ -214,8 +214,7 @@ const OptionHistoryCardDetailPage = () => {
         >
           <FastImage
             source={back_ic}
-            style={{ width: 20, height: 20 }}
-            tintColor={themeColors.text}
+            style={{ width: 35, height: 35 }}
             resizeMode="contain"
           />
         </TouchableOpacity>

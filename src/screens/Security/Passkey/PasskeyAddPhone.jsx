@@ -127,7 +127,7 @@ const PasskeyAddPhone = ({ route }) => {
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : '#F0F0F0' }]}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => NavigationService.goBack()}>
-          <FastImage source={back_ic} tintColor={isDark ? colors.white : colors.black} style={{ width: 18, height: 18 }} resizeMode='contain' />
+          <FastImage source={back_ic} style={{ width: 35, height: 35 }} resizeMode='contain' />
         </TouchableOpacity>
 
         <AppText type={EIGHTEEN} weight={BOLD} style={[styles.headerTitle, { color: themeColors.text }]}>

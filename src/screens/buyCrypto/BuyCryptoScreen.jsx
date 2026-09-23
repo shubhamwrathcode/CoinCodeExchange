@@ -393,9 +393,8 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
           >
             <FastImage
               source={back_ic}
-              style={{ width: 18, height: 18 }}
+              style={{ width: 35, height: 35 }}
               resizeMode={FastImage.resizeMode.contain}
-              tintColor={themeColors.text}
             />
           </TouchableOpacity>
 

@@ -1998,7 +1998,7 @@ const WithdrawForm = () => {
           })}
         </ScrollView>
         <View style={[styles.networkSheetNotice, { backgroundColor: isDark ? "#2A2418" : "#fff5ea" }]}>
-          <FastImage source={INFO} style={styles.networkSheetNoticeIcon} resizeMode="contain" tintColor={colors.textGray} />
+          <FastImage source={INFO} style={styles.networkSheetNoticeIcon} resizeMode="contain" />
           <AppText type={TEN} color={colors.textGray} style={{ flex: 1, lineHeight: 16 }}>
             The withdrawal address must support the network you pick. Wrong network can lead to permanent loss if the destination cannot recover funds.
           </AppText>
@@ -2060,8 +2060,7 @@ const WithdrawForm = () => {
                   </AppText>
                 </View>
                 {selected ? (
-                  <FastImage source={checkIc} style={{ width: 14, height: 14, }}
-                    tintColor={isDark ? "#FFFFFF" : "#000000"}
+                  <FastImage source={checkIc} style={{ width: 35, height: 35, }}
                     resizeMode="contain" />
                 ) : null}
               </TouchableOpacity>
@@ -2120,8 +2119,7 @@ const WithdrawForm = () => {
                   </AppText>
                 </View>
                 {selected ? (
-                  <FastImage source={checkIc} style={{ width: 14, height: 14, }}
-                    tintColor={isDark ? "#FFFFFF" : "#000000"}
+                  <FastImage source={checkIc} style={{ width: 35, height: 35, }}
                     resizeMode="contain" />
                 ) : null}
               </TouchableOpacity>
@@ -2288,7 +2286,7 @@ const WithdrawForm = () => {
       <AppSafeAreaView bg={themeColors.background} style={{ flex: 1 }}>
         <View style={styles.headerView}>
           <TouchableOpacity onPress={() => setIsWithdrawVerifyCombinedOpen(false)} style={{ padding: 10, paddingHorizontal: 20 }}>
-            <FastImage source={back_ic} style={{ width: 16, height: 16 }} resizeMode="contain" tintColor={themeColors.text} />
+            <FastImage source={back_ic} style={{ width: 35, height: 35 }} resizeMode="contain" />
           </TouchableOpacity>
           <AppText weight={SEMI_BOLD} type={EIGHTEEN} style={{ color: themeColors.text }}>Security verification</AppText>
           <View style={{ width: 40 }} />
@@ -2458,7 +2456,7 @@ const WithdrawForm = () => {
     <AppSafeAreaView style={{ flex: 1, backgroundColor: themeColors.background }}>
       <View style={[styles.headerView, { paddingHorizontal: 16 }]}>
         <TouchableOpacity onPress={handleHeaderBack} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <FastImage source={back_ic} resizeMode="contain" style={{ width: 16, height: 16 }} tintColor={themeColors.text} />
+          <FastImage source={back_ic} resizeMode="contain" style={{ width: 35, height: 35 }} />
         </TouchableOpacity>
         <AppText color={themeColors.text} weight={SEMI_BOLD} type={EIGHTEEN}>
           {withdrawFormHeaderTitle}

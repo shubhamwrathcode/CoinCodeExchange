@@ -433,7 +433,7 @@ const AuthorizedDevicesScreen = () => {
     <AppSafeAreaView style={[styles.safeArea, { backgroundColor: themeColors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => NavigationService.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <FastImage source={back_ic} tintColor={isDark ? colors.white : colors.black} style={{ width: 18, height: 18 }} resizeMode='contain' />
+          <FastImage source={back_ic} style={{ width: 35, height: 35 }} resizeMode='contain' />
         </TouchableOpacity>
         <AppText type={EIGHTEEN} weight={SEMI_BOLD} style={{ color: valCol }}>Authorized Devices</AppText>
         <View style={{ width: 24 }} />

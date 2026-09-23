@@ -366,7 +366,7 @@ const SelectCoin = () => {
     <AppSafeAreaView style={{ backgroundColor: isDark ? colors.background : colors.white }}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => NavigationService.goBack()} style={styles.backBtn}>
-          <FastImage source={back_ic} style={styles.backIcon} tintColor={isDark ? colors.white : colors.black} resizeMode="contain" />
+          <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
         </TouchableOpacity>
         <AppText weight={SEMI_BOLD} type={EIGHTEEN} style={{ color: isDark ? colors.white : colors.black }}>Select Coin</AppText>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -574,7 +574,7 @@ export default SelectCoin;
 const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: 56, justifyContent: "space-between" },
   backBtn: { padding: 8, marginLeft: -8 },
-  backIcon: { width: 20, height: 20 },
+  backIcon: { width: 35, height: 35 },
   searchSection: { paddingHorizontal: 16, marginTop: 8 },
   searchBar: { flexDirection: "row", alignItems: "center", height: 48, borderRadius: 8, paddingHorizontal: 12 },
   searchIconStyle: { width: 18, height: 18, marginRight: 10 },

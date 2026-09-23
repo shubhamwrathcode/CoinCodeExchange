@@ -96,7 +96,7 @@ const WalletHistoryDetails = () => {
       {copyable ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', flex: 1 }}>
           <TouchableOpacity onPress={() => copyText(originalValueForCopy)} style={{ marginRight: 8, padding: 4 }}>
-            <FastImage source={copyIcon} style={{ width: 14, height: 14 }} tintColor={labelColor} resizeMode="contain" />
+            <FastImage source={copyIcon} style={{ width: 35, height: 35 }} resizeMode="contain" />
           </TouchableOpacity>
           <AppText
             style={StyleSheet.flatten([
@@ -136,7 +136,6 @@ const WalletHistoryDetails = () => {
             source={back_ic}
             style={styles.backIcon}
             resizeMode="contain"
-            tintColor={themeColors.text}
           />
         </TouchableOpacity>
         <AppText style={[styles.headerTitle, { color: themeColors.text }]} numberOfLines={1}>
@@ -287,8 +286,8 @@ const styles = StyleSheet.create({
     minWidth: 40,
   },
   backIcon: {
-    width: 20,
-    height: 20,
+    width: 35,
+    height: 35,
   },
   headerTitle: {
     fontSize: 16,

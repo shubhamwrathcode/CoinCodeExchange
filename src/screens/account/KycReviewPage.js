@@ -82,8 +82,7 @@ const KycReviewPage = () => {
                 <FastImage
                   source={back_ic}
                   resizeMode="contain"
-                  style={{ width: 20, height: 20 }}
-                  tintColor={theme !== "Dark" ? colors.black : colors.white}
+                  style={{ width: 35, height: 35 }}
                 />
               </TouchableOpacity>
               <AppText weight={SEMI_BOLD} type={SIXTEEN}>

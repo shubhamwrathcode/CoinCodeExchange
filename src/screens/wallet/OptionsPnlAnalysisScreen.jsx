@@ -182,7 +182,7 @@ const OptionsPnlAnalysisScreen = () => {
     <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]}>
       <View style={[styles.header, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: cardBorder }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" tintColor={defaultTextColor} />
+          <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
         </TouchableOpacity>
         <View style={{ flex: 1, alignItems: "center" }}>
           <AppText type={SIXTEEN} weight={SEMI_BOLD} style={{ color: defaultTextColor }}>
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  backIcon: { width: 20, height: 20 },
+  backIcon: { width: 35, height: 35 },
   errorBox: {
     marginHorizontal: 16,
     marginTop: 8,

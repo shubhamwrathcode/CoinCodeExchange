@@ -1347,8 +1347,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   backIcon: {
-    width: 18,
-    height: 18,
+    width: 35,
+    height: 35,
   },
   pairText: {
     color: colors.white,

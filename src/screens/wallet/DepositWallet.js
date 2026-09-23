@@ -98,8 +98,7 @@ const DepositWallet = () => {
             <FastImage
               source={back_ic}
               resizeMode="contain"
-              style={{ width: 20, height: 20 }}
-              tintColor={theme !== "Dark" ? colors.black : colors.white}
+              style={{ width: 35, height: 35 }}
             />
           </TouchableOpacity>
           <View style={[styles.searchView, { borderColor: theme === "Dark" ? "#FFFFFF33" : "#00000033" }]}>

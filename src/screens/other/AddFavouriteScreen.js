@@ -124,7 +124,6 @@ const AddFavouriteScreen = () => {
             source={back_ic}
             style={styles.backIcon}
             resizeMode="contain"
-            tintColor={themeColors.text}
           />
         </TouchableOpacity>
         <AppText weight={BOLD} type={SIXTEEN} style={[styles.headerTitle, { color: themeColors.text }]}>
@@ -172,8 +171,8 @@ const styles = StyleSheet.create({
     marginLeft: -6,
   },
   backIcon: {
-    width: 20,
-    height: 20,
+    width: 35,
+    height: 35,
   },
   headerTitle: {
     textAlign: "center",

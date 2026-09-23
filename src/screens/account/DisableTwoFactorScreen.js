@@ -66,7 +66,7 @@ const DisableTwoFactorScreen = () => {
             onPress={() => navigation.goBack()}
             style={styles.backBtn}
           >
-            <FastImage source={back_ic} style={styles.backIcon} tintColor={themeColors.text} resizeMode="contain" />
+            <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
           </TouchableOpacity>
           <AppText weight={SEMI_BOLD} type={EIGHTEEN} style={{ color: themeColors.text, marginLeft: 12 }}>
             Disable Google Authenticator
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   backBtn: { padding: 4 },
-  backIcon: { width: 22, height: 22 },
+  backIcon: { width: 35, height: 35 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 40 },
   iconContainer: { alignItems: 'center', marginBottom: 32 },

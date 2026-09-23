@@ -29,7 +29,7 @@ import {
   universalPaddingHorizontalHigh,
 } from "../theme/dimens";
 import {
-  back_ic,
+  back_ic, backChevronIcon,
   newDepositDarkIcon,
   newDepositIcon,
   right_ic,
@@ -74,7 +74,7 @@ const DepositSheet = ({ theme }) => {
               </View>
             </View>
             <FastImage
-              source={back_ic}
+              source={backChevronIcon}
               resizeMode="contain"
               style={{
                 width: 15,
@@ -110,7 +110,7 @@ const DepositSheet = ({ theme }) => {
                   </View>
                 </View>
                 <FastImage
-                  source={back_ic}
+                  source={backChevronIcon}
                   resizeMode="contain"
                   style={{
                     width: 15,

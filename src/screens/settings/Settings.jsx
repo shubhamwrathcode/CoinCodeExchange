@@ -274,8 +274,7 @@ const SettingsScreen = () => {
           <FastImage
             source={back_ic}
             resizeMode="contain"
-            style={{ width: 20, height: 20 }}
-            tintColor={themeColors.text}
+            style={{ width: 35, height: 35 }}
           />
         </TouchableOpacity>
         <AppText weight={SEMI_BOLD} type={SIXTEEN} style={[styles.headerTitle, { color: themeColors.text }]}>Account Info</AppText>
@@ -400,8 +399,8 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   backIcon: {
-    width: 20,
-    height: 20,
+    width: 35,
+    height: 35,
   },
   logoutIconHead: {
     width: 20,

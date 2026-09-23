@@ -183,7 +183,6 @@ const AddPhoneNumberScreen = () => {
             <FastImage
               source={back_ic}
               style={styles.backIcon}
-              tintColor={isDark ? colors.white : colors.black}
               resizeMode="contain"
             />
           </TouchableOpacity>
@@ -297,7 +296,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1 },
   backBtn: { padding: 6 },
-  backIcon: { width: 20, height: 20 },
+  backIcon: { width: 35, height: 35 },
   titleContainer: { flex: 1, alignItems: 'center' },
   headerTitle: { textAlign: 'center' },
   scroll: { flex: 1 },

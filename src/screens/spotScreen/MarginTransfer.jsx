@@ -528,7 +528,7 @@ const MarginTransfer = () => {
     <SafeAreaView style={{ flex: 1, backgroundColor: themeColors.background }}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} style={styles.headerLeft}>
-          <FastImage source={back_ic} style={{ width: 20, height: 20 }} resizeMode="contain" tintColor={themeColors.text} />
+          <FastImage source={back_ic} style={{ width: 35, height: 35 }} resizeMode="contain" />
         </TouchableOpacity>
         <AppText weight={SEMI_BOLD} style={{ fontSize: 18, color: themeColors.text }}>Transfer</AppText>
         <TouchableOpacity onPress={() => navigation.navigate((isMarginTransfer || isCrossMarginTransfer) ? MARGIN_TRANSFER_HISTORY_SCREEN : TRANSFER_HISTORY_SCREEN)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} style={styles.headerRight}>

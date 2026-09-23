@@ -149,7 +149,7 @@ const StakingDashboard = () => {
       <AppSafeAreaView style={{ ...styles.container, backgroundColor: themeColors.background }} forceBarStyle="dark-content">
         <View style={styles.header}>
           <TouchableOpacity style={styles.iconBtn} onPress={() => NavigationService.goBack()}>
-            <FastImage source={back_ic} style={styles.icon} resizeMode="contain" tintColor={themeColors.text} />
+            <FastImage source={back_ic} style={styles.icon} resizeMode="contain" />
           </TouchableOpacity>
           <AppText style={styles.headerTitle}>Staking</AppText>
           <TouchableOpacity style={styles.iconBtn} onPress={() => faqSheetRef.current?.open()}>

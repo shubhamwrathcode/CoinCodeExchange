@@ -112,7 +112,7 @@ const SpotOrderHistoryDetail = () => {
       {/* Header Bar */}
       <View style={[styles.header, { borderBottomColor: themeColors.border }]}>
         <TouchableOpacity onPress={() => NavigationService.goBack()} style={styles.headerBtn}>
-          <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" tintColor={themeColors.text} />
+          <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
         </TouchableOpacity>
         <AppText style={[styles.headerTitle, { color: themeColors.text }]}>
           {isTradeFill ? "Trade Details" : "Order Details"}
@@ -227,8 +227,8 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   backIcon: {
-    width: 18,
-    height: 18,
+    width: 35,
+    height: 35,
   },
   headerTitle: {
     fontSize: 18,

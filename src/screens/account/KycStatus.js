@@ -225,7 +225,7 @@ const KycPending = ({ showResubmitButton, onResubmitPress, diditVendorStatus, on
           {displayName}
         </AppText>
         <View style={[styles.statusBadge, { backgroundColor: "rgba(245, 158, 11, 0.1)" }]}>
-          <FastImage source={pending_kyc} style={{ width: 18, height: 18, marginRight: 6 }} tintColor={orangeColor} />
+          <FastImage source={pending_kyc} style={{ width: 35, height: 35, marginRight: 6 }} />
           <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: orangeColor }}>
             {isInProgress ? "In Progress" : "Pending"}
           </AppText>
@@ -236,7 +236,7 @@ const KycPending = ({ showResubmitButton, onResubmitPress, diditVendorStatus, on
       <View style={[styles.statusMessageBox, { backgroundColor: isDark ? "#1E222D" : "#F9FAFB", borderLeftColor: orangeColor, borderLeftWidth: 4 }]}>
         <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
           <View style={[styles.statusIconWrap, { backgroundColor: "rgba(245, 158, 11, 0.1)" }]}>
-            <FastImage source={pending_kyc} style={{ width: 24, height: 24 }} tintColor={orangeColor} />
+            <FastImage source={pending_kyc} style={{ width: 35, height: 35 }} />
           </View>
           <View style={{ flex: 1, marginLeft: 12 }}>
             <AppText type={TWELVE} style={{ color: themeColors.text, lineHeight: 20 }}>
@@ -303,7 +303,7 @@ const KycPending = ({ showResubmitButton, onResubmitPress, diditVendorStatus, on
             <AppText type={FOURTEEN} weight={MEDIUM} style={{ flex: 1.5, color: themeColors.text }}>{item.label}</AppText>
             <AppText type={FOURTEEN} weight={MEDIUM} style={{ flex: 1, color: themeColors.text, textAlign: "center" }}>{item.value}</AppText>
             <View style={{ flex: 1, alignItems: "flex-end" }}>
-              <FastImage source={verify_lock} style={{ width: 16, height: 16 }} tintColor="#9CA3AF" />
+              <FastImage source={verify_lock} style={{ width: 35, height: 35 }} tintColor="#9CA3AF" />
             </View>
           </View>
         ))}
@@ -331,7 +331,7 @@ const KycRejected = ({ onVerifyPress, isKyb }) => {
           {displayName}
         </AppText>
         <View style={[styles.statusBadge, { backgroundColor: "rgba(239, 68, 68, 0.1)" }]}>
-          <FastImage source={failed} style={{ width: 18, height: 18, marginRight: 6 }} tintColor={themeColors.red} />
+          <FastImage source={failed} style={{ width: 35, height: 35, marginRight: 6 }} />
           <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: themeColors.red }}>Failed</AppText>
         </View>
       </View>
@@ -340,7 +340,7 @@ const KycRejected = ({ onVerifyPress, isKyb }) => {
       <View style={[styles.statusMessageBox, { backgroundColor: isDark ? "#1E222D" : "#F9FAFB", borderLeftColor: themeColors.red, borderLeftWidth: 4 }]}>
         <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
           <View style={[styles.statusIconWrap, { backgroundColor: 'transparent' }]}>
-            <FastImage source={failed} style={{ width: 24, height: 24 }} tintColor={themeColors.red} />
+            <FastImage source={failed} style={{ width: 35, height: 35 }} />
           </View>
           <View style={{ flex: 1, marginLeft: 12 }}>
             <AppText type={TWELVE} style={{ color: themeColors.text, lineHeight: 20 }}>
@@ -403,7 +403,7 @@ const KycRejected = ({ onVerifyPress, isKyb }) => {
             <AppText type={FOURTEEN} weight={MEDIUM} style={{ flex: 1.5, color: themeColors.text }}>{item.label}</AppText>
             <AppText type={FOURTEEN} weight={MEDIUM} style={{ flex: 1, color: themeColors.text, textAlign: "center" }}>{item.value}</AppText>
             <View style={{ flex: 1, alignItems: "flex-end" }}>
-              <FastImage source={verify_lock} style={{ width: 16, height: 16 }} tintColor="#9CA3AF" />
+              <FastImage source={verify_lock} style={{ width: 35, height: 35 }} tintColor="#9CA3AF" />
             </View>
           </View>
         ))}
@@ -441,7 +441,7 @@ const KycDue = ({ onVerifyPress, isKyb }) => {
           <View style={{ backgroundColor: isDark ? "#2A2E39" : lightTheme.input, padding: 12 }}>
             <View style={styles.rewardHeader}>
               <View style={{ flexDirection: "row", alignItems: "center", flexShrink: 1, marginRight: 8 }}>
-                <FastImage source={newLock} style={{ width: 22, height: 22, marginRight: 10 }} tintColor="#B47D16" />
+                <FastImage source={newLock} style={{ width: 35, height: 35, marginRight: 10 }} tintColor="#B47D16" />
                 <AppText type={FOURTEEN} style={{ color: themeColors.text }}>
                   Verify to claim <AppText type={FOURTEEN} style={{ color: "#D1AA67" }} weight={MEDIUM}>exciting rewards</AppText>
                 </AppText>
@@ -516,7 +516,7 @@ const KycCompleted = ({ isKyb }) => {
           {displayName}
         </AppText>
         <View style={[styles.statusBadge, { backgroundColor: "rgba(16, 185, 129, 0.1)" }]}>
-          <FastImage source={kyc_complete} style={{ width: 18, height: 18, marginRight: 6 }} tintColor={greenColor} />
+          <FastImage source={kyc_complete} style={{ width: 35, height: 35, marginRight: 6 }} />
           <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: greenColor }}>Successful</AppText>
         </View>
       </View>
@@ -525,7 +525,7 @@ const KycCompleted = ({ isKyb }) => {
       <View style={[styles.statusMessageBox, { backgroundColor: isDark ? "#1E222D" : "#F9FAFB", borderLeftColor: greenColor, borderLeftWidth: 4 }]}>
         <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
           <View style={[styles.statusIconWrap, {}]}>
-            <FastImage source={kyc_complete} style={{ width: 24, height: 24 }} tintColor={greenColor} />
+            <FastImage source={kyc_complete} style={{ width: 35, height: 35 }} />
           </View>
           <View style={{ flex: 1, marginLeft: 12 }}>
             <AppText type={TWELVE} style={{ color: themeColors.text, lineHeight: 20 }}>
@@ -575,7 +575,7 @@ const KycCompleted = ({ isKyb }) => {
             <AppText type={FOURTEEN} weight={MEDIUM} style={{ flex: 1.5, color: themeColors.text }}>{item.label}</AppText>
             <AppText type={FOURTEEN} weight={MEDIUM} style={{ flex: 1, color: themeColors.text, textAlign: "center" }}>{item.value}</AppText>
             <View style={{ flex: 1, alignItems: "flex-end" }}>
-              <FastImage source={verified_kyc} style={{ width: 16, height: 16 }} />
+              <FastImage source={verified_kyc} style={{ width: 35, height: 35 }} />
             </View>
           </View>
         ))}
@@ -978,8 +978,7 @@ const KycStatus = ({ route }) => {
                   <FastImage
                     source={faqActiveIndex === index ? upIcon : downIcon}
                     resizeMode="contain"
-                    style={{ width: 12, height: 12 }}
-                    tintColor={themeColors.secondaryText}
+                    style={{ width: 35, height: 35 }}
                   />
                 </TouchableOpacity>
                 {faqActiveIndex === index && (
@@ -1007,7 +1006,7 @@ const KycStatus = ({ route }) => {
             }}
           >
             <TouchableOpacity onPress={closeDiditWebview} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel="Close verification">
-              <FastImage source={back_ic} style={{ width: 18, height: 18 }} resizeMode="contain" tintColor={themeColors.text} />
+              <FastImage source={back_ic} style={{ width: 35, height: 35 }} resizeMode="contain" />
             </TouchableOpacity>
             <AppText type={EIGHTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text }}>
               {isKyb ? "Business verification" : "Identity verification"}

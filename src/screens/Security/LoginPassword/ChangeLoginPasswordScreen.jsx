@@ -55,8 +55,8 @@ const RuleItem = ({ state, label, doneColor }) => {
         {isOk ? (
           <FastImage source={checkIc} style={{ width: 8, height: 8 }} tintColor="#FFFFFF" resizeMode="contain" />
         ) : null}
-        {isBad ? <FastImage source={closeIcon} style={{ width: 7, height: 7 }} tintColor={colors.red} resizeMode="contain" /> : null}
-        {isPending ? <FastImage source={minus} style={{ width: 12, height: 12 }} resizeMode="contain" /> : null}
+        {isBad ? <FastImage source={closeIcon} style={{ width: 7, height: 7 }} resizeMode="contain" /> : null}
+        {isPending ? <FastImage source={minus} style={{ width: 35, height: 35 }} resizeMode="contain" /> : null}
       </View>
       <AppText type={TWELVE} style={{ color: "#9AA3AF" }}>
         {label}
@@ -679,8 +679,7 @@ const ChangeLoginPasswordScreen = () => {
         >
           <FastImage
             source={back_ic}
-            tintColor={isDark ? colors.white : colors.black}
-            style={{ width: 18, height: 18 }}
+            style={{ width: 35, height: 35 }}
             resizeMode='contain'
           />
         </TouchableOpacity>

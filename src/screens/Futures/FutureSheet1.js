@@ -10,7 +10,7 @@ import {
   TEN,
   TWELVE,
 } from "../../shared";
-import { back_ic, closeIcon, downIcon } from "../../helper/ImageAssets";
+import { back_ic, backChevronIcon, closeIcon, downIcon } from "../../helper/ImageAssets";
 import FastImage from "react-native-fast-image";
 import { useTheme } from "../../hooks/useTheme";
 
@@ -174,7 +174,7 @@ const FutureSheet1 = ({ onClose }) => {
       >
         <AppText type={FOURTEEN} style={{ color: themeColors.text }}>TP?SL</AppText>
         <FastImage
-          source={back_ic}
+          source={backChevronIcon}
           style={{ width: 12, height: 12, transform: [{ rotate: "270deg" }] }}
           tintColor={themeColors.secondaryText}
           resizeMode="contain"

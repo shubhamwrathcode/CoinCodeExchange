@@ -111,8 +111,7 @@ const MoreMenu = () => {
           <FastImage
             source={back_ic}
             resizeMode="contain"
-            style={{ width: 20, height: 20 }}
-            tintColor={themeColors.text}
+            style={{ width: 35, height: 35 }}
           />
         </TouchableOpacity>
         <View style={{ marginTop: 30 }}>

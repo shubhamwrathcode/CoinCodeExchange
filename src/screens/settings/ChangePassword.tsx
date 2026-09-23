@@ -388,7 +388,7 @@ const ChangePassword = () => {
     <AppSafeAreaView style={{ flex: 1, backgroundColor: themeColors.background }}>
       <View style={[styles.header, { borderBottomColor: themeColors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <FastImage source={back_ic} style={styles.backIcon} tintColor={themeColors.text} />
+          <FastImage source={back_ic} style={styles.backIcon} />
         </TouchableOpacity>
         <AppText weight={BOLD} type={SIXTEEN} style={{ color: themeColors.text }}>
           {isFund ? 'Fund Password' : 'Login Password'}
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: { padding: 4 },
-  backIcon: { width: 18, height: 18, resizeMode: "contain" },
+  backIcon: { width: 35, height: 35, resizeMode: "contain" },
   scroll: { flex: 1 },
   scrollContent: { padding: 24, paddingBottom: 60 },
 

@@ -440,7 +440,7 @@ const SecurityVerification = ({ route }) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => NavigationService.goBack()}>
-          <FastImage source={back_ic} tintColor={isDark ? '#FFFFFF' : '#000000'} style={{ width: 18, height: 18 }} resizeMode='contain' />
+          <FastImage source={back_ic} style={{ width: 35, height: 35 }} resizeMode='contain' />
         </TouchableOpacity>
       </View>
 

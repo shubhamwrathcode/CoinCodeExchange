@@ -19,7 +19,6 @@ const KycHeader = ({ title, onBackPress }) => {
         <FastImage
           source={back_ic}
           style={styles.backIcon}
-          tintColor={colors.black}
           resizeMode="contain"
         />
       </TouchableOpacity>
@@ -54,8 +53,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   backIcon: {
-    width: 20,
-    height: 20,
+    width: 35,
+    height: 35,
   },
   titleContainer: {
     flex: 1,

@@ -451,9 +451,8 @@ const MarginBorrowRepay = () => {
           >
             <FastImage
               source={back_ic}
-              style={{ width: 20, height: 20 }}
+              style={{ width: 35, height: 35 }}
               resizeMode="contain"
-              tintColor={themeColors.text}
             />
           </TouchableOpacity>
 

@@ -673,7 +673,7 @@ const FutureChartScreen = ({ route: routeProp, isEmbedded = false, onTradePress 
                 </AppText>
               </View>
               <TouchableOpacity onPress={() => dispatch(getUserSpotWallet("spot"))}>
-                <FastImage source={Refresh} style={{ width: 14, height: 14 }} resizeMode="contain" tintColor={themeColors.text} />
+                <FastImage source={Refresh} style={{ width: 35, height: 35 }} resizeMode="contain" />
               </TouchableOpacity>
             </View>
           </View>
@@ -780,9 +780,8 @@ const FutureChartScreen = ({ route: routeProp, isEmbedded = false, onTradePress 
             <TouchableOpacity onPress={() => dispatch(getUserSpotWallet("spot"))}>
               <FastImage
                 source={Refresh}
-                style={{ width: 14, height: 14 }}
+                style={{ width: 35, height: 35 }}
                 resizeMode="contain"
-                tintColor={themeColors.text}
               />
             </TouchableOpacity>
           </View>
@@ -1309,13 +1308,11 @@ const FutureChartScreen = ({ route: routeProp, isEmbedded = false, onTradePress 
               source={RectangleGreen}
               style={{ flex: Math.max(0.05, bidPct / 100), height: 10 }}
               resizeMode="stretch"
-              tintColor={'#38B781'}
             />
             <FastImage
               source={RectangleRed}
               style={{ flex: Math.max(0.05, (100 - bidPct) / 100), height: 10 }}
               resizeMode="stretch"
-              tintColor={'#ED4E4E'}
             />
           </View>
           <AppText weight={SEMI_BOLD} style={{ color: "#ED4E4E", fontSize: 13, marginLeft: 8 }}>
@@ -1343,11 +1340,11 @@ const FutureChartScreen = ({ route: routeProp, isEmbedded = false, onTradePress 
           )}
           <View style={[styles.splitObHeaderCol, { justifyContent: "flex-end", flexDirection: "row", gap: 6, alignItems: "center", flex: orderBookViewMode === "both" ? 1 : 0 }]}>
             <TouchableOpacity onPress={cycleViewMode} activeOpacity={0.7} style={{ padding: 4, backgroundColor: isDark ? "#2A2A2A" : "#F3F4F6", borderRadius: 4 }}>
-              <FastImage source={SPOT_OB_VIEW_ICONS[viewModeIndex]} style={{ width: 16, height: 16 }} resizeMode="contain" />
+              <FastImage source={SPOT_OB_VIEW_ICONS[viewModeIndex]} style={{ width: 35, height: 35 }} resizeMode="contain" />
             </TouchableOpacity>
             <TouchableOpacity ref={aggTriggerRef} onPress={openAggMenu} activeOpacity={0.7} style={{ flexDirection: "row", alignItems: "center", backgroundColor: isDark ? "#2A2A2A" : "#F3F4F6", paddingHorizontal: 6, paddingVertical: 4, borderRadius: 4, gap: 4 }}>
               <AppText type={ELEVEN} weight={SEMI_BOLD} style={{ color: themeColors.text }}>{formatAggStepLabel(orderBookAggStep)}</AppText>
-              <FastImage source={downIcon} style={{ width: 8, height: 8 }} resizeMode="contain" tintColor={themeColors.text} />
+              <FastImage source={downIcon} style={{ width: 8, height: 8 }} resizeMode="contain" />
             </TouchableOpacity>
           </View>
         </View>
@@ -1466,7 +1463,6 @@ const FutureChartScreen = ({ route: routeProp, isEmbedded = false, onTradePress 
                 source={back_ic}
                 style={styles.backIcon}
                 resizeMode="contain"
-                tintColor={themeColors.text}
               />
             </TouchableOpacity>
             <TouchableOpacity
@@ -2225,8 +2221,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   backIcon: {
-    width: 18,
-    height: 18,
+    width: 35,
+    height: 35,
   },
   headerLeft: {
     flex: 1,

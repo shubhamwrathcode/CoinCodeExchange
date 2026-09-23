@@ -3,7 +3,7 @@ import { TouchableOpacity } from "react-native-gesture-handler";
 import { AppText, BOLD, FIFTEEN } from "../../shared";
 import { colors } from "../../theme/colors";
 import { useState, useRef } from "react";
-import { back_ic } from "../../helper/ImageAssets";
+import { back_ic, backChevronIcon } from "../../helper/ImageAssets";
 import FastImage from "react-native-fast-image";
 import { useTheme } from "../../hooks/useTheme";
 
@@ -64,11 +64,10 @@ const WalletHeader = ({ routes = [], activeTab, setActiveTab }) => {
             source={back_ic}
             resizeMode="contain"
             style={{
-              width: 15,
-              height: 15,
+              width: 35,
+              height: 35,
               bottom: 3
             }}
-            tintColor={theme !== "Dark" ? colors.black : colors.white}
           />
         </RNTouchableOpacity>
       )}
@@ -129,7 +128,7 @@ const WalletHeader = ({ routes = [], activeTab, setActiveTab }) => {
           onPress={() => scrollToEdge("right")}
         >
           <FastImage
-            source={back_ic}
+            source={backChevronIcon}
             resizeMode="contain"
             style={{
               width: 15,

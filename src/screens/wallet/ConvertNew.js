@@ -310,7 +310,7 @@ function ConvertNew() {
       {/* Header — always visible */}
       <View style={[styles.header, { paddingTop: insets.top + HEADER_CONTENT_PADDING }]}>
         <TouchableOpacity onPress={() => NavigationService.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <FastImage source={back_ic} resizeMode="contain" tintColor={colors.white} style={styles.headerIcon} />
+          <FastImage source={back_ic} resizeMode="contain" style={styles.headerIcon} />
         </TouchableOpacity>
         <AppText color={isDark ? colors.black : colors.white} weight={SEMI_BOLD} style={styles.headerTitle}>
           Convert
