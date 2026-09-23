@@ -3,10 +3,11 @@ import { FlatList, TextInput, TouchableOpacity, View } from "react-native";
 import FastImage from "react-native-fast-image";
 import { AppText, DISCLAIMTEXT, EIGHTEEN, FOURTEEN, SEMI_BOLD, TWELVE } from "../../../shared";
 import { colors, darkTheme } from "../../../theme/colors";
-import { activities_icon, checkIc, moreOption, searchIcon, NO_NOTIFICATION_ICON, overviewWalletImg } from "../../../helper/ImageAssets";
+import { checkIc, searchIcon, NO_NOTIFICATION_ICON, overviewWalletImg } from "../../../helper/ImageAssets";
 import CoinIcon from "../../../common/CoinIcon";
 import WalletTabQuickActions from "../WalletTabQuickActions";
 import TotalAssetsCard from "../TotalAssetsCard";
+import WalletAssetCard from "../WalletAssetCard";
 
 const GenericWalletTab = ({
   title,
@@ -32,9 +33,11 @@ const GenericWalletTab = ({
   hideZeroDefault = false,
   imageSource = overviewWalletImg,
   onOpenCoinSheet,
+  getCardActions,
 }) => {
   const [hideZero, setHideZero] = useState(Boolean(hideZeroDefault));
   const [search, setSearch] = useState("");
+  const isDark = theme === "Dark";
 
   const rows = useMemo(() => {
     const list = Array.isArray(userWalletRows) ? [...userWalletRows] : [];
@@ -59,6 +62,8 @@ const GenericWalletTab = ({
     return out;
   }, [userWalletRows, safeNum, search, hideZero, totalWalletQty]);
 
+  const mask = (v) => (showBalance ? v : "****");
+
   return (
     <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 18 }}>
       <AppText weight={SEMI_BOLD} type={EIGHTEEN} style={{ marginBottom: 12 }}>
@@ -77,14 +82,14 @@ const GenericWalletTab = ({
       {actions?.length ? <WalletTabQuickActions theme={theme} themeColors={themeColors} items={actions} /> : null}
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 14 }}>
-        <View style={[styles.searchBox, { backgroundColor: theme === 'Dark' ? darkTheme.darkThemeInputColor : '#F7F7F7' }]}>
+        <View style={[styles.searchBox, { backgroundColor: isDark ? darkTheme.darkThemeInputColor : "#F7F7F7" }]}>
           <FastImage source={searchIcon} style={{ width: 14, height: 14 }} resizeMode="contain" tintColor={themeColors.secondaryText} />
           <TextInput
             value={search}
             onChangeText={setSearch}
             placeholder="Search"
             placeholderTextColor={themeColors.secondaryText}
-            cursorColor={theme === 'Dark' ? colors.white : colors.black}
+            cursorColor={isDark ? colors.white : colors.black}
             style={{ flex: 1, height: 40, fontSize: 13, color: themeColors.text }}
             returnKeyType="search"
           />
@@ -93,10 +98,10 @@ const GenericWalletTab = ({
         <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 8 }} onPress={() => setHideZero((v) => !v)}>
           <View style={styles.checkbox}>
             {hideZero ? (
-              <FastImage source={checkIc} style={{ width: 8, height: 8 }} resizeMode="contain" tintColor={theme === 'Dark' ? colors.white : colors.buttonBg} />
+              <FastImage source={checkIc} style={{ width: 8, height: 8 }} resizeMode="contain" tintColor={isDark ? colors.white : colors.buttonBg} />
             ) : null}
           </View>
-          <AppText type={TWELVE} color={theme === 'Dark' ? colors.white : DISCLAIMTEXT}>Hide 0 balances</AppText>
+          <AppText type={TWELVE} color={isDark ? colors.white : DISCLAIMTEXT}>Hide 0 balances</AppText>
         </TouchableOpacity>
       </View>
 
@@ -116,35 +121,30 @@ const GenericWalletTab = ({
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
         scrollEnabled={false}
-        renderItem={({ item, index }) => {
+        renderItem={({ item }) => {
           const total = totalWalletQty(item);
-          const isLast = index === rows.length - 1;
+          const available = safeRound(safeNum(item?.balance), 8);
+          const inOrders = safeRound(safeNum(item?.locked_balance), 8);
           return (
-            <View style={[styles.row, { borderBottomColor: themeColors.border }, isLast && { borderBottomWidth: 0 }]}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
-                <View style={{ borderRadius: 16, overflow: "hidden" }}>
-                  <CoinIcon
-                    coin={item}
-                    style={{ width: 28, height: 28 }}
-                    resizeMode="cover"
-                    fallback={activities_icon}
-                  />
+            <WalletAssetCard
+              theme={theme}
+              themeColors={themeColors}
+              icon={
+                <View style={{ borderRadius: 18, overflow: "hidden" }}>
+                  <CoinIcon coin={item} style={{ width: 36, height: 36, borderRadius: 18 }} resizeMode="cover" />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <AppText type={FOURTEEN} weight={SEMI_BOLD}>{item?.short_name}</AppText>
-                  <AppText type={TWELVE} color={DISCLAIMTEXT}>{item?.currency}</AppText>
-                </View>
-              </View>
-
-              <View style={{ alignItems: "flex-end" }}>
-                <AppText type={FOURTEEN} weight={SEMI_BOLD}>{safeRound(total, 8)}</AppText>
-                <AppText type={TWELVE} color={DISCLAIMTEXT}>{approxUsdLine(item)}</AppText>
-              </View>
-
-              <TouchableOpacity style={{ paddingLeft: 10, paddingVertical: 6 }} onPress={() => onOpenCoinSheet?.(item)}>
-                <FastImage source={moreOption} style={{ width: 18, height: 18, transform: [{ rotate: "90deg" }] }} resizeMode="contain" tintColor={theme === 'Dark' ? colors.white : colors.black} />
-              </TouchableOpacity>
-            </View>
+              }
+              symbol={item?.short_name}
+              name={item?.currency}
+              amount={mask(safeRound(total, 8))}
+              fiatAmount={mask(approxUsdLine(item))}
+              details={[
+                { key: "available", label: "Available", value: mask(available) },
+                { key: "orders", label: "In Orders", value: mask(inOrders) },
+              ]}
+              actions={getCardActions?.(item) || []}
+              onPress={getCardActions ? undefined : () => onOpenCoinSheet?.(item)}
+            />
           );
         }}
         ListEmptyComponent={() => (
@@ -188,14 +188,6 @@ const styles = {
     borderRadius: 12,
     marginTop: 12,
   },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
 };
 
 export default GenericWalletTab;
-

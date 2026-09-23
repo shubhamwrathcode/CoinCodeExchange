@@ -32,10 +32,13 @@ import {
   futureWalletImg,
 } from "../../../helper/ImageAssets";
 import TotalAssetsCard from "../TotalAssetsCard";
+import WalletAssetCard from "../WalletAssetCard";
+import CoinIcon from "../../../common/CoinIcon";
 import NavigationService from "../../../navigation/NavigationService";
 import { FUTURES_SCREEN, MARGIN_TRANSFER_SCREEN, OPTIONS_PNL_ANALYSIS_SCREEN } from "../../../navigation/routes";
 import useOptionsWebSocket from "../../Futures/OptionsTrade/hooks/useOptionsWebSocket";
 import WalletShimmerCell from "../WalletShimmerCell";
+import { BlurSheetBackground, blurSheetRbCustomStyles, blurSheetTheme } from "../sheets/BlurSheetChrome";
 import {
   decNum,
   normalizeOptionsPnlAnalysisData,
@@ -85,6 +88,7 @@ function OptionsSkeleton({ theme }) {
 const OptionsDetailSheetContent = ({ rowPopup, themeColors, theme, onTrade, onTransfer }) => {
   if (!rowPopup) return null;
   const isDark = theme === "Dark";
+  const sheetTheme = blurSheetTheme(isDark);
 
   if (rowPopup.type === "position") {
     const item = rowPopup.data;
@@ -93,17 +97,17 @@ const OptionsDetailSheetContent = ({ rowPopup, themeColors, theme, onTrade, onTr
     return (
       <View style={{ paddingHorizontal: 20 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 10 }}>
-          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? darkTheme.darkThemeInputColor : "#E5E7EB", alignItems: "center", justifyContent: "center" }}>
-            <AppText type={SIXTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text }}>{item.symbol?.charAt(0) || "O"}</AppText>
+          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: sheetTheme.cardBg, alignItems: "center", justifyContent: "center" }}>
+            <AppText type={SIXTEEN} weight={SEMI_BOLD} style={{ color: sheetTheme.textColor }}>{item.symbol?.charAt(0) || "O"}</AppText>
           </View>
           <View>
-            <AppText type={EIGHTEEN} weight={SEMI_BOLD}>{item.symbol}</AppText>
-            <AppText type={FOURTEEN} color={DISCLAIMTEXT}>{item.side || "—"} · {item.option_type || item.underlying || ""}</AppText>
+            <AppText type={EIGHTEEN} weight={SEMI_BOLD} style={{ color: sheetTheme.textColor }}>{item.symbol}</AppText>
+            <AppText type={FOURTEEN} style={{ color: sheetTheme.subTextColor }}>{item.side || "—"} · {item.option_type || item.underlying || ""}</AppText>
           </View>
         </View>
 
         <View style={{ marginTop: 24 }}>
-          <AppText type={TWENTY_SIX} weight={SEMI_BOLD}>{fmt(item.quantity, 4)}</AppText>
+          <AppText type={TWENTY_SIX} weight={SEMI_BOLD} style={{ color: sheetTheme.textColor }}>{fmt(item.quantity, 4)}</AppText>
           <AppText type={FOURTEEN} style={{ color: pnlColor(upnl), marginTop: 4 }}>
             {upnl >= 0 ? "+" : ""}{fmt(upnl, 2)} USDT PnL
           </AppText>
@@ -111,18 +115,18 @@ const OptionsDetailSheetContent = ({ rowPopup, themeColors, theme, onTrade, onTr
 
         <View style={{ marginTop: 20, gap: 16 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <AppText type={FOURTEEN} color={DISCLAIMTEXT}>Avg Price</AppText>
-            <AppText type={FOURTEEN} weight={SEMI_BOLD}>{fmt(item.avg_price, 2)}</AppText>
+            <AppText type={FOURTEEN} style={{ color: sheetTheme.subTextColor }}>Avg Price</AppText>
+            <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: sheetTheme.textColor }}>{fmt(item.avg_price, 2)}</AppText>
           </View>
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <AppText type={FOURTEEN} color={DISCLAIMTEXT}>Mark Price</AppText>
-            <AppText type={FOURTEEN} weight={SEMI_BOLD}>{fmt(item.mark_price, 2)}</AppText>
+            <AppText type={FOURTEEN} style={{ color: sheetTheme.subTextColor }}>Mark Price</AppText>
+            <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: sheetTheme.textColor }}>{fmt(item.mark_price, 2)}</AppText>
           </View>
         </View>
 
         <View style={{ flexDirection: "row", gap: 12, marginTop: 30 }}>
-          <TouchableOpacity style={[styles.sheetBtn, { backgroundColor: isDark ? themeColors.themeElevationColor : colors.iconBgColor }]} onPress={onTrade}>
-            <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text }}>Trade</AppText>
+          <TouchableOpacity style={[styles.sheetBtn, { backgroundColor: sheetTheme.buttonBg }]} onPress={onTrade}>
+            <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: sheetTheme.textColor }}>Trade</AppText>
           </TouchableOpacity>
         </View>
       </View>
@@ -140,37 +144,37 @@ const OptionsDetailSheetContent = ({ rowPopup, themeColors, theme, onTrade, onTr
   return (
     <View style={{ paddingHorizontal: 20 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 10 }}>
-        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? darkTheme.darkThemeInputColor : "#E5E7EB", alignItems: "center", justifyContent: "center" }}>
-          <AppText type={SIXTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text }}>{wallet?.asset?.charAt(0) || "U"}</AppText>
+        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: sheetTheme.cardBg, alignItems: "center", justifyContent: "center" }}>
+          <AppText type={SIXTEEN} weight={SEMI_BOLD} style={{ color: sheetTheme.textColor }}>{wallet?.asset?.charAt(0) || "U"}</AppText>
         </View>
         <View>
-          <AppText type={EIGHTEEN} weight={SEMI_BOLD}>{wallet?.asset || "USDT"}</AppText>
-          <AppText type={FOURTEEN} color={DISCLAIMTEXT}>Options Margin</AppText>
+          <AppText type={EIGHTEEN} weight={SEMI_BOLD} style={{ color: sheetTheme.textColor }}>{wallet?.asset || "USDT"}</AppText>
+          <AppText type={FOURTEEN} style={{ color: sheetTheme.subTextColor }}>Options Margin</AppText>
         </View>
       </View>
 
       <View style={{ marginTop: 24 }}>
-        <AppText type={TWENTY_SIX} weight={SEMI_BOLD}>{fmt(walletTotal, 8)}</AppText>
-        <AppText type={FOURTEEN} color={DISCLAIMTEXT} style={{ marginTop: 4 }}>Margin Balance</AppText>
+        <AppText type={TWENTY_SIX} weight={SEMI_BOLD} style={{ color: sheetTheme.textColor }}>{fmt(walletTotal, 8)}</AppText>
+        <AppText type={FOURTEEN} style={{ color: sheetTheme.subTextColor, marginTop: 4 }}>Margin Balance</AppText>
       </View>
 
       <View style={{ marginTop: 20, gap: 16 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <AppText type={FOURTEEN} color={DISCLAIMTEXT}>Available</AppText>
-          <AppText type={FOURTEEN} weight={SEMI_BOLD}>{fmt(availableBal, 8)}</AppText>
+          <AppText type={FOURTEEN} style={{ color: sheetTheme.subTextColor }}>Available</AppText>
+          <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: sheetTheme.textColor }}>{fmt(availableBal, 8)}</AppText>
         </View>
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <AppText type={FOURTEEN} color={DISCLAIMTEXT}>In Order</AppText>
-          <AppText type={FOURTEEN} weight={SEMI_BOLD}>{fmt(lockedBal, 8)}</AppText>
+          <AppText type={FOURTEEN} style={{ color: sheetTheme.subTextColor }}>In Order</AppText>
+          <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: sheetTheme.textColor }}>{fmt(lockedBal, 8)}</AppText>
         </View>
       </View>
 
       <View style={{ flexDirection: "row", marginTop: 30 }}>
         <TouchableOpacity
-          style={[styles.sheetBtn, { backgroundColor: isDark ? themeColors.themeElevationColor : colors.iconBgColor }]}
+          style={[styles.sheetBtn, { backgroundColor: sheetTheme.buttonBg }]}
           onPress={onTransfer}
         >
-          <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text }}>Transfer</AppText>
+          <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: sheetTheme.textColor }}>Transfer</AppText>
         </TouchableOpacity>
       </View>
     </View>
@@ -414,11 +418,11 @@ const OptionsWalletTab = ({ theme, themeColors }) => {
         <View style={{ flexDirection: "row", gap: 18, alignItems: "flex-end" }}>
           <TouchableOpacity onPress={() => { setActiveTab("assets"); setSearch(""); setHideSmall(false); }} style={{ alignItems: "center" }}>
             <AppText type={FOURTEEN} weight={SEMI_BOLD} color={activeTab === "assets" ? (isDark ? colors.white : colors.black) : DISCLAIMTEXT}>Assets</AppText>
-            <View style={[styles.tabUnderline, { backgroundColor: activeTab === "assets" ? isDark ? colors.white : colors.buttonBg : "transparent" }]} />
+            <View style={[styles.tabUnderline, { backgroundColor: activeTab === "assets" ? colors.cyanTheme : "transparent" }]} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => { setActiveTab("positions"); setSearch(""); setHideSmall(false); }} style={{ alignItems: "center" }}>
             <AppText type={FOURTEEN} weight={SEMI_BOLD} color={activeTab === "positions" ? (isDark ? colors.white : colors.black) : DISCLAIMTEXT}>Positions</AppText>
-            <View style={[styles.tabUnderline, { backgroundColor: activeTab === "positions" ? isDark ? colors.white : colors.buttonBg : "transparent" }]} />
+            <View style={[styles.tabUnderline, { backgroundColor: activeTab === "positions" ? colors.cyanTheme : "transparent" }]} />
           </TouchableOpacity>
         </View>
       </View>
@@ -452,34 +456,34 @@ const OptionsWalletTab = ({ theme, themeColors }) => {
 
       {activeTab === "assets" ? (
         assetRow ? (
-          <View style={[styles.row, { borderBottomColor: themeColors.border, marginTop: 10 }]}>
-            <View style={styles.rowLeft}>
-              {assetIcon ? (
-                <FastImage source={{ uri: assetIcon }} style={{ width: 28, height: 28, borderRadius: 14 }} resizeMode="contain" />
-              ) : (
-                <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: isDark ? "#2C2C2E" : "#E5E7EB" }} />
-              )}
-              <View>
-                <AppText type={FOURTEEN} weight={SEMI_BOLD}>{assetRow.asset}</AppText>
-                <AppText type={TWELVE} color={DISCLAIMTEXT}>Margin: {mask(fmt(assetRow.margin_balance, 4))}</AppText>
-              </View>
-            </View>
-            <View style={styles.rowRight}>
-              <View style={{ alignItems: "flex-end", marginRight: 10 }}>
-                <AppText type={FOURTEEN} weight={SEMI_BOLD}>{mask(fmt(assetRow.available, 4))}</AppText>
-                <AppText type={TWELVE} color={DISCLAIMTEXT}>In Order: {mask(fmt(assetRow.in_order, 4))}</AppText>
-              </View>
-              <TouchableOpacity
-                onPress={() => {
-                  setSelectedRowPopup({ type: "asset", data: walletData || assetRow });
-                  detailSheetRef.current?.open();
+          <WalletAssetCard
+            style={{ marginTop: 10 }}
+            theme={theme}
+            themeColors={themeColors}
+            icon={
+              <CoinIcon
+                coin={{
+                  short_name: assetRow.asset,
+                  asset: assetRow.asset,
+                  icon_path: walletData?.icon_path || assetRow?.icon_path,
                 }}
-                style={styles.moreBtn}
-              >
-                <FastImage source={moreOption} style={styles.moreIcon} resizeMode="contain" tintColor={isDark ? colors.white : colors.black} />
-              </TouchableOpacity>
-            </View>
-          </View>
+                style={{ width: 36, height: 36, borderRadius: 18 }}
+                resizeMode="contain"
+              />
+            }
+            symbol={assetRow.asset}
+            name="Options Margin"
+            amount={mask(fmt(assetRow.available, 4))}
+            fiatAmount={`Margin: ${mask(fmt(assetRow.margin_balance, 4))}`}
+            details={[
+              { key: "available", label: "Available", value: mask(fmt(assetRow.available, 4)) },
+              { key: "orders", label: "In Orders", value: mask(fmt(assetRow.in_order, 4)) },
+            ]}
+            actions={[
+              { key: "trade", label: "Trade", primary: true, onPress: openTrade },
+              { key: "transfer", label: "Transfer", primary: false, onPress: openTransfer },
+            ]}
+          />
         ) : (
           <View style={styles.emptyContainer}>
             <FastImage source={NO_NOTIFICATION_ICON} style={styles.emptyIcon} resizeMode="contain" />
@@ -493,36 +497,33 @@ const OptionsWalletTab = ({ theme, themeColors }) => {
           style={{ marginTop: 10 }}
           showsVerticalScrollIndicator={false}
           scrollEnabled={false}
-          renderItem={({ item, index }) => {
+          renderItem={({ item }) => {
             const upnl = parseBal(item.unrealized_pnl);
-            const isLast = index === filteredPositions.length - 1;
-
             return (
-              <View style={[styles.row, { borderBottomColor: themeColors.border }, isLast && { borderBottomWidth: 0 }]}>
-                <View style={styles.rowLeft}>
-                  <View>
-                    <AppText type={FOURTEEN} weight={SEMI_BOLD}>{item.symbol}</AppText>
-                    <AppText type={TWELVE} color={DISCLAIMTEXT}>{item.side || "—"} · {item.option_type || item.underlying || ""}</AppText>
-                  </View>
-                </View>
-                <View style={styles.rowRight}>
-                  <View style={{ alignItems: "flex-end", marginRight: 10 }}>
-                    <AppText type={FOURTEEN} weight={SEMI_BOLD}>{fmt(item.quantity, 4)}</AppText>
-                    <AppText type={TWELVE} style={{ color: pnlColor(upnl) }}>
-                      {upnl >= 0 ? "+" : ""}{fmt(upnl, 2)} USDT
-                    </AppText>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => {
+              <WalletAssetCard
+                theme={theme}
+                themeColors={themeColors}
+                symbol={item.symbol}
+                name={`${item.side || "—"} · ${item.option_type || item.underlying || ""}`}
+                amount={fmt(item.quantity, 4)}
+                fiatAmount={`${upnl >= 0 ? "+" : ""}${fmt(upnl, 2)} USDT`}
+                details={[
+                  { key: "side", label: "Side", value: item.side || "—" },
+                  { key: "pnl", label: "uPnL", value: `${upnl >= 0 ? "+" : ""}${fmt(upnl, 2)}`, color: pnlColor(upnl) },
+                ]}
+                actions={[
+                  { key: "trade", label: "Trade", primary: true, onPress: openTrade },
+                  {
+                    key: "details",
+                    label: "Details",
+                    primary: false,
+                    onPress: () => {
                       setSelectedRowPopup({ type: "position", data: item });
                       detailSheetRef.current?.open();
-                    }}
-                    style={styles.moreBtn}
-                  >
-                    <FastImage source={moreOption} style={styles.moreIcon} resizeMode="contain" tintColor={isDark ? colors.white : colors.black} />
-                  </TouchableOpacity>
-                </View>
-              </View>
+                    },
+                  },
+                ]}
+              />
             );
           }}
           ListEmptyComponent={() => (
@@ -549,17 +550,9 @@ const OptionsWalletTab = ({ theme, themeColors }) => {
         closeOnPressMask
         height={400}
         animationType="fade"
-        customStyles={{
-          container: {
-            backgroundColor: themeColors.background,
-            height: 400,
-            borderTopRightRadius: 24,
-            borderTopLeftRadius: 24,
-          },
-          wrapper: { backgroundColor: "#0006" },
-          draggableIcon: { backgroundColor: isDark ? "#444" : "#CCC", width: 40 },
-        }}
+        customStyles={blurSheetRbCustomStyles({ isDark, height: 400, borderRadius: 24 })}
       >
+        <BlurSheetBackground isDark={isDark} />
         <OptionsDetailSheetContent
           rowPopup={selectedRowPopup}
           themeColors={themeColors}

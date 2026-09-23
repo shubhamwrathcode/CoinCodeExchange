@@ -78,7 +78,7 @@ const SpotPnlAnalysisScreen = () => {
   const chipBg = isDark ? "#222630" : "#F0F2F5";
   const chipActiveBg = isDark ? "#1a2233" : "#EAECEF";
   const chipActiveBorder = isDark ? "#2b3852" : "#D0D5DD";
-  const tabLineColor = isDark ? colors.white : colors.black;
+  const tabLineColor = colors.cyanTheme;
 
   const {
     period,

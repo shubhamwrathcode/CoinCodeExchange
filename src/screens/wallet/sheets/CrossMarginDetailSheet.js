@@ -2,7 +2,7 @@ import React, { forwardRef, useRef, useState } from "react";
 import { View, TouchableOpacity, ScrollView, StyleSheet, Modal, ActivityIndicator } from "react-native";
 import FastImage from "react-native-fast-image";
 import RBSheet from "react-native-raw-bottom-sheet";
-import { AppText, BOLD, DISCLAIMTEXT, FOURTEEN, SEMI_BOLD, SIXTEEN, TWELVE, TWENTY_TWO } from "../../../shared";
+import { AppText, BOLD, FOURTEEN, SEMI_BOLD, SIXTEEN, TWELVE, TWENTY_TWO } from "../../../shared";
 import { colors } from "../../../theme/colors";
 import NavigationService from "../../../navigation/NavigationService";
 import { bitcoin_ic, close_ic } from "../../../helper/ImageAssets";
@@ -10,6 +10,7 @@ import { MARGIN_TRANSFER_SCREEN, TRADE_SCREEN, MARGIN_BORROW_REPAY_SCREEN } from
 import Toast from "react-native-simple-toast";
 import { appOperation } from "../../../appOperation";
 import { CUSTOMER_TYPE } from "../../../appOperation/types";
+import { BlurSheetBackground, blurSheetRbCustomStyles, blurSheetTheme } from "./BlurSheetChrome";
 
 function fmt(val, decimals = 8) {
   const n = parseFloat(val);
@@ -33,6 +34,7 @@ const CrossMarginDetailSheet = forwardRef(({ theme, themeColors, rowPopup, asset
   const [closeConfirmVisible, setCloseConfirmVisible] = useState(false);
   const [closing, setClosing] = useState(false);
   const isDark = theme === "Dark";
+  const sheetTheme = blurSheetTheme(isDark);
   const mPairKey = d?.pair || `${d?.asset}USDT`;
   const alreadyClosed = !!(mPairKey && closedPairsRef.current[mPairKey]);
 
@@ -86,7 +88,7 @@ const CrossMarginDetailSheet = forwardRef(({ theme, themeColors, rowPopup, asset
   const isLong = d?.side === "LONG";
   const sideColor = isLong ? colors.green : colors.red;
   const totalBal = isFund ? (parseFloat(latestAssetRow?.balance || d?.balance || 0) + parseFloat(latestAssetRow?.locked || d?.locked || 0)).toString() : null;
-  const netBadgeColor = parseFloat(d?.net || 0) < 0 ? colors.red : parseFloat(d?.net || 0) > 0 ? colors.green : themeColors.text;
+  const netBadgeColor = parseFloat(d?.net || 0) < 0 ? colors.red : parseFloat(d?.net || 0) > 0 ? colors.green : sheetTheme.textColor;
   const pnl = parseFloat(d?.unrealized_pnl || 0);
   const roe = parseFloat(d?.roe_pct || 0);
   const pnlColor = pnl >= 0 ? colors.green : colors.red;
@@ -100,23 +102,15 @@ const CrossMarginDetailSheet = forwardRef(({ theme, themeColors, rowPopup, asset
         customModalProps={{ statusBarTranslucent: true }}
         height={580}
         openDuration={250}
-        customStyles={{
-          container: {
-            backgroundColor: themeColors.background,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-          },
-          wrapper: {
-            backgroundColor: "#0006",
-          },
-        }}
+        customStyles={blurSheetRbCustomStyles({ isDark, height: 580, borderRadius: 24 })}
       >
+        <BlurSheetBackground isDark={isDark} />
         {d ? (
-          <View style={{ flex: 1, paddingBottom: 10, backgroundColor: themeColors.background }}>
-            <View style={[styles.header, { borderBottomWidth: 1, borderBottomColor: themeColors.border }]}>
+          <View style={{ flex: 1, paddingBottom: 10 }}>
+            <View style={[styles.header, { borderBottomWidth: 1, borderBottomColor: sheetTheme.rowBorderColor }]}>
               <View style={styles.titleRow}>
                 <View>
-                  <AppText type={SIXTEEN} weight={BOLD} style={{ color: themeColors.text }}>{d.asset}</AppText>
+                  <AppText type={SIXTEEN} weight={BOLD} style={{ color: sheetTheme.textColor }}>{d.asset}</AppText>
                   {!isFund && (
                     <View style={[styles.sideBadge, { borderColor: sideColor, alignSelf: "flex-start" }]}>
                       <AppText type={TWELVE} color={sideColorText} weight={SEMI_BOLD}>{isLong ? "LONG" : "SHORT"}</AppText>
@@ -125,7 +119,7 @@ const CrossMarginDetailSheet = forwardRef(({ theme, themeColors, rowPopup, asset
                 </View>
               </View>
               <TouchableOpacity onPress={() => ref.current?.close()} style={styles.closeBtn}>
-                <FastImage source={close_ic} style={styles.closeIcon} tintColor={themeColors.text} />
+                <FastImage source={close_ic} style={styles.closeIcon} tintColor={sheetTheme.iconTint} />
               </TouchableOpacity>
             </View>
 
@@ -134,12 +128,12 @@ const CrossMarginDetailSheet = forwardRef(({ theme, themeColors, rowPopup, asset
                 {isFund ? (
                   <>
                     <AppText type={TWENTY_TWO} weight={BOLD} style={{ color: netBadgeColor }}>{fmt(d.net)} {d.asset}</AppText>
-                    <AppText type={FOURTEEN} color={DISCLAIMTEXT}>Net Asset</AppText>
+                    <AppText type={FOURTEEN} style={{ color: sheetTheme.subTextColor }}>Net Asset</AppText>
                   </>
                 ) : (
                   <>
                     <AppText type={TWENTY_TWO} weight={BOLD} style={{ color: sideColor }}>{fmt(d.net_quantity)} {d.asset}</AppText>
-                    <AppText type={FOURTEEN} color={DISCLAIMTEXT}>≈ {fmtPrice(Math.abs(parseFloat(d.value_usdt || 0)))} USDT</AppText>
+                    <AppText type={FOURTEEN} style={{ color: sheetTheme.subTextColor }}>≈ {fmtPrice(Math.abs(parseFloat(d.value_usdt || 0)))} USDT</AppText>
                     {d.unrealized_pnl != null && (
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
                         <AppText type={SIXTEEN} weight={SEMI_BOLD} style={{ color: pnlColor }}>
@@ -157,26 +151,26 @@ const CrossMarginDetailSheet = forwardRef(({ theme, themeColors, rowPopup, asset
               <View style={styles.content}>
                 {isFund ? (
                   <>
-                    <DetailRow label="Total Balance" val={fmt(totalBal)} asset={d.asset} themeColors={themeColors} />
-                    <DetailRow label="Available" val={fmt(d.balance)} asset={d.asset} themeColors={themeColors} />
-                    <DetailRow label="Locked" val={parseFloat(d.locked) > 0 ? fmt(d.locked) : "—"} asset={d.asset} themeColors={themeColors} />
-                    <DetailRow label="Borrowed" val={hasBorrow ? fmt(d.borrowed) : "—"} asset={d.asset} valColor={hasBorrow ? colors.red : undefined} themeColors={themeColors} />
-                    <DetailRow label="Accrued Interest" val={debtRow?.interest_accrued && parseFloat(debtRow.interest_accrued) > 0 ? fmt(debtRow.interest_accrued) : "—"} asset={d.asset} valColor={debtRow?.interest_accrued && parseFloat(debtRow.interest_accrued) > 0 ? colors.red : undefined} themeColors={themeColors} />
-                    <DetailRow label="Net" val={fmt(d.net)} asset={d.asset} valColor={netBadgeColor} themeColors={themeColors} />
+                    <DetailRow label="Total Balance" val={fmt(totalBal)} asset={d.asset} sheetTheme={sheetTheme} />
+                    <DetailRow label="Available" val={fmt(d.balance)} asset={d.asset} sheetTheme={sheetTheme} />
+                    <DetailRow label="Locked" val={parseFloat(d.locked) > 0 ? fmt(d.locked) : "—"} asset={d.asset} sheetTheme={sheetTheme} />
+                    <DetailRow label="Borrowed" val={hasBorrow ? fmt(d.borrowed) : "—"} asset={d.asset} valColor={hasBorrow ? colors.red : undefined} sheetTheme={sheetTheme} />
+                    <DetailRow label="Accrued Interest" val={debtRow?.interest_accrued && parseFloat(debtRow.interest_accrued) > 0 ? fmt(debtRow.interest_accrued) : "—"} asset={d.asset} valColor={debtRow?.interest_accrued && parseFloat(debtRow.interest_accrued) > 0 ? colors.red : undefined} sheetTheme={sheetTheme} />
+                    <DetailRow label="Net" val={fmt(d.net)} asset={d.asset} valColor={netBadgeColor} sheetTheme={sheetTheme} />
                   </>
                 ) : (
                   <>
-                    <DetailRow label="Size" val={fmt(d.net_quantity)} asset={d.asset} valColor={sideColor} themeColors={themeColors} />
-                    <DetailRow label="Position Value" val={fmt(Math.abs(parseFloat(d.value_usdt || 0)), 4)} asset="USDT" themeColors={themeColors} />
-                    <DetailRow label="Entry Price" val={(d.entry_price == null || parseFloat(d.entry_price) === 0) ? "—" : fmtPrice(d.entry_price)} asset="USDT" themeColors={themeColors} />
-                    <DetailRow label="Mark Price" val={d.mark_price != null ? fmtPrice(d.mark_price) : "—"} asset="USDT" themeColors={themeColors} />
-                    <DetailRow label="Unrealized PnL" val={`${pnl >= 0 ? "+" : ""}${fmt(pnl, 4)}`} asset="USDT" valColor={pnlColor} themeColors={themeColors} />
-                    <DetailRow label="ROE" val={`${roe >= 0 ? "+" : ""}${fmtPrice(roe)}`} asset="%" valColor={pnlColor} themeColors={themeColors} />
-                    <DetailRow label="Realized PnL" val={fmt(d.realized_pnl, 4)} asset="USDT" themeColors={themeColors} />
+                    <DetailRow label="Size" val={fmt(d.net_quantity)} asset={d.asset} valColor={sideColor} sheetTheme={sheetTheme} />
+                    <DetailRow label="Position Value" val={fmt(Math.abs(parseFloat(d.value_usdt || 0)), 4)} asset="USDT" sheetTheme={sheetTheme} />
+                    <DetailRow label="Entry Price" val={(d.entry_price == null || parseFloat(d.entry_price) === 0) ? "—" : fmtPrice(d.entry_price)} asset="USDT" sheetTheme={sheetTheme} />
+                    <DetailRow label="Mark Price" val={d.mark_price != null ? fmtPrice(d.mark_price) : "—"} asset="USDT" sheetTheme={sheetTheme} />
+                    <DetailRow label="Unrealized PnL" val={`${pnl >= 0 ? "+" : ""}${fmt(pnl, 4)}`} asset="USDT" valColor={pnlColor} sheetTheme={sheetTheme} />
+                    <DetailRow label="ROE" val={`${roe >= 0 ? "+" : ""}${fmtPrice(roe)}`} asset="%" valColor={pnlColor} sheetTheme={sheetTheme} />
+                    <DetailRow label="Realized PnL" val={fmt(d.realized_pnl, 4)} asset="USDT" sheetTheme={sheetTheme} />
                     {d.liquidation_price != null && (
-                      <DetailRow label="Liquidation Price" val={fmtPrice(d.liquidation_price)} asset="USDT" valColor="#f59e0b" themeColors={themeColors} />
+                      <DetailRow label="Liquidation Price" val={fmtPrice(d.liquidation_price)} asset="USDT" valColor="#f59e0b" sheetTheme={sheetTheme} />
                     )}
-                    <DetailRow label="Free Balance" val={fmt(freeBalance)} asset={d.asset} themeColors={themeColors} />
+                    <DetailRow label="Free Balance" val={fmt(freeBalance)} asset={d.asset} sheetTheme={sheetTheme} />
                   </>
                 )}
               </View>
@@ -186,8 +180,7 @@ const CrossMarginDetailSheet = forwardRef(({ theme, themeColors, rowPopup, asset
               {!isFund && (
                 <ActionBtn
                   label={closing || alreadyClosed ? "Closing…" : "Close Position"}
-                  theme={theme}
-                  themeColors={themeColors}
+                  sheetTheme={sheetTheme}
                   color={colors.red}
                   disabled={!d.position_id || closing || alreadyClosed || closeConfirmVisible}
                   onPress={requestCloseConfirm}
@@ -195,8 +188,7 @@ const CrossMarginDetailSheet = forwardRef(({ theme, themeColors, rowPopup, asset
               )}
               <ActionBtn
                 label="Transfer"
-                theme={theme}
-                themeColors={themeColors}
+                sheetTheme={sheetTheme}
                 onPress={() => {
                   ref.current?.close();
                   NavigationService.navigate(MARGIN_TRANSFER_SCREEN, { fromWalletType: "spot", toWalletType: "cross_margin", coin: d?.asset });
@@ -204,8 +196,7 @@ const CrossMarginDetailSheet = forwardRef(({ theme, themeColors, rowPopup, asset
               />
               <ActionBtn
                 label="Borrow / Repay"
-                theme={theme}
-                themeColors={themeColors}
+                sheetTheme={sheetTheme}
                 onPress={() => {
                   ref.current?.close();
                   NavigationService.navigate(MARGIN_BORROW_REPAY_SCREEN, {
@@ -330,30 +321,30 @@ const CrossMarginDetailSheet = forwardRef(({ theme, themeColors, rowPopup, asset
   );
 });
 
-const DetailRow = ({ label, val, asset, valColor, themeColors }) => (
+const DetailRow = ({ label, val, asset, valColor, sheetTheme }) => (
   <View style={styles.row}>
-    <AppText type={FOURTEEN} style={{ color: themeColors.secondaryText }}>{label}</AppText>
+    <AppText type={FOURTEEN} style={{ color: sheetTheme.subTextColor }}>{label}</AppText>
     <View style={{ alignItems: "flex-end" }}>
-      <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: valColor || themeColors.text }}>
+      <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: valColor || sheetTheme.textColor }}>
         {val === "—" ? "—" : asset === "%" ? `${val}%` : `${val} ${asset}`}
       </AppText>
     </View>
   </View>
 );
 
-const ActionBtn = ({ label, onPress, disabled, color, theme, themeColors }) => (
+const ActionBtn = ({ label, onPress, disabled, color, sheetTheme }) => (
   <TouchableOpacity
     style={[
       styles.actionBtn,
       {
         opacity: disabled ? 0.5 : 1,
-        backgroundColor: theme === "Dark" ? themeColors.themeElevationColor : colors.iconBgColor,
+        backgroundColor: sheetTheme.buttonBg,
       },
     ]}
     onPress={onPress}
     disabled={disabled}
   >
-    <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: color || themeColors.text }}>
+    <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: color || sheetTheme.textColor }}>
       {label}
     </AppText>
   </TouchableOpacity>

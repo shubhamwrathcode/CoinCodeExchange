@@ -129,7 +129,7 @@ const OptionsPnlAnalysisScreen = () => {
   };
   const chipBg = isDark ? themeColors.background : colors.iconBgColor;
   const periodActiveBg = isDark ? themeColors.button : colors.buttonBg;
-  const tabLineColor = isDark ? colors.white : colors.black;
+  const tabLineColor = colors.cyanTheme;
 
   const openDatePicker = (which) => {
     setPickerDraft(parseDateInput(which === "from" ? dateFrom : dateTo));

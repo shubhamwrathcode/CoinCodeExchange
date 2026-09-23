@@ -30,6 +30,7 @@ import moment from "moment";
 import FastImage from "react-native-fast-image";
 import { right_ic, NO_NOTIFICATION_ICON, NO_NOTIFICATION_ICON_LIGHT, eye_open_icon, closeDark_ic, filterNew, filterIcon, earningWalletImg } from "../../../helper/ImageAssets";
 import TotalAssetsCard from "../TotalAssetsCard";
+import { BlurSheetBackground, blurSheetRbCustomStyles, blurSheetTheme } from "../sheets/BlurSheetChrome";
 import NavigationService from "../../../navigation/NavigationService";
 
 import { showError, showSuccess } from "../../../helper/logger";
@@ -63,12 +64,12 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-const TradeKvRow = React.memo(({ label, value, color, textColor, isDark }) => (
+const TradeKvRow = React.memo(({ label, value, color, textColor, sheetTheme }) => (
   <View style={styles.tradeKvRow}>
-    <AppText type={FOURTEEN} weight={MEDIUM} style={[styles.tradeKvK, { color: isDark ? "#8E8E93" : "#666666" }]}>
+    <AppText type={FOURTEEN} weight={MEDIUM} style={[styles.tradeKvK, { color: sheetTheme?.subTextColor || "#8E8E93" }]}>
       {label}
     </AppText>
-    <AppText type={FOURTEEN} weight={MEDIUM} style={[styles.tradeKvV, { color: color ?? textColor }]} numberOfLines={3}>
+    <AppText type={FOURTEEN} weight={MEDIUM} style={[styles.tradeKvV, { color: color ?? textColor ?? sheetTheme?.textColor }]} numberOfLines={3}>
       {value}
     </AppText>
   </View>
@@ -149,6 +150,14 @@ const StakingCard = React.memo(({ item, themeColors, isDark, onView, onStake, on
 
 const StakingWalletTab = ({ theme, themeColors, showBalance, setShowBalance }) => {
   const isDark = theme === "Dark";
+  const sheetTheme = blurSheetTheme(isDark);
+  const makeSheetStyles = (height, extraContainer = {}) => {
+    const base = blurSheetRbCustomStyles({ isDark, height, borderRadius: 20 });
+    return {
+      ...base,
+      container: { ...base.container, ...extraContainer },
+    };
+  };
   const isFocused = useIsFocused();
   const [positions, setPositions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -448,62 +457,54 @@ const StakingWalletTab = ({ theme, themeColors, showBalance, setShowBalance }) =
         dragFromTopOnly={true}
         closeOnPressMask={true}
         {...({ customModalProps: { statusBarTranslucent: true } })}
-        customStyles={{
-          wrapper: { backgroundColor: "rgba(0,0,0,0.5)" },
-          draggableIcon: { backgroundColor: themeColors.text || "#000" },
-          container: {
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            backgroundColor: themeColors?.background || "#FFF",
-            height: 640
-          }
-        }}
+        customStyles={makeSheetStyles(640)}
       >
-        <View style={[styles.modalContent, { backgroundColor: themeColors?.background || "#FFF", flex: 1, paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <BlurSheetBackground isDark={isDark} />
+        <View style={[styles.modalContent, { backgroundColor: "transparent", flex: 1, paddingBottom: Math.max(insets.bottom, 16) }]}>
           <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12, borderBottomWidth: 1, borderBottomColor: themeColors?.themeBorderColor || "#EEE", paddingBottom: 10 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12, borderBottomWidth: 1, borderBottomColor: sheetTheme.borderColor, paddingBottom: 10 }}>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <FastImage source={{ uri: `${IMAGE_BASE_URL}${selectedPosition?.iconPath}` }} style={{ width: 32, height: 32, borderRadius: 16, marginRight: 10 }} />
                 <View>
-                  <AppText type={FIFTEEN} weight={BOLD} style={{ color: themeColors?.text }}>{selectedPosition?.currency} <AppText style={{ color: themeColors?.secondaryText, fontWeight: '400', fontSize: 13 }}>{selectedPosition?.currencyFullName}</AppText></AppText>
-                  <AppText style={{ color: themeColors?.secondaryText, fontSize: 12 }}>Staking Position Details</AppText>
+                  <AppText type={FIFTEEN} weight={BOLD} style={{ color: sheetTheme.textColor }}>{selectedPosition?.currency} <AppText style={{ color: sheetTheme.subTextColor, fontWeight: '400', fontSize: 13 }}>{selectedPosition?.currencyFullName}</AppText></AppText>
+                  <AppText style={{ color: sheetTheme.subTextColor, fontSize: 12 }}>Staking Position Details</AppText>
                 </View>
               </View>
               <TouchableOpacity onPress={() => viewSheetRef.current?.close()} style={{ padding: 4 }}>
-                <FastImage source={closeDark_ic} style={{ width: 16, height: 16 }} tintColor={themeColors?.secondaryText} resizeMode="contain" />
+                <FastImage source={closeDark_ic} style={{ width: 16, height: 16 }} tintColor={sheetTheme.subTextColor} resizeMode="contain" />
               </TouchableOpacity>
             </View>
 
             <View style={{ marginBottom: 15 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
                 <StatusBadge status={selectedPosition?.status} />
-                <AppText style={{ color: themeColors?.text, marginLeft: 8 }} weight={SEMI_BOLD}>LOCKED</AppText>
+                <AppText style={{ color: sheetTheme.textColor, marginLeft: 8 }} weight={SEMI_BOLD}>LOCKED</AppText>
               </View>
 
-              <View style={[styles.detailSection, { backgroundColor: colors.iconBgColor }]}>
-                <TradeKvRow label="Invested Amount" value={`${safeToFixed(selectedPosition?.totalInvestedAmount)} ${selectedPosition?.currency || ""}`} textColor={themeColors?.text} isDark={isDark} />
-                <TradeKvRow label="Profit" value={`+${safeToFixed(selectedPosition?.totalClaimed)} ${selectedPosition?.currency || ""}`} color="#03a66d" isDark={isDark} />
+              <View style={[styles.detailSection, { backgroundColor: sheetTheme.cardBg }]}>
+                <TradeKvRow label="Invested Amount" value={`${safeToFixed(selectedPosition?.totalInvestedAmount)} ${selectedPosition?.currency || ""}`} textColor={sheetTheme.textColor} sheetTheme={sheetTheme} />
+                <TradeKvRow label="Profit" value={`+${safeToFixed(selectedPosition?.totalClaimed)} ${selectedPosition?.currency || ""}`} color="#03a66d" sheetTheme={sheetTheme} />
               </View>
 
-              <View style={[styles.detailSection, { backgroundColor: colors.iconBgColor }]}>
-                <TradeKvRow label="APR" value={`${selectedPosition?.packageId?.returnPercentage || selectedPosition?.returnPercentage || "0"}%`} color="#03a66d" isDark={isDark} />
-                <TradeKvRow label="Duration" value={`${selectedPosition?.durationDays ?? selectedPosition?.packageId?.duration ?? "—"} Days`} textColor={themeColors?.text} isDark={isDark} />
-                <TradeKvRow label="Wallet Type" value={selectedPosition?.walletType ?? "earning"} textColor={themeColors?.text} isDark={isDark} />
-                <TradeKvRow label="Credited To" value={selectedPosition?.creditedWalletType ?? "earning"} textColor={themeColors?.text} isDark={isDark} />
+              <View style={[styles.detailSection, { backgroundColor: sheetTheme.cardBg }]}>
+                <TradeKvRow label="APR" value={`${selectedPosition?.packageId?.returnPercentage || selectedPosition?.returnPercentage || "0"}%`} color="#03a66d" sheetTheme={sheetTheme} />
+                <TradeKvRow label="Duration" value={`${selectedPosition?.durationDays ?? selectedPosition?.packageId?.duration ?? "—"} Days`} textColor={sheetTheme.textColor} sheetTheme={sheetTheme} />
+                <TradeKvRow label="Wallet Type" value={selectedPosition?.walletType ?? "earning"} textColor={sheetTheme.textColor} sheetTheme={sheetTheme} />
+                <TradeKvRow label="Credited To" value={selectedPosition?.creditedWalletType ?? "earning"} textColor={sheetTheme.textColor} sheetTheme={sheetTheme} />
               </View>
 
-              <View style={[styles.detailSection, { backgroundColor: colors.iconBgColor }]}>
-                <TradeKvRow label="Start Date" value={selectedPosition?.startDate ? moment(selectedPosition.startDate).format("DD MMM YYYY") : "—"} textColor={themeColors?.text} isDark={isDark} />
-                <TradeKvRow label="End Date" value={selectedPosition?.endDate ? moment(selectedPosition.endDate).format("DD MMM YYYY") : "—"} textColor={themeColors?.text} isDark={isDark} />
-                <TradeKvRow label="Next Payout Date" value={selectedPosition?.nextPayoutDate ? moment(selectedPosition.nextPayoutDate).format("DD MMM YYYY") : "—"} textColor={themeColors?.text} isDark={isDark} />
-                <TradeKvRow label="Created At" value={selectedPosition?.createdAt ? moment(selectedPosition.createdAt).format("DD MMM YYYY") : "—"} textColor={themeColors?.text} isDark={isDark} />
+              <View style={[styles.detailSection, { backgroundColor: sheetTheme.cardBg }]}>
+                <TradeKvRow label="Start Date" value={selectedPosition?.startDate ? moment(selectedPosition.startDate).format("DD MMM YYYY") : "—"} textColor={sheetTheme.textColor} sheetTheme={sheetTheme} />
+                <TradeKvRow label="End Date" value={selectedPosition?.endDate ? moment(selectedPosition.endDate).format("DD MMM YYYY") : "—"} textColor={sheetTheme.textColor} sheetTheme={sheetTheme} />
+                <TradeKvRow label="Next Payout Date" value={selectedPosition?.nextPayoutDate ? moment(selectedPosition.nextPayoutDate).format("DD MMM YYYY") : "—"} textColor={sheetTheme.textColor} sheetTheme={sheetTheme} />
+                <TradeKvRow label="Created At" value={selectedPosition?.createdAt ? moment(selectedPosition.createdAt).format("DD MMM YYYY") : "—"} textColor={sheetTheme.textColor} sheetTheme={sheetTheme} />
               </View>
 
               {(selectedPosition?.penaltyPercent > 0 || Number(selectedPosition?.penaltyAmount) > 0) && (
                 <View style={[styles.detailSection, { backgroundColor: isDark ? "#3A1A1E" : "#efdadaff" }]}>
-                  <TradeKvRow label="Penalty %" value={`${selectedPosition?.penaltyPercent ?? 0}%`} textColor={themeColors?.text} isDark={isDark} />
-                  <TradeKvRow label="Penalty Amount" value={`${safeToFixed(selectedPosition?.penaltyAmount)} ${selectedPosition?.currency || ""}`} textColor={themeColors?.text} isDark={isDark} />
-                  <TradeKvRow label="Refund Amount" value={`${safeToFixed(selectedPosition?.refundAmount)} ${selectedPosition?.currency || ""}`} textColor={themeColors?.text} isDark={isDark} />
+                  <TradeKvRow label="Penalty %" value={`${selectedPosition?.penaltyPercent ?? 0}%`} textColor={sheetTheme.textColor} sheetTheme={sheetTheme} />
+                  <TradeKvRow label="Penalty Amount" value={`${safeToFixed(selectedPosition?.penaltyAmount)} ${selectedPosition?.currency || ""}`} textColor={sheetTheme.textColor} sheetTheme={sheetTheme} />
+                  <TradeKvRow label="Refund Amount" value={`${safeToFixed(selectedPosition?.refundAmount)} ${selectedPosition?.currency || ""}`} textColor={sheetTheme.textColor} sheetTheme={sheetTheme} />
                 </View>
               )}
             </View>
@@ -519,19 +520,12 @@ const StakingWalletTab = ({ theme, themeColors, showBalance, setShowBalance }) =
         closeOnPressMask={true}
         keyboardAvoidingViewEnabled={false}
         {...({ customModalProps: { statusBarTranslucent: true } })}
-        customStyles={{
-          wrapper: { backgroundColor: "rgba(0,0,0,0.5)" },
-          draggableIcon: { backgroundColor: themeColors.text || "#000" },
-          container: {
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            backgroundColor: themeColors?.background || "#FFF",
-            height: 640,
-            marginBottom: keyboardHeight > 0 ? keyboardHeight - Math.max(insets.bottom, 0) : 0
-          }
-        }}
+        customStyles={makeSheetStyles(640, {
+          marginBottom: keyboardHeight > 0 ? keyboardHeight - Math.max(insets.bottom, 0) : 0,
+        })}
       >
-        <View style={[styles.modalContent, { backgroundColor: themeColors?.background || "#FFF", flex: 1, paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <BlurSheetBackground isDark={isDark} />
+        <View style={[styles.modalContent, { backgroundColor: "transparent", flex: 1, paddingBottom: Math.max(insets.bottom, 16) }]}>
           {selectedPosition && (() => {
             const currency = selectedPosition?.currency || "";
             const invested = parseFloat(parseDec(selectedPosition?.totalInvestedAmount)) || 0;
@@ -546,10 +540,10 @@ const StakingWalletTab = ({ theme, themeColors, showBalance, setShowBalance }) =
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <FastImage source={{ uri: `${IMAGE_BASE_URL}${selectedPosition?.iconPath}` }} style={{ width: 24, height: 24, borderRadius: 12, marginRight: 8 }} />
-                    <AppText style={{ fontSize: 18, color: themeColors?.text }} weight={SEMI_BOLD}>Cancel {currency} Staking</AppText>
+                    <AppText style={{ fontSize: 18, color: sheetTheme.textColor }} weight={SEMI_BOLD}>Cancel {currency} Staking</AppText>
                   </View>
                   <TouchableOpacity onPress={() => cancelSheetRef.current?.close()} style={{ padding: 4 }}>
-                    <FastImage source={closeDark_ic} style={{ width: 14, height: 14 }} tintColor={themeColors?.secondaryText} resizeMode="contain" />
+                    <FastImage source={closeDark_ic} style={{ width: 14, height: 14 }} tintColor={sheetTheme.subTextColor} resizeMode="contain" />
                   </TouchableOpacity>
                 </View>
 
@@ -564,54 +558,54 @@ const StakingWalletTab = ({ theme, themeColors, showBalance, setShowBalance }) =
                 {/* Reason Input */}
                 <View style={{ marginBottom: 20 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }} weight={SEMI_BOLD}>Cancel Reason </AppText>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 12 }}>(Optional)</AppText>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }} weight={SEMI_BOLD}>Cancel Reason </AppText>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 12 }}>(Optional)</AppText>
                   </View>
                   <TextInput
                     value={cancelReason}
                     onChangeText={setCancelReason}
                     placeholder="e.g. Need funds urgently"
-                    placeholderTextColor={themeColors?.secondaryText}
+                    placeholderTextColor={sheetTheme.subTextColor}
                     cursorColor={isDark ? colors.white : colors.black}
                     style={{
                       borderWidth: 1,
-                      borderColor: themeColors?.themeBorderColor || "#EEE",
+                      borderColor: sheetTheme.borderColor,
                       borderRadius: 8,
                       padding: 12,
                       minHeight: 80,
-                      color: themeColors?.text,
+                      color: sheetTheme.textColor,
                       textAlignVertical: "top",
                       fontSize: 14,
-                      backgroundColor: isDark ? '#2A2A2E' : '#F7F7F7'
+                      backgroundColor: sheetTheme.cardBg
                     }}
                     multiline
                   />
                 </View>
 
                 {/* Details Box */}
-                <View style={{ backgroundColor: isDark ? '#2A2A2E' : colors.inputBackground, padding: 16, borderRadius: 12, marginBottom: 24 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: isDark ? "#3f4650" : "#eaecef" }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Total Invested</AppText>
-                    <AppText style={{ color: themeColors?.text, fontSize: 14, fontWeight: '600' }}>{safeToFixed(invested)} {currency}</AppText>
+                <View style={{ backgroundColor: sheetTheme.cardBg, padding: 16, borderRadius: 12, marginBottom: 24 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: sheetTheme.rowBorderColor }}>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Total Invested</AppText>
+                    <AppText style={{ color: sheetTheme.textColor, fontSize: 14, fontWeight: '600' }}>{safeToFixed(invested)} {currency}</AppText>
                   </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: isDark ? "#3f4650" : "#eaecef" }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Penalty</AppText>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: sheetTheme.rowBorderColor }}>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Penalty</AppText>
                     <AppText style={{ color: "#ff4b5c", fontSize: 14, fontWeight: '500' }}>{penaltyPercent}%</AppText>
                   </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: isDark ? "#3f4650" : "#eaecef" }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Penalty Amount</AppText>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: sheetTheme.rowBorderColor }}>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Penalty Amount</AppText>
                     <AppText style={{ color: "#ff4b5c", fontSize: 14, fontWeight: '500' }}>{safeToFixed(penaltyAmount)} {currency}</AppText>
                   </View>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Refund Amount</AppText>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Refund Amount</AppText>
                     <AppText style={{ color: "#03a66d", fontSize: 14, fontWeight: '600' }}>{safeToFixed(refundAmount)} {currency}</AppText>
                   </View>
                 </View>
 
                 {/* Buttons */}
                 <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
-                  <TouchableOpacity style={[styles.modalBtn, { flex: 1, height: 48, backgroundColor: isDark ? "#2b3139" : "#f2f2f2", borderWidth: 0 }]} onPress={() => cancelSheetRef.current?.close()}>
-                    <AppText style={{ color: themeColors?.text, fontWeight: '600', fontSize: 15 }}>Close</AppText>
+                  <TouchableOpacity style={[styles.modalBtn, { flex: 1, height: 48, backgroundColor: sheetTheme.buttonBg, borderWidth: 0 }]} onPress={() => cancelSheetRef.current?.close()}>
+                    <AppText style={{ color: sheetTheme.textColor, fontWeight: '600', fontSize: 15 }}>Close</AppText>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.modalBtn, { flex: 1, height: 48, backgroundColor: colors.cyanTheme, borderWidth: 0 }]} onPress={handleOpenConfirmCancel}>
                     <AppText style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>Confirm</AppText>
@@ -631,19 +625,12 @@ const StakingWalletTab = ({ theme, themeColors, showBalance, setShowBalance }) =
         closeOnPressMask={true}
         keyboardAvoidingViewEnabled={false}
         {...({ customModalProps: { statusBarTranslucent: true } })}
-        customStyles={{
-          wrapper: { backgroundColor: "rgba(0,0,0,0.5)" },
-          draggableIcon: { backgroundColor: themeColors.text || "#000" },
-          container: {
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            backgroundColor: themeColors?.background || "#FFF",
-            height: 460,
-            marginBottom: keyboardHeight > 0 ? keyboardHeight - Math.max(insets.bottom, 0) : 0
-          }
-        }}
+        customStyles={makeSheetStyles(460, {
+          marginBottom: keyboardHeight > 0 ? keyboardHeight - Math.max(insets.bottom, 0) : 0,
+        })}
       >
-        <View style={[styles.modalContent, { backgroundColor: themeColors?.background || "#FFF", flex: 1, paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <BlurSheetBackground isDark={isDark} />
+        <View style={[styles.modalContent, { backgroundColor: "transparent", flex: 1, paddingBottom: Math.max(insets.bottom, 16) }]}>
           {selectedPosition && (() => {
             const rawUnbonding = selectedPosition?.unbondingPeriodDays ?? selectedPosition?.unbondingPeriod ?? selectedPosition?.packageId?.unbondingPeriodDays ?? selectedPosition?.packageId?.unbondingPeriod;
             const unbondingDays = Number.isFinite(Number(rawUnbonding)) ? Number(rawUnbonding) : 0;
@@ -655,28 +642,28 @@ const StakingWalletTab = ({ theme, themeColors, showBalance, setShowBalance }) =
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <FastImage source={{ uri: `${IMAGE_BASE_URL}${selectedPosition?.iconPath}` }} style={{ width: 24, height: 24, borderRadius: 12, marginRight: 8 }} />
-                    <AppText style={{ fontSize: 18, color: themeColors?.text }} weight={SEMI_BOLD}>Redeem {selectedPosition?.currency}</AppText>
+                    <AppText style={{ fontSize: 18, color: sheetTheme.textColor }} weight={SEMI_BOLD}>Redeem {selectedPosition?.currency}</AppText>
                   </View>
                   <TouchableOpacity onPress={() => redeemSheetRef.current?.close()} style={{ padding: 4 }}>
-                    <FastImage source={closeDark_ic} style={{ width: 14, height: 14 }} tintColor={themeColors?.secondaryText} resizeMode="contain" />
+                    <FastImage source={closeDark_ic} style={{ width: 14, height: 14 }} tintColor={sheetTheme.subTextColor} resizeMode="contain" />
                   </TouchableOpacity>
                 </View>
 
-                <AppText style={{ color: themeColors?.secondaryText, marginBottom: 8, fontSize: 14 }} weight={SEMI_BOLD}>Amount</AppText>
+                <AppText style={{ color: sheetTheme.subTextColor, marginBottom: 8, fontSize: 14 }} weight={SEMI_BOLD}>Amount</AppText>
 
-                <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: themeColors?.themeBorderColor || "#EEE", borderRadius: 8, paddingHorizontal: 12, height: 50, marginBottom: 8, backgroundColor: isDark ? '#2A2A2E' : '#F7F7F7' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: sheetTheme.borderColor, borderRadius: 8, paddingHorizontal: 12, height: 50, marginBottom: 8, backgroundColor: sheetTheme.cardBg }}>
                   <TextInput
                     value={redeemAmount}
                     onChangeText={setRedeemAmount}
                     placeholder={`Min. ${minAmount}`}
-                    placeholderTextColor={themeColors?.secondaryText}
+                    placeholderTextColor={sheetTheme.subTextColor}
                     cursorColor={isDark ? colors.white : colors.black}
                     keyboardType="numeric"
-                    style={{ flex: 1, color: themeColors?.text, fontSize: 15 }}
+                    style={{ flex: 1, color: sheetTheme.textColor, fontSize: 15 }}
                   />
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <AppText style={{ color: themeColors?.text, fontWeight: '600', fontSize: 14 }}>{selectedPosition?.currency}</AppText>
-                    <View style={{ width: 1, height: 14, backgroundColor: themeColors?.themeBorderColor || "#EEE", marginHorizontal: 10 }} />
+                    <AppText style={{ color: sheetTheme.textColor, fontWeight: '600', fontSize: 14 }}>{selectedPosition?.currency}</AppText>
+                    <View style={{ width: 1, height: 14, backgroundColor: sheetTheme.borderColor, marginHorizontal: 10 }} />
                     <TouchableOpacity onPress={() => setRedeemAmount(String(Number(parseDec(selectedPosition?.totalInvestedAmount))))}>
                       <AppText style={{ color: colors.cyanTheme, fontSize: 14, fontWeight: '500' }}>Max</AppText>
                     </TouchableOpacity>
@@ -700,40 +687,40 @@ const StakingWalletTab = ({ theme, themeColors, showBalance, setShowBalance }) =
                       ) : null}
 
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30 }}>
-                        <AppText style={{ color: themeColors?.secondaryText, fontSize: 13 }}>Available</AppText>
-                        <AppText style={{ color: themeColors?.text, fontSize: 13, fontWeight: '600' }}>{safeToFixed(selectedPosition?.totalInvestedAmount)} {selectedPosition?.currency}</AppText>
+                        <AppText style={{ color: sheetTheme.subTextColor, fontSize: 13 }}>Available</AppText>
+                        <AppText style={{ color: sheetTheme.textColor, fontSize: 13, fontWeight: '600' }}>{safeToFixed(selectedPosition?.totalInvestedAmount)} {selectedPosition?.currency}</AppText>
                       </View>
 
                       {/* Timeline View */}
                       <View style={{ marginBottom: 30, paddingLeft: 8 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>
-                          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: themeColors?.text, marginRight: 16, zIndex: 2 }} />
+                          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: sheetTheme.textColor, marginRight: 16, zIndex: 2 }} />
                           <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <AppText style={{ color: themeColors?.text, fontSize: 14 }}>Time Redeemed</AppText>
-                            <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Now</AppText>
+                            <AppText style={{ color: sheetTheme.textColor, fontSize: 14 }}>Time Redeemed</AppText>
+                            <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Now</AppText>
                           </View>
-                          <View style={{ position: 'absolute', left: 3.5, top: 8, bottom: -28, width: 1, backgroundColor: themeColors?.themeBorderColor || "#EEE", zIndex: 1 }} />
+                          <View style={{ position: 'absolute', left: 3.5, top: 8, bottom: -28, width: 1, backgroundColor: sheetTheme.borderColor, zIndex: 1 }} />
                         </View>
 
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: themeColors?.themeBorderColor || "#EEE", marginRight: 16, zIndex: 2 }} />
+                          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: sheetTheme.borderColor, marginRight: 16, zIndex: 2 }} />
                           <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <AppText style={{ color: themeColors?.text, fontSize: 14 }}>Time Received</AppText>
-                            <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>{timeReceived}</AppText>
+                            <AppText style={{ color: sheetTheme.textColor, fontSize: 14 }}>Time Received</AppText>
+                            <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>{timeReceived}</AppText>
                           </View>
                         </View>
                       </View>
 
                       <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12, marginTop: 10 }}>
-                        <TouchableOpacity style={[styles.modalBtn, { flex: 1, height: 48, backgroundColor: isDark ? "#2b3139" : "#EAECEF", borderWidth: 0 }]} onPress={() => redeemSheetRef.current?.close()}>
-                          <AppText style={{ color: themeColors?.text, fontWeight: '600', fontSize: 15 }}>Cancel</AppText>
+                        <TouchableOpacity style={[styles.modalBtn, { flex: 1, height: 48, backgroundColor: sheetTheme.buttonBg, borderWidth: 0 }]} onPress={() => redeemSheetRef.current?.close()}>
+                          <AppText style={{ color: sheetTheme.textColor, fontWeight: '600', fontSize: 15 }}>Cancel</AppText>
                         </TouchableOpacity>
                         <TouchableOpacity
-                          style={[styles.modalBtn, { flex: 1, height: 48, backgroundColor: isRedeemDisabled ? (isDark ? "#2b3139" : "#EAECEF") : colors.cyanTheme, borderWidth: 0 }]}
+                          style={[styles.modalBtn, { flex: 1, height: 48, backgroundColor: isRedeemDisabled ? sheetTheme.buttonBg : colors.cyanTheme, borderWidth: 0 }]}
                           onPress={handleOpenConfirmRedeem}
                           disabled={isRedeemDisabled}
                         >
-                          {actionLoading ? <ActivityIndicator color="#FFF" size="small" /> : <AppText style={{ color: isRedeemDisabled ? themeColors?.secondaryText : "#FFF", fontWeight: "600", fontSize: 15 }}>Redemption</AppText>}
+                          {actionLoading ? <ActivityIndicator color="#FFF" size="small" /> : <AppText style={{ color: isRedeemDisabled ? sheetTheme.subTextColor : "#FFF", fontWeight: "600", fontSize: 15 }}>Redemption</AppText>}
                         </TouchableOpacity>
                       </View>
                     </>
@@ -753,18 +740,10 @@ const StakingWalletTab = ({ theme, themeColors, showBalance, setShowBalance }) =
         closeOnPressMask={true}
         keyboardAvoidingViewEnabled={false}
         {...({ customModalProps: { statusBarTranslucent: true } })}
-        customStyles={{
-          wrapper: { backgroundColor: "rgba(0,0,0,0.5)" },
-          draggableIcon: { backgroundColor: themeColors.text || "#000" },
-          container: {
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            backgroundColor: themeColors?.background || "#FFF",
-            height: 640,
-          }
-        }}
+        customStyles={makeSheetStyles(640)}
       >
-        <View style={[styles.modalContent, { backgroundColor: themeColors?.background || "#FFF", flex: 1, paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <BlurSheetBackground isDark={isDark} />
+        <View style={[styles.modalContent, { backgroundColor: "transparent", flex: 1, paddingBottom: Math.max(insets.bottom, 16) }]}>
           {selectedPosition && (() => {
             const rawUnbonding = selectedPosition?.unbondingPeriodDays ?? selectedPosition?.unbondingPeriod ?? selectedPosition?.packageId?.unbondingPeriodDays ?? selectedPosition?.packageId?.unbondingPeriod;
             const unbondingDays = Number.isFinite(Number(rawUnbonding)) ? Number(rawUnbonding) : 0;
@@ -777,61 +756,61 @@ const StakingWalletTab = ({ theme, themeColors, showBalance, setShowBalance }) =
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <FastImage source={{ uri: `${IMAGE_BASE_URL}${selectedPosition?.iconPath}` }} style={{ width: 24, height: 24, borderRadius: 12, marginRight: 8 }} />
-                    <AppText style={{ fontSize: 18, color: themeColors?.text }} weight={SEMI_BOLD}>{selectedPosition?.currency} Redeem Overview</AppText>
+                    <AppText style={{ fontSize: 18, color: sheetTheme.textColor }} weight={SEMI_BOLD}>{selectedPosition?.currency} Redeem Overview</AppText>
                   </View>
                   <TouchableOpacity onPress={() => confirmRedeemSheetRef.current?.close()} style={{ padding: 4 }}>
-                    <FastImage source={closeDark_ic} style={{ width: 14, height: 14 }} tintColor={themeColors?.secondaryText} resizeMode="contain" />
+                    <FastImage source={closeDark_ic} style={{ width: 14, height: 14 }} tintColor={sheetTheme.subTextColor} resizeMode="contain" />
                   </TouchableOpacity>
                 </View>
 
-                <AppText style={{ color: themeColors?.secondaryText, fontSize: 14, marginBottom: 20 }}>
+                <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14, marginBottom: 20 }}>
                   Please review your redemption details before confirming.
                 </AppText>
 
                 <View style={{ padding: 16, borderRadius: 12, marginBottom: 24 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Currency</AppText>
-                    <AppText style={{ color: themeColors?.text, fontSize: 14, fontWeight: '500' }}>{selectedPosition?.currency}</AppText>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Currency</AppText>
+                    <AppText style={{ color: sheetTheme.textColor, fontSize: 14, fontWeight: '500' }}>{selectedPosition?.currency}</AppText>
                   </View>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Currency Name</AppText>
-                    <AppText style={{ color: themeColors?.text, fontSize: 14, fontWeight: '500' }}>{selectedPosition?.packageId?.currencyFullName || selectedPosition?.currency}</AppText>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Currency Name</AppText>
+                    <AppText style={{ color: sheetTheme.textColor, fontSize: 14, fontWeight: '500' }}>{selectedPosition?.packageId?.currencyFullName || selectedPosition?.currency}</AppText>
                   </View>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Staking Type</AppText>
-                    <AppText style={{ color: themeColors?.text, fontSize: 14, fontWeight: '500' }}>Locked Staking</AppText>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Staking Type</AppText>
+                    <AppText style={{ color: sheetTheme.textColor, fontSize: 14, fontWeight: '500' }}>Locked Staking</AppText>
                   </View>
 
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, paddingTop: 16 }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Redeem Amount</AppText>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Redeem Amount</AppText>
                     <AppText style={{ color: "#03a66d", fontSize: 14, fontWeight: '500' }}>{safeToFixed(redeemAmount)} {selectedPosition?.currency}</AppText>
                   </View>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Available</AppText>
-                    <AppText style={{ color: themeColors?.text, fontSize: 14, fontWeight: '500' }}>{safeToFixed(selectedPosition?.totalInvestedAmount)} {selectedPosition?.currency}</AppText>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Available</AppText>
+                    <AppText style={{ color: sheetTheme.textColor, fontSize: 14, fontWeight: '500' }}>{safeToFixed(selectedPosition?.totalInvestedAmount)} {selectedPosition?.currency}</AppText>
                   </View>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>After Redeem</AppText>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>After Redeem</AppText>
                     <AppText style={{ color: "#03a66d", fontSize: 14, fontWeight: '500' }}>{safeToFixed(afterRedeem)} {selectedPosition?.currency}</AppText>
                   </View>
 
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, paddingTop: 16 }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Time Redeemed</AppText>
-                    <AppText style={{ color: themeColors?.text, fontSize: 14, fontWeight: '500' }}>Now</AppText>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Time Redeemed</AppText>
+                    <AppText style={{ color: sheetTheme.textColor, fontSize: 14, fontWeight: '500' }}>Now</AppText>
                   </View>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Time Received</AppText>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Time Received</AppText>
                     <AppText style={{ color: "#03a66d", fontSize: 14, fontWeight: '500' }}>{timeReceived}</AppText>
                   </View>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Unbonding Period</AppText>
-                    <AppText style={{ color: themeColors?.text, fontSize: 14, fontWeight: '500' }}>About {unbondingDays} day(s)</AppText>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Unbonding Period</AppText>
+                    <AppText style={{ color: sheetTheme.textColor, fontSize: 14, fontWeight: '500' }}>About {unbondingDays} day(s)</AppText>
                   </View>
                 </View>
 
                 <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
-                  <TouchableOpacity style={[styles.modalBtn, { flex: 1, height: 48, backgroundColor: isDark ? "#2b3139" : "#EAECEF", borderWidth: 0 }]} onPress={handleBackToRedeem}>
-                    <AppText style={{ color: themeColors?.text, fontWeight: '600', fontSize: 15 }}>Back</AppText>
+                  <TouchableOpacity style={[styles.modalBtn, { flex: 1, height: 48, backgroundColor: sheetTheme.buttonBg, borderWidth: 0 }]} onPress={handleBackToRedeem}>
+                    <AppText style={{ color: sheetTheme.textColor, fontWeight: '600', fontSize: 15 }}>Back</AppText>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.modalBtn, { flex: 1, height: 48, backgroundColor: colors.cyanTheme, borderWidth: 0 }]}
@@ -855,18 +834,10 @@ const StakingWalletTab = ({ theme, themeColors, showBalance, setShowBalance }) =
         closeOnPressMask={true}
         keyboardAvoidingViewEnabled={false}
         {...({ customModalProps: { statusBarTranslucent: true } })}
-        customStyles={{
-          wrapper: { backgroundColor: "rgba(0,0,0,0.5)" },
-          draggableIcon: { backgroundColor: themeColors.text || "#000" },
-          container: {
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            backgroundColor: themeColors?.background || "#FFF",
-            height: 580,
-          }
-        }}
+        customStyles={makeSheetStyles(580)}
       >
-        <View style={[styles.modalContent, { backgroundColor: themeColors?.background || "#FFF", flex: 1, paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <BlurSheetBackground isDark={isDark} />
+        <View style={[styles.modalContent, { backgroundColor: "transparent", flex: 1, paddingBottom: Math.max(insets.bottom, 16) }]}>
           {selectedPosition && (() => {
             const currency = selectedPosition?.currency || "";
             const invested = parseFloat(parseDec(selectedPosition?.totalInvestedAmount)) || 0;
@@ -880,53 +851,53 @@ const StakingWalletTab = ({ theme, themeColors, showBalance, setShowBalance }) =
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <FastImage source={{ uri: `${IMAGE_BASE_URL}${selectedPosition?.iconPath}` }} style={{ width: 24, height: 24, borderRadius: 12, marginRight: 8 }} />
-                    <AppText style={{ fontSize: 18, color: themeColors?.text }} weight={SEMI_BOLD}>{currency} Cancel Overview</AppText>
+                    <AppText style={{ fontSize: 18, color: sheetTheme.textColor }} weight={SEMI_BOLD}>{currency} Cancel Overview</AppText>
                   </View>
                   <TouchableOpacity onPress={() => confirmCancelSheetRef.current?.close()} style={{ padding: 4 }}>
-                    <FastImage source={closeDark_ic} style={{ width: 14, height: 14 }} tintColor={themeColors?.secondaryText} resizeMode="contain" />
+                    <FastImage source={closeDark_ic} style={{ width: 14, height: 14 }} tintColor={sheetTheme.subTextColor} resizeMode="contain" />
                   </TouchableOpacity>
                 </View>
 
-                <AppText style={{ color: themeColors?.secondaryText, fontSize: 14, marginBottom: 20 }}>
+                <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14, marginBottom: 20 }}>
                   Please review the cancellation details before confirming. This action cannot be undone.
                 </AppText>
 
-                <View style={{ backgroundColor: colors.inputBackground, padding: 16, borderRadius: 12, marginBottom: 24 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: isDark ? "#3f4650" : "#eaecef" }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Currency</AppText>
-                    <AppText style={{ color: themeColors?.text, fontSize: 14, fontWeight: '500' }}>{currency}</AppText>
+                <View style={{ backgroundColor: sheetTheme.cardBg, padding: 16, borderRadius: 12, marginBottom: 24 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: sheetTheme.rowBorderColor }}>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Currency</AppText>
+                    <AppText style={{ color: sheetTheme.textColor, fontSize: 14, fontWeight: '500' }}>{currency}</AppText>
                   </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: isDark ? "#3f4650" : "#eaecef" }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Total Invested</AppText>
-                    <AppText style={{ color: themeColors?.text, fontSize: 14, fontWeight: '600' }}>{safeToFixed(invested)} {currency}</AppText>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: sheetTheme.rowBorderColor }}>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Total Invested</AppText>
+                    <AppText style={{ color: sheetTheme.textColor, fontSize: 14, fontWeight: '600' }}>{safeToFixed(invested)} {currency}</AppText>
                   </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: isDark ? "#3f4650" : "#eaecef" }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Penalty</AppText>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: sheetTheme.rowBorderColor }}>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Penalty</AppText>
                     <AppText style={{ color: "#ff4b5c", fontSize: 14, fontWeight: '500' }}>{penaltyPercent}%</AppText>
                   </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: isDark ? "#3f4650" : "#eaecef" }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Penalty Amount</AppText>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: sheetTheme.rowBorderColor }}>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Penalty Amount</AppText>
                     <AppText style={{ color: "#ff4b5c", fontSize: 14, fontWeight: '500' }}>{safeToFixed(penaltyAmount)} {currency}</AppText>
                   </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: isDark ? "#3f4650" : "#eaecef" }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Refund Amount</AppText>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: sheetTheme.rowBorderColor }}>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Refund Amount</AppText>
                     <AppText style={{ color: "#03a66d", fontSize: 14, fontWeight: '600' }}>{safeToFixed(refundAmount)} {currency}</AppText>
                   </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: cancelReason.trim() ? 1 : 0, borderBottomColor: isDark ? "#3f4650" : "#eaecef" }}>
-                    <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Reward Earned</AppText>
-                    <AppText style={{ color: themeColors?.text, fontSize: 14, fontWeight: '500' }}>{safeToFixed(rewardEarned)} {currency}</AppText>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: cancelReason.trim() ? 1 : 0, borderBottomColor: sheetTheme.rowBorderColor }}>
+                    <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Reward Earned</AppText>
+                    <AppText style={{ color: sheetTheme.textColor, fontSize: 14, fontWeight: '500' }}>{safeToFixed(rewardEarned)} {currency}</AppText>
                   </View>
                   {cancelReason.trim() ? (
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
-                      <AppText style={{ color: themeColors?.secondaryText, fontSize: 14 }}>Cancel Reason</AppText>
-                      <AppText style={{ color: themeColors?.text, fontSize: 14, fontWeight: '500' }}>{cancelReason.trim()}</AppText>
+                      <AppText style={{ color: sheetTheme.subTextColor, fontSize: 14 }}>Cancel Reason</AppText>
+                      <AppText style={{ color: sheetTheme.textColor, fontSize: 14, fontWeight: '500' }}>{cancelReason.trim()}</AppText>
                     </View>
                   ) : null}
                 </View>
 
                 <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
-                  <TouchableOpacity style={[styles.modalBtn, { flex: 1, height: 48, backgroundColor: isDark ? "#2b3139" : "#EAECEF", borderWidth: 0 }]} onPress={handleBackToCancel}>
-                    <AppText style={{ color: themeColors?.text, fontWeight: '600', fontSize: 15 }}>Back</AppText>
+                  <TouchableOpacity style={[styles.modalBtn, { flex: 1, height: 48, backgroundColor: sheetTheme.buttonBg, borderWidth: 0 }]} onPress={handleBackToCancel}>
+                    <AppText style={{ color: sheetTheme.textColor, fontWeight: '600', fontSize: 15 }}>Back</AppText>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.modalBtn, { flex: 1, height: 48, backgroundColor: colors.cyanTheme, borderWidth: 0 }]}
@@ -950,73 +921,65 @@ const StakingWalletTab = ({ theme, themeColors, showBalance, setShowBalance }) =
         closeOnPressMask={true}
         keyboardAvoidingViewEnabled={false}
         {...({ customModalProps: { statusBarTranslucent: true } })}
-        customStyles={{
-          wrapper: { backgroundColor: "rgba(0,0,0,0.5)" },
-          draggableIcon: { backgroundColor: themeColors.text || "#000" },
-          container: {
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            backgroundColor: themeColors?.background || "#FFF",
-            height: 600,
-          }
-        }}
+        customStyles={makeSheetStyles(600)}
       >
-        <View style={[styles.modalContent, { backgroundColor: themeColors?.background || "#FFF", flex: 1, paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <BlurSheetBackground isDark={isDark} />
+        <View style={[styles.modalContent, { backgroundColor: "transparent", flex: 1, paddingBottom: Math.max(insets.bottom, 16) }]}>
           <ScrollView showsVerticalScrollIndicator={false} bounces={false} contentContainerStyle={{ paddingBottom: 24 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <AppText style={{ fontSize: 18, color: themeColors?.text }} weight={SEMI_BOLD}>Filters</AppText>
+              <AppText style={{ fontSize: 18, color: sheetTheme.textColor }} weight={SEMI_BOLD}>Filters</AppText>
               <TouchableOpacity onPress={() => filterSheetRef.current?.close()} style={{ padding: 4 }}>
-                <FastImage source={closeDark_ic} style={{ width: 14, height: 14 }} tintColor={themeColors?.secondaryText} resizeMode="contain" />
+                <FastImage source={closeDark_ic} style={{ width: 14, height: 14 }} tintColor={sheetTheme.subTextColor} resizeMode="contain" />
               </TouchableOpacity>
             </View>
 
-            <AppText style={{ color: themeColors?.text, marginBottom: 8, fontSize: 14 }} weight={SEMI_BOLD}>Coin</AppText>
+            <AppText style={{ color: sheetTheme.textColor, marginBottom: 8, fontSize: 14 }} weight={SEMI_BOLD}>Coin</AppText>
             <CustomDropdown
               data={coinOptions}
               selected={filterCoin}
               onSelect={setFilterCoin}
-              triggerStyle={{ marginBottom: 16, borderColor: themeColors?.themeBorderColor || "#EEE" }}
+              triggerStyle={{ marginBottom: 16, borderColor: sheetTheme.borderColor }}
             />
 
-            <AppText style={{ color: themeColors?.text, marginBottom: 8, fontSize: 14 }} weight={SEMI_BOLD}>Type</AppText>
+            <AppText style={{ color: sheetTheme.textColor, marginBottom: 8, fontSize: 14 }} weight={SEMI_BOLD}>Type</AppText>
             <CustomDropdown
               data={stakingTypeOptions}
               selected={filterType}
               onSelect={setFilterType}
-              triggerStyle={{ marginBottom: 16, borderColor: themeColors?.themeBorderColor || "#EEE" }}
+              triggerStyle={{ marginBottom: 16, borderColor: sheetTheme.borderColor }}
             />
 
-            <AppText style={{ color: themeColors?.text, marginBottom: 8, fontSize: 14 }} weight={SEMI_BOLD}>Status</AppText>
+            <AppText style={{ color: sheetTheme.textColor, marginBottom: 8, fontSize: 14 }} weight={SEMI_BOLD}>Status</AppText>
             <CustomDropdown
               data={statusOptions}
               selected={filterStatus}
               onSelect={setFilterStatus}
-              triggerStyle={{ marginBottom: 16, borderColor: themeColors?.themeBorderColor || "#EEE" }}
+              triggerStyle={{ marginBottom: 16, borderColor: sheetTheme.borderColor }}
             />
 
-            <AppText style={{ color: themeColors?.text, marginBottom: 8, fontSize: 14 }} weight={SEMI_BOLD}>Date</AppText>
+            <AppText style={{ color: sheetTheme.textColor, marginBottom: 8, fontSize: 14 }} weight={SEMI_BOLD}>Date</AppText>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
               <TouchableOpacity
-                style={{ flex: 1, borderWidth: 1, borderColor: themeColors?.themeBorderColor || "#EEE", borderRadius: 8, padding: 12, alignItems: 'center' }}
+                style={{ flex: 1, borderWidth: 1, borderColor: sheetTheme.borderColor, borderRadius: 8, padding: 12, alignItems: 'center' }}
                 onPress={() => { setDatePickerMode("from"); setDatePickerVisibility(true); }}
               >
-                <AppText style={{ color: themeColors?.text, fontFamily: fontFamilyMedium, fontSize: 14 }}>{filterDateFrom}</AppText>
+                <AppText style={{ color: sheetTheme.textColor, fontFamily: fontFamilyMedium, fontSize: 14 }}>{filterDateFrom}</AppText>
               </TouchableOpacity>
-              <AppText style={{ marginHorizontal: 8, color: themeColors?.secondaryText }}>→</AppText>
+              <AppText style={{ marginHorizontal: 8, color: sheetTheme.subTextColor }}>→</AppText>
               <TouchableOpacity
-                style={{ flex: 1, borderWidth: 1, borderColor: themeColors?.themeBorderColor || "#EEE", borderRadius: 8, padding: 12, alignItems: 'center' }}
+                style={{ flex: 1, borderWidth: 1, borderColor: sheetTheme.borderColor, borderRadius: 8, padding: 12, alignItems: 'center' }}
                 onPress={() => { setDatePickerMode("to"); setDatePickerVisibility(true); }}
               >
-                <AppText style={{ color: themeColors?.text, fontFamily: fontFamilyMedium, fontSize: 14 }}>{filterDateTo}</AppText>
+                <AppText style={{ color: sheetTheme.textColor, fontFamily: fontFamilyMedium, fontSize: 14 }}>{filterDateTo}</AppText>
               </TouchableOpacity>
             </View>
 
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <TouchableOpacity
-                style={{ flex: 1, height: 48, borderRadius: 10, justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: themeColors?.secondaryText }}
+                style={{ flex: 1, height: 48, borderRadius: 10, justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: sheetTheme.subTextColor }}
                 onPress={resetFilters}
               >
-                <AppText style={{ color: themeColors?.text, fontWeight: "600", fontSize: 15 }}>Reset</AppText>
+                <AppText style={{ color: sheetTheme.textColor, fontWeight: "600", fontSize: 15 }}>Reset</AppText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={{ flex: 1, height: 48, borderRadius: 10, justifyContent: "center", alignItems: "center", backgroundColor: colors.buttonBg }}

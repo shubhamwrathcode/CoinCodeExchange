@@ -6,8 +6,10 @@ import { AppText, BOLD, DISCLAIMTEXT, EIGHTEEN, FOURTEEN, SEMI_BOLD, SIXTEEN, TW
 import { colors, darkTheme } from "../../../theme/colors";
 import { appOperation } from "../../../appOperation";
 import { CUSTOMER_TYPE } from "../../../appOperation/types";
-import { searchIcon, checkIc, NO_NOTIFICATION_ICON, moreOption, bitcoin_ic, marginWalletImg } from "../../../helper/ImageAssets";
+import { searchIcon, checkIc, NO_NOTIFICATION_ICON, bitcoin_ic, marginWalletImg } from "../../../helper/ImageAssets";
 import TotalAssetsCard from "../TotalAssetsCard";
+import WalletAssetCard from "../WalletAssetCard";
+import CoinIcon from "../../../common/CoinIcon";
 import NavigationService from "../../../navigation/NavigationService";
 import { MARGIN_BORROW_REPAY_SCREEN, MARGIN_TRANSFER_SCREEN } from "../../../navigation/routes";
 import CrossMarginDetailSheet from "../sheets/CrossMarginDetailSheet";
@@ -424,7 +426,16 @@ const CrossMarginWalletTab = ({ theme, themeColors, buildCoinIconUri }) => {
         {/* Action Buttons Row */}
         <View style={{ flexDirection: "row", gap: 10, marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: themeColors.border }}>
           <TouchableOpacity
-            style={{ flex: 1.5, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: theme === 'Dark' ? themeColors.themeElevationColor : colors.iconBgColor }}
+            style={{
+              flex: 1,
+              height: 36,
+              borderRadius: 18,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: isDark ? "rgba(10, 168, 197, 0.12)" : "rgba(10, 168, 197, 0.10)",
+              borderWidth: 1,
+              borderColor: isDark ? "rgba(10, 168, 197, 0.35)" : "rgba(10, 168, 197, 0.25)",
+            }}
             onPress={() => {
               const firstDebt = assets.find((a) => parseFloat(a.borrowed) > 0);
               const firstAsset = assets.find((a) => parseFloat(a.balance) > 0);
@@ -440,13 +451,22 @@ const CrossMarginWalletTab = ({ theme, themeColors, buildCoinIconUri }) => {
               }
             }}
           >
-            <AppText type={FOURTEEN} weight={SEMI_BOLD} color={themeColors.text}>Borrow / Repay</AppText>
+            <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: colors.cyanTheme }}>Borrow / Repay</AppText>
           </TouchableOpacity>
           <TouchableOpacity
-            style={{ flex: 1, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: theme === 'Dark' ? themeColors.themeElevationColor : colors.iconBgColor }}
+            style={{
+              flex: 1,
+              height: 36,
+              borderRadius: 18,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: isDark ? "#1A1B1E" : colors.iconBgColor,
+              borderWidth: 1,
+              borderColor: isDark ? "rgba(255,255,255,0.06)" : "transparent",
+            }}
             onPress={() => NavigationService.navigate(MARGIN_TRANSFER_SCREEN, { fromWalletType: "spot", toWalletType: "cross_margin" })}
           >
-            <AppText type={FOURTEEN} weight={SEMI_BOLD} color={themeColors.text}>Transfer</AppText>
+            <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text }}>Transfer</AppText>
           </TouchableOpacity>
         </View>
       </View>
@@ -457,13 +477,13 @@ const CrossMarginWalletTab = ({ theme, themeColors, buildCoinIconUri }) => {
           <TouchableOpacity onPress={() => { setActiveTab("funds"); setSearch(""); setHideSmall(false); setDebtOnly(false); }} style={{ alignItems: "center" }}>
             <AppText type={FOURTEEN} weight={SEMI_BOLD} color={activeTab === "funds" ? themeColors.text : mutedColor}>Funds</AppText>
             <View style={[styles.tabUnderline, {
-              backgroundColor: activeTab === "funds" ? isDark ? colors.white : colors.black : "transparent",
+              backgroundColor: activeTab === "funds" ? colors.cyanTheme : "transparent",
             }]} />
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => { setActiveTab("positions"); setSearch(""); setHideSmall(false); setDebtOnly(false); }} style={{ alignItems: "center" }}>
             <AppText type={FOURTEEN} weight={SEMI_BOLD} color={activeTab === "positions" ? themeColors.text : mutedColor}>Positions</AppText>
-            <View style={[styles.tabUnderline, { backgroundColor: activeTab === "positions" ? isDark ? colors.white : colors.black : "transparent" }]} />
+            <View style={[styles.tabUnderline, { backgroundColor: activeTab === "positions" ? colors.cyanTheme : "transparent" }]} />
           </TouchableOpacity>
         </View>
       </View>
@@ -510,40 +530,54 @@ const CrossMarginWalletTab = ({ theme, themeColors, buildCoinIconUri }) => {
           style={{ marginTop: 10 }}
           showsVerticalScrollIndicator={false}
           scrollEnabled={false}
-          renderItem={({ item, index }) => {
+          renderItem={({ item }) => {
             const hasBorrow = parseFloat(item.borrowed) > 0;
             const debt = debtByAsset[item.asset] || null;
             const totalBal = (parseFloat(item.balance || 0) + parseFloat(item.locked || 0)).toString();
-            const isLast = index === filteredFunds.length - 1;
             return (
-              <View style={[styles.row, { borderBottomColor: themeColors.border }, isLast && { borderBottomWidth: 0 }]}>
-                <View style={styles.rowLeft}>
-                  <View>
-                    <AppText type={FOURTEEN} weight={SEMI_BOLD} color={themeColors.text}>{item.asset}</AppText>
-                    {debt?.interest_accrued && parseFloat(debt.interest_accrued) > 0 && (
-                      <AppText type={TWELVE} color={colors.red} style={{ marginTop: 2 }}>+{fmt(debt.interest_accrued)} interest</AppText>
-                    )}
-                  </View>
-                </View>
-
-                <View style={styles.rowRight}>
-                  <View style={{ alignItems: "flex-end", marginRight: 10 }}>
-                    <AppText type={FOURTEEN} weight={SEMI_BOLD} color={themeColors.text}>{fmt(totalBal)}</AppText>
-                    <AppText type={TWELVE} color={hasBorrow ? colors.red : mutedColor}>
-                      {hasBorrow ? `Borrow: ${fmt(item.borrowed)}` : `Avail: ${fmt(item.balance)}`}
-                    </AppText>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setSelectedRowPopup({ type: "fund", data: { ...item, debt } });
-                      detailSheetRef.current?.open();
-                    }}
-                    style={styles.moreBtn}
-                  >
-                    <FastImage source={moreOption} style={styles.moreIcon} resizeMode="contain" tintColor={theme === 'Dark' ? colors.white : colors.black} />
-                  </TouchableOpacity>
-                </View>
-              </View>
+              <WalletAssetCard
+                theme={theme}
+                themeColors={themeColors}
+                icon={
+                  <CoinIcon
+                    coin={{ short_name: item.asset, asset: item.asset, icon_path: item.icon_path }}
+                    style={{ width: 36, height: 36, borderRadius: 18 }}
+                    resizeMode="contain"
+                  />
+                }
+                symbol={item.asset}
+                name={debt?.interest_accrued && parseFloat(debt.interest_accrued) > 0 ? `+${fmt(debt.interest_accrued)} interest` : "Cross Margin"}
+                amount={fmt(totalBal)}
+                fiatAmount={hasBorrow ? `Borrow: ${fmt(item.borrowed)}` : `Avail: ${fmt(item.balance)}`}
+                details={[
+                  { key: "available", label: "Available", value: fmt(item.balance) },
+                  { key: "locked", label: "Locked", value: fmt(item.locked) },
+                ]}
+                actions={[
+                  {
+                    key: "transfer",
+                    label: "Transfer",
+                    primary: true,
+                    onPress: () =>
+                      NavigationService.navigate(MARGIN_TRANSFER_SCREEN, {
+                        fromWalletType: "spot",
+                        toWalletType: "cross_margin",
+                        coin: item.asset,
+                      }),
+                  },
+                  {
+                    key: "borrow",
+                    label: "Borrow / Repay",
+                    primary: false,
+                    onPress: () =>
+                      NavigationService.navigate(MARGIN_BORROW_REPAY_SCREEN, {
+                        marginMode: "Cross",
+                        coin: item.asset,
+                        activeTab: hasBorrow || debt ? "Repay" : "Borrow",
+                      }),
+                  },
+                ]}
+              />
             );
           }}
           ListEmptyComponent={() => (
@@ -561,52 +595,49 @@ const CrossMarginWalletTab = ({ theme, themeColors, buildCoinIconUri }) => {
           style={{ marginTop: 10 }}
           showsVerticalScrollIndicator={false}
           scrollEnabled={false}
-          renderItem={({ item, index }) => {
+          renderItem={({ item }) => {
             const isLong = item.side === "LONG";
-            const sideColor = isLong ? colors.green : colors.red;
-            const valNum = parseFloat(item.value_usdt || 0);
             const pnl = parseFloat(item.unrealized_pnl || 0);
             const roe = parseFloat(item.roe_pct || 0);
-            const pnlColorText = pnl >= 0 ? "GREEN" : "RED";
-            const sideColorText = isLong ? "GREEN" : "RED";
+            const pnlColor = pnl >= 0 ? colors.green : colors.red;
             const assetRow = assets.find((a) => a.asset === item.asset);
             const debt = debtByAsset[item.asset] || null;
-            const isLast = index === filteredPositions.length - 1;
 
             return (
-              <View style={[styles.row, { borderBottomColor: themeColors.border }, isLast && { borderBottomWidth: 0 }]}>
-                <View style={styles.rowLeft}>
-                  <View style={{ gap: 4 }}>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                      <AppText type={FOURTEEN} weight={SEMI_BOLD} color={themeColors.text}>{item.asset}</AppText>
-                      <View style={[styles.sideBadge, { borderColor: sideColor }]}>
-                        <AppText type={TWELVE} color={sideColorText} weight={SEMI_BOLD}>{isLong ? "L" : "S"}</AppText>
-                      </View>
-                    </View>
-                    <AppText type={TWELVE} color={mutedColor}>Mark: {fmt(item.mark_price, 2)}</AppText>
-                    <AppText type={TWELVE} color={pnlColorText}>
-                      {pnl >= 0 ? "+" : ""}{fmt(pnl, 4)} ({roe >= 0 ? "+" : ""}{fmtPrice(roe)}%)
-                    </AppText>
-                  </View>
-                </View>
-
-                <View style={styles.rowRight}>
-                  <View style={{ alignItems: "center", marginRight: 15 }}>
-                    <AppText type={FOURTEEN} color={sideColorText}>
-                      {fmt(item.value_usdt, 2)}
-                    </AppText>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => {
+              <WalletAssetCard
+                theme={theme}
+                themeColors={themeColors}
+                symbol={item.asset}
+                name={isLong ? "LONG" : "SHORT"}
+                amount={fmt(item.value_usdt, 2)}
+                fiatAmount={`${pnl >= 0 ? "+" : ""}${fmt(pnl, 4)} (${roe >= 0 ? "+" : ""}${fmtPrice(roe)}%)`}
+                details={[
+                  { key: "mark", label: "Mark", value: fmt(item.mark_price, 2) },
+                  { key: "pnl", label: "uPnL", value: `${pnl >= 0 ? "+" : ""}${fmt(pnl, 4)}`, color: pnlColor },
+                ]}
+                actions={[
+                  {
+                    key: "details",
+                    label: "Details",
+                    primary: true,
+                    onPress: () => {
                       setSelectedRowPopup({ type: "position", data: { ...item, assetRow, debt } });
                       detailSheetRef.current?.open();
-                    }}
-                    style={styles.moreBtn}
-                  >
-                    <FastImage source={moreOption} style={styles.moreIcon} resizeMode="contain" tintColor={theme === "Dark" ? colors.white : colors.black} />
-                  </TouchableOpacity>
-                </View>
-              </View>
+                    },
+                  },
+                  {
+                    key: "transfer",
+                    label: "Transfer",
+                    primary: false,
+                    onPress: () =>
+                      NavigationService.navigate(MARGIN_TRANSFER_SCREEN, {
+                        fromWalletType: "spot",
+                        toWalletType: "cross_margin",
+                        coin: item.asset,
+                      }),
+                  },
+                ]}
+              />
             );
           }}
           ListEmptyComponent={() => (

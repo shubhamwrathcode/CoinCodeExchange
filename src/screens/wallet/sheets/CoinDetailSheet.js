@@ -3,10 +3,9 @@ import { ScrollView, TouchableOpacity, View } from "react-native";
 import FastImage from "react-native-fast-image";
 import RBSheet from "react-native-raw-bottom-sheet";
 import Toast from "react-native-simple-toast";
-import { AppText, DISCLAIMTEXT, FOURTEEN, SEMI_BOLD, TWELVE } from "../../../shared";
-import { activities_icon } from "../../../helper/ImageAssets";
-import { colors } from "../../../theme/colors";
+import { AppText, FOURTEEN, SEMI_BOLD, TWELVE } from "../../../shared";
 import CoinIcon from "../../../common/CoinIcon";
+import { BlurSheetBackground, blurSheetRbCustomStyles, blurSheetTheme } from "./BlurSheetChrome";
 
 const CoinDetailSheet = ({
   sheetRef,
@@ -30,6 +29,9 @@ const CoinDetailSheet = ({
   onEarning,
   onFutures,
 }) => {
+  const isDark = theme === "Dark";
+  const sheetTheme = blurSheetTheme(isDark);
+
   const actionButtons = React.useMemo(() => {
     switch (String(walletType || "").toLowerCase()) {
       case "main":
@@ -61,11 +63,6 @@ const CoinDetailSheet = ({
       case "spot":
       default:
         return [
-          // {
-          //   key: "convert",
-          //   label: "Convert",
-          //   onPress: () => Toast.showWithGravity("Coming soon", Toast.LONG, Toast.BOTTOM),
-          // },
           { key: "trade", label: "Trade", onPress: () => onTrade?.(selectedCoin) },
           { key: "transfer", label: "Transfer", onPress: () => onTransfer?.(selectedCoin) },
         ];
@@ -81,77 +78,79 @@ const CoinDetailSheet = ({
       closeOnPressMask={true}
       height={390}
       animationType="fade"
-      customStyles={{
-        container: {
-          backgroundColor: themeColors.background,
-          height: 390,
-          borderTopRightRadius: 26,
-          borderTopLeftRadius: 26,
-          paddingHorizontal: 18,
-          paddingTop: 14,
-        },
-        wrapper: {
-          backgroundColor: "#0006",
-        },
-        draggableIcon: {
-          backgroundColor: "transparent",
-        },
-      }}
+      customStyles={blurSheetRbCustomStyles({
+        isDark,
+        height: 390,
+        borderRadius: 26,
+        paddingHorizontal: 18,
+        paddingTop: 14,
+      })}
     >
+      <BlurSheetBackground isDark={isDark} />
       {selectedCoin ? (
-        <View style={{ flex: 1, backgroundColor: themeColors.background }}>
+        <View style={{ flex: 1 }}>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 6 }}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <View style={{ borderRadius: 20, overflow: "hidden" }}>
                   <CoinIcon
                     coin={selectedCoin}
-                    style={{ width: 40, height: 40 }}
+                    style={{ width: 40, height: 40, borderRadius: 20 }}
                     resizeMode="cover"
-                    fallback={activities_icon}
                   />
                 </View>
                 <View>
-                  <AppText weight={SEMI_BOLD} type={FOURTEEN}>{selectedCoin?.short_name}</AppText>
-                  <AppText type={TWELVE} color={DISCLAIMTEXT}>{selectedCoin?.currency}</AppText>
+                  <AppText weight={SEMI_BOLD} type={FOURTEEN} style={{ color: sheetTheme.textColor }}>
+                    {selectedCoin?.short_name}
+                  </AppText>
+                  <AppText type={TWELVE} style={{ color: sheetTheme.subTextColor }}>
+                    {selectedCoin?.currency}
+                  </AppText>
                 </View>
               </View>
-              {/* <TouchableOpacity onPress={() => sheetRef.current?.close?.()} style={{ padding: 6 }}>
-                <AppText type={FOURTEEN} color={DISCLAIMTEXT}>✕</AppText>
-              </TouchableOpacity> */}
             </View>
 
             <View style={{ marginTop: 14 }}>
-              <AppText weight={SEMI_BOLD} style={{ fontSize: 22 }}>
+              <AppText weight={SEMI_BOLD} style={{ fontSize: 22, color: sheetTheme.textColor }}>
                 {safeRound(totalWalletQty(selectedCoin), 8)}
               </AppText>
-              <AppText type={TWELVE} color={DISCLAIMTEXT} style={{ marginTop: 2 }}>
+              <AppText type={TWELVE} style={{ marginTop: 2, color: sheetTheme.subTextColor }}>
                 {approxUsdLine(selectedCoin)}
               </AppText>
             </View>
 
             <View style={{ marginTop: 16, gap: 14 }}>
               <View style={styles.sheetRow}>
-                <AppText type={TWELVE} color={DISCLAIMTEXT}>Available</AppText>
+                <AppText type={TWELVE} style={{ color: sheetTheme.subTextColor }}>Available</AppText>
                 <View style={{ alignItems: "flex-end" }}>
-                  <AppText weight={SEMI_BOLD}>{safeRound(selectedCoin?.balance, 8)}</AppText>
-                  <AppText type={TWELVE} color={DISCLAIMTEXT}>{usdApproxFromPrice(selectedCoin?.balance, selectedCoin)}</AppText>
+                  <AppText weight={SEMI_BOLD} style={{ color: sheetTheme.textColor }}>
+                    {safeRound(selectedCoin?.balance, 8)}
+                  </AppText>
+                  <AppText type={TWELVE} style={{ color: sheetTheme.subTextColor }}>
+                    {usdApproxFromPrice(selectedCoin?.balance, selectedCoin)}
+                  </AppText>
                 </View>
               </View>
               <View style={styles.sheetRow}>
-                <AppText type={TWELVE} color={DISCLAIMTEXT}>In-Order</AppText>
+                <AppText type={TWELVE} style={{ color: sheetTheme.subTextColor }}>In-Order</AppText>
                 <View style={{ alignItems: "flex-end" }}>
-                  <AppText weight={SEMI_BOLD}>{safeRound(selectedCoin?.locked_balance, 8)}</AppText>
-                  <AppText type={TWELVE} color={DISCLAIMTEXT}>{usdApproxFromPrice(selectedCoin?.locked_balance, selectedCoin)}</AppText>
+                  <AppText weight={SEMI_BOLD} style={{ color: sheetTheme.textColor }}>
+                    {safeRound(selectedCoin?.locked_balance, 8)}
+                  </AppText>
+                  <AppText type={TWELVE} style={{ color: sheetTheme.subTextColor }}>
+                    {usdApproxFromPrice(selectedCoin?.locked_balance, selectedCoin)}
+                  </AppText>
                 </View>
               </View>
               <View style={styles.sheetRow}>
-                <AppText type={TWELVE} color={DISCLAIMTEXT}>Avg. Cost Price (USD)</AppText>
-                <AppText weight={SEMI_BOLD}>{spotUsdPriceLabel(selectedCoin)}</AppText>
+                <AppText type={TWELVE} style={{ color: sheetTheme.subTextColor }}>Avg. Cost Price (USD)</AppText>
+                <AppText weight={SEMI_BOLD} style={{ color: sheetTheme.textColor }}>
+                  {spotUsdPriceLabel(selectedCoin)}
+                </AppText>
               </View>
             </View>
 
-            <View style={{ height: 1, backgroundColor: themeColors.border, marginTop: 12 }} />
+            <View style={{ height: 1, backgroundColor: sheetTheme.rowBorderColor, marginTop: 12 }} />
 
             <View style={{ flexDirection: "row", gap: 12, marginTop: 10 }}>
               {actionButtons.map((b) => (
@@ -161,9 +160,11 @@ const CoinDetailSheet = ({
                     sheetRef.current?.close?.();
                     b.onPress?.();
                   }}
-                  style={[styles.sheetBtn, { backgroundColor: theme === 'Dark' ? themeColors.themeElevationColor : colors.iconBgColor, borderColor: 'transparent' }]}
+                  style={[styles.sheetBtn, { backgroundColor: sheetTheme.buttonBg }]}
                 >
-                  <AppText weight={SEMI_BOLD} type={FOURTEEN}>{b.label}</AppText>
+                  <AppText weight={SEMI_BOLD} type={FOURTEEN} style={{ color: sheetTheme.textColor }}>
+                    {b.label}
+                  </AppText>
                 </TouchableOpacity>
               ))}
             </View>
@@ -193,4 +194,3 @@ const styles = {
 };
 
 export default CoinDetailSheet;
-

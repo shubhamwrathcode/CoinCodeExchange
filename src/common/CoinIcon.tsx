@@ -1,57 +1,34 @@
-import React, { useState, useEffect, memo } from 'react';
-import { View, StyleSheet, StyleProp, ImageStyle, ViewStyle } from 'react-native';
+import React, { useState, useEffect, useMemo, memo } from 'react';
+import { View, Text, StyleSheet, StyleProp, ImageStyle, ViewStyle } from 'react-native';
 import FastImage, { ImageStyle as FastImageStyle, ResizeMode, Source } from 'react-native-fast-image';
 import { SvgXml } from 'react-native-svg';
-import { buildCoinImageUri } from '../helper/coinIconUrl';
+import {
+  resolveCoinIconUri,
+  resolveCoinTicker,
+} from '../helper/coinIconUrl';
 import { activities_icon } from '../helper/ImageAssets';
+import { useAppSelector } from '../store/hooks';
 
-// In-memory cache for clean SVG XML strings
-const svgXmlCache = new Map<string, string | null>();
-// Set of URLs known to be raster images or failed
-const rasterUrlCache = new Set<string>();
-const failedUrlCache = new Set<string>();
+/** Cache mirrors TradingDataModal ModalCoinIcon so SVG/raster detection is shared & stable. */
+const coinIconCache = new Map<string, { status: 'svg' | 'image' | 'fallback'; xml?: string }>();
 
 const RASTER_REGEX = /\.(png|jpe?g|webp|gif|bmp)($|\?)/i;
-const SVG_REGEX = /\.svg($|\?)/i;
 
-async function checkAndFetchSvg(uri: string): Promise<string | null> {
-  if (svgXmlCache.has(uri)) {
-    return svgXmlCache.get(uri) || null;
-  }
-  if (rasterUrlCache.has(uri) || failedUrlCache.has(uri)) {
-    return null;
-  }
-  try {
-    const res = await fetch(uri);
-    if (!res.ok) {
-      svgXmlCache.set(uri, null);
-      return null;
-    }
-    const contentType = res.headers.get('content-type') || '';
-    const text = await res.text();
-
-    if (
-      contentType.includes('svg') ||
-      text.includes('<svg') ||
-      text.includes('<SVG')
-    ) {
-      const clean = text
-        .replace(/^\uFEFF/, '') // remove UTF-8 BOM
-        .replace(/<\?xml[^>]*\?>/gi, '') // remove XML declaration
-        .replace(/<!DOCTYPE[^>]*>/gi, '') // remove DOCTYPE
-        .trim();
-      svgXmlCache.set(uri, clean);
-      return clean;
-    } else {
-      rasterUrlCache.add(uri);
-      svgXmlCache.set(uri, null);
-      return null;
-    }
-  } catch {
-    svgXmlCache.set(uri, null);
-    return null;
-  }
-}
+const getCoinBadgeBg = (sym = '') => {
+  const upper = String(sym).toUpperCase();
+  if (upper.includes('BTC')) return '#F7931A';
+  if (upper.includes('ETH')) return '#627EEA';
+  if (upper.includes('BNB')) return '#F3BA2F';
+  if (upper.includes('SOL')) return '#14F195';
+  if (upper.includes('USDT') || upper.includes('USD')) return '#26A17B';
+  if (upper.includes('AED')) return '#C6A961';
+  if (upper.includes('INR')) return '#FF9933';
+  if (upper.includes('XRP')) return '#23292F';
+  if (upper.includes('DOGE')) return '#C2A633';
+  if (upper.includes('ADA')) return '#0033AD';
+  if (upper.includes('HBAR')) return '#222222';
+  return '#00E5FF';
+};
 
 interface CoinIconProps {
   coin?: any;
@@ -60,6 +37,8 @@ interface CoinIconProps {
   resizeMode?: ResizeMode;
   fallback?: Source | number;
   placeholderBg?: string;
+  /** Prefer letter badge over activities_icon when icon missing/fails (default false) */
+  useLetterFallback?: boolean;
 }
 
 export const CoinIcon: React.FC<CoinIconProps> = memo(({
@@ -69,89 +48,188 @@ export const CoinIcon: React.FC<CoinIconProps> = memo(({
   resizeMode = 'contain',
   fallback,
   placeholderBg,
+  useLetterFallback = false,
 }) => {
-  const resolvedUri = directUri || (coin ? buildCoinImageUri(coin) : null);
+  const coinPairs = useAppSelector((state: any) => state?.home?.coinPairs) || [];
+  const ticker = resolveCoinTicker(coin);
 
-  // If clearly a raster format (e.g. .png, .jpg), don't treat as SVG
-  const isDirectRaster = Boolean(resolvedUri && RASTER_REGEX.test(resolvedUri));
-  const isDirectSvg = Boolean(resolvedUri && SVG_REGEX.test(resolvedUri));
+  // Ordered candidates: market pair icon first, then wallet/direct path (dynamic for every coin)
+  const candidates = useMemo(() => {
+    const primary = resolveCoinIconUri(coin, coinPairs, directUri);
+    const list: string[] = [];
+    if (primary) list.push(primary);
 
-  const [svgXml, setSvgXml] = useState<string | null>(() => {
-    if (!resolvedUri || isDirectRaster) return null;
-    return svgXmlCache.get(resolvedUri) || null;
+    // Also keep wallet-only path as secondary if different (in case pair icon 404s)
+    if (coin) {
+      const walletOnly = resolveCoinIconUri(coin, null, directUri);
+      if (walletOnly && !list.includes(walletOnly)) list.push(walletOnly);
+    } else if (directUri) {
+      const d = resolveCoinIconUri(null, null, directUri);
+      if (d && !list.includes(d)) list.push(d);
+    }
+    return list;
+  }, [coin, coinPairs, directUri]);
+
+  const [candidateIndex, setCandidateIndex] = useState(0);
+  const resolvedUri = candidates[candidateIndex] || null;
+
+  const [iconState, setIconState] = useState<{
+    status: 'loading' | 'svg' | 'image' | 'fallback';
+    xml?: string;
+  }>(() => {
+    if (!resolvedUri) return { status: 'fallback' };
+    if (coinIconCache.has(resolvedUri)) {
+      const cached = coinIconCache.get(resolvedUri)!;
+      return cached.status === 'svg'
+        ? { status: 'svg', xml: cached.xml }
+        : { status: cached.status };
+    }
+    if (RASTER_REGEX.test(resolvedUri)) return { status: 'image' };
+    return { status: 'loading' };
   });
-  const [hasError, setHasError] = useState<boolean>(() => {
-    return resolvedUri ? failedUrlCache.has(resolvedUri) : false;
-  });
+
+  // Reset candidate when coin/URI set changes
+  useEffect(() => {
+    setCandidateIndex(0);
+  }, [candidates.join('|')]);
 
   useEffect(() => {
     let active = true;
 
     if (!resolvedUri) {
-      setSvgXml(null);
+      setIconState({ status: 'fallback' });
       return;
     }
 
-    if (failedUrlCache.has(resolvedUri)) {
-      setHasError(true);
-      return;
-    }
-
-    if (isDirectRaster) {
-      setSvgXml(null);
-      return;
-    }
-
-    if (svgXmlCache.has(resolvedUri)) {
-      const cached = svgXmlCache.get(resolvedUri) || null;
-      setSvgXml(cached);
-      return;
-    }
-
-    checkAndFetchSvg(resolvedUri).then((clean) => {
-      if (active) {
-        if (clean) {
-          setSvgXml(clean);
-        } else {
-          setSvgXml(null);
+    if (coinIconCache.has(resolvedUri)) {
+      const cached = coinIconCache.get(resolvedUri)!;
+      if (cached.status === 'fallback') {
+        // try next candidate
+        if (candidateIndex < candidates.length - 1) {
+          setCandidateIndex((i) => i + 1);
+          return;
         }
+        setIconState({ status: 'fallback' });
+        return;
       }
-    });
+      setIconState(
+        cached.status === 'svg'
+          ? { status: 'svg', xml: cached.xml }
+          : { status: cached.status }
+      );
+      return;
+    }
+
+    if (RASTER_REGEX.test(resolvedUri)) {
+      const res = { status: 'image' as const };
+      coinIconCache.set(resolvedUri, res);
+      setIconState(res);
+      return;
+    }
+
+    setIconState({ status: 'loading' });
+
+    fetch(resolvedUri)
+      .then(async (response) => {
+        if (!response.ok) throw new Error('bad status');
+        const text = await response.text();
+        if (
+          text &&
+          typeof text === 'string' &&
+          (text.includes('<svg') ||
+            text.trim().startsWith('<?xml') ||
+            text.includes('<path') ||
+            text.includes('<SVG'))
+        ) {
+          const clean = text
+            .replace(/^\uFEFF/, '')
+            .replace(/<\?xml[^>]*\?>/gi, '')
+            .replace(/<!DOCTYPE[^>]*>/gi, '')
+            .trim();
+          const res = { status: 'svg' as const, xml: clean };
+          coinIconCache.set(resolvedUri, res);
+          if (active) setIconState(res);
+        } else {
+          const res = { status: 'image' as const };
+          coinIconCache.set(resolvedUri, res);
+          if (active) setIconState(res);
+        }
+      })
+      .catch(() => {
+        const res = { status: 'image' as const };
+        coinIconCache.set(resolvedUri, res);
+        if (active) setIconState(res);
+      });
 
     return () => {
       active = false;
     };
-  }, [resolvedUri, isDirectRaster]);
+  }, [resolvedUri, candidateIndex, candidates.length]);
+
+  const failCurrent = () => {
+    if (resolvedUri) coinIconCache.set(resolvedUri, { status: 'fallback' });
+    if (candidateIndex < candidates.length - 1) {
+      setCandidateIndex((i) => i + 1);
+      setIconState({ status: 'loading' });
+      return;
+    }
+    setIconState({ status: 'fallback' });
+  };
 
   const flatStyle = StyleSheet.flatten(style) || {};
   const width = (flatStyle.width as number) || 24;
   const height = (flatStyle.height as number) || 24;
-  const borderRadius = (flatStyle.borderRadius as number) || 0;
+  const borderRadius = (flatStyle.borderRadius as number) || width / 2;
 
-  const effectiveFallback = fallback || activities_icon;
+  const renderLetterFallback = () => (
+    <View
+      style={[
+        style as ViewStyle,
+        {
+          width,
+          height,
+          borderRadius,
+          backgroundColor: placeholderBg || getCoinBadgeBg(ticker),
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+        },
+      ]}
+    >
+      <Text style={{ color: '#FFF', fontSize: Math.max(10, width * 0.36), fontWeight: '700' }}>
+        {ticker?.substring(0, 1) || '•'}
+      </Text>
+    </View>
+  );
 
-  if (!resolvedUri || hasError) {
-    if (placeholderBg && !fallback) {
-      return (
-        <View
-          style={[
-            style as ViewStyle,
-            { width, height, borderRadius, backgroundColor: placeholderBg },
-          ]}
-        />
-      );
-    }
+  if (!resolvedUri || iconState.status === 'fallback') {
+    if (useLetterFallback) return renderLetterFallback();
     return (
       <FastImage
-        source={effectiveFallback}
+        source={fallback || activities_icon}
         style={style as StyleProp<FastImageStyle>}
         resizeMode={resizeMode}
       />
     );
   }
 
-  // Render SVG if XML is available
-  if (svgXml) {
+  if (iconState.status === 'loading') {
+    return (
+      <View
+        style={[
+          style as ViewStyle,
+          {
+            width,
+            height,
+            borderRadius,
+            backgroundColor: placeholderBg || 'rgba(128,128,128,0.2)',
+          },
+        ]}
+      />
+    );
+  }
+
+  if (iconState.status === 'svg' && iconState.xml) {
     return (
       <View
         style={[
@@ -167,28 +245,21 @@ export const CoinIcon: React.FC<CoinIconProps> = memo(({
         ]}
       >
         <SvgXml
-          xml={svgXml}
+          xml={iconState.xml}
           width="100%"
           height="100%"
-          onError={() => {
-            if (resolvedUri) failedUrlCache.add(resolvedUri);
-            setHasError(true);
-          }}
+          onError={failCurrent}
         />
       </View>
     );
   }
 
-  // Render FastImage for PNG / JPG / WebP
   return (
     <FastImage
       source={{ uri: resolvedUri }}
       style={style as StyleProp<FastImageStyle>}
       resizeMode={resizeMode}
-      onError={() => {
-        if (resolvedUri) failedUrlCache.add(resolvedUri);
-        setHasError(true);
-      }}
+      onError={failCurrent}
     />
   );
 });

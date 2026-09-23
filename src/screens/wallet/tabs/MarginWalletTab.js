@@ -6,13 +6,14 @@ import { AppText, DISCLAIMTEXT, EIGHTEEN, FOURTEEN, SEMI_BOLD, TWELVE } from "..
 import { colors, darkTheme } from "../../../theme/colors";
 import { appOperation } from "../../../appOperation";
 import { CUSTOMER_TYPE } from "../../../appOperation/types";
-import { searchIcon, checkIc, NO_NOTIFICATION_ICON, moreOption, activities_icon, INFO, marginWalletImg } from "../../../helper/ImageAssets";
+import { searchIcon, checkIc, NO_NOTIFICATION_ICON, INFO, marginWalletImg } from "../../../helper/ImageAssets";
 import TotalAssetsCard from "../TotalAssetsCard";
+import WalletAssetCard from "../WalletAssetCard";
 import CoinIcon from "../../../common/CoinIcon";
 import MarginPairDetailSheet from "./MarginPairDetailSheet";
 import IsolatedMarginRiskModal from "../../spotScreen/isolatedMargin/IsolatedMarginRiskModal";
 import NavigationService from "../../../navigation/NavigationService";
-import { MARGIN_TRANSFER_SCREEN } from "../../../navigation/routes";
+import { MARGIN_BORROW_REPAY_SCREEN, MARGIN_TRANSFER_SCREEN, TRADE_SCREEN } from "../../../navigation/routes";
 import WalletShimmerCell from "../WalletShimmerCell";
 import {
   buildMarginRiskRow,
@@ -70,7 +71,16 @@ function buildPairRows(balanceRows, accounts) {
       pairRaw: pair,
       base: base?.coin || acc.base_asset || "",
       quote: quote?.coin || acc.quote_asset || "",
-      icon_path: acc.icon_path || "",
+      icon_path:
+        acc.icon_path ||
+        base?.icon_path ||
+        base?.icon ||
+        base?.icon_url ||
+        acc.base_currency_icon ||
+        acc.base_icon ||
+        "",
+      short_name: base?.coin || acc.base_asset || "",
+      currency: base?.coin || acc.base_asset || "",
       mmr: mlDisplay !== "—" ? mlDisplay : null,
       marginLevel: mlDisplay,
       margin_level: acc.margin_level,
@@ -265,52 +275,50 @@ const MarginWalletTab = ({ theme, themeColors, marginSummary: propMarginSummary,
         style={{ marginTop: 10 }}
         showsVerticalScrollIndicator={false}
         scrollEnabled={false}
-        renderItem={({ item, index }) => {
-          const isLast = index === filtered.length - 1;
-          return (
-            <View style={[styles.row, { borderBottomColor: themeColors.border }, isLast && { borderBottomWidth: 0 }]}>
-              <View style={styles.rowLeft}>
-                <CoinIcon
-                  coin={item}
-                  style={styles.coinIcon}
-                  resizeMode="contain"
-                  fallback={activities_icon}
-                />
-                <View>
-                  <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text }}>{item.pair}</AppText>
-                  {item.status === "NOT_OPENED" ? (
-                    <View style={{ backgroundColor: theme === "Dark" ? "rgba(142,148,158,0.2)" : "rgba(142,148,158,0.1)", borderRadius: 3, paddingHorizontal: 5, paddingVertical: 2, alignSelf: "flex-start", marginTop: 4 }}>
-                      <AppText type={TWELVE} color={DISCLAIMTEXT} style={{ fontSize: 10, lineHeight: 12 }}>Not opened</AppText>
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      activeOpacity={0.75}
-                      onPress={() => openIsolatedRisk(item)}
-                      style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4, alignSelf: "flex-start" }}
-                    >
-                      <View style={{ backgroundColor: `${item.mlStatus?.color || "#01bc8d"}1A`, borderRadius: 3, paddingHorizontal: 5, paddingVertical: 2 }}>
-                        <AppText type={TWELVE} style={{ color: item.mlStatus?.color || "#01bc8d", fontSize: 10, lineHeight: 12 }}>
-                          {item.marginLevel}
-                        </AppText>
-                      </View>
-                      <FastImage source={INFO} style={{ width: 11, height: 11 }} resizeMode="contain" tintColor={themeColors.secondaryText} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-
-              <View style={styles.rowRight}>
-                <View style={{ alignItems: "flex-end", marginRight: 10 }}>
-                  <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text }}>{item.availableBase}</AppText>
-                  <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text }}>{item.availableQuote}</AppText>
-                </View>
-                <TouchableOpacity onPress={() => { setSelectedPair(item); sheetRef.current?.open(); }} style={styles.moreBtn}>
-                  <FastImage source={moreOption} style={styles.moreIcon} resizeMode="contain" tintColor={themeColors.text} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          );
-        }}
+        renderItem={({ item }) => (
+          <WalletAssetCard
+            theme={theme}
+            themeColors={themeColors}
+            icon={
+              <CoinIcon
+                coin={item}
+                style={{ width: 36, height: 36, borderRadius: 18 }}
+                resizeMode="contain"
+              />
+            }
+            symbol={item.pair}
+            name={
+              item.status === "NOT_OPENED"
+                ? "Not opened"
+                : `ML ${item.marginLevel}`
+            }
+            amount={item.availableBase}
+            fiatAmount={item.availableQuote}
+            details={[
+              { key: "base", label: `${item.base || "Base"} Avail`, value: item.availableBase },
+              { key: "quote", label: `${item.quote || "Quote"} Avail`, value: item.availableQuote },
+            ]}
+            actions={[
+              {
+                key: "trade",
+                label: "Trade",
+                primary: true,
+                onPress: () => NavigationService.navigate(TRADE_SCREEN, { trade_pair: item.pairRaw || item.pair }),
+              },
+              {
+                key: "transfer",
+                label: "Transfer",
+                primary: false,
+                onPress: () =>
+                  NavigationService.navigate(MARGIN_TRANSFER_SCREEN, {
+                    fromWalletType: "spot",
+                    toWalletType: "margin",
+                    coin: item?.base,
+                  }),
+              },
+            ]}
+          />
+        )}
         ListEmptyComponent={() => {
           if (isLoading) {
             return (

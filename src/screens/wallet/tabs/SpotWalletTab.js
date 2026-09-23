@@ -1,14 +1,15 @@
 import React, { useMemo } from "react";
 import { FlatList, TextInput, TouchableOpacity, View } from "react-native";
 import FastImage from "react-native-fast-image";
-import { AppText, DISCLAIMTEXT, EIGHTEEN, FOURTEEN, SEMI_BOLD, TWELVE } from "../../../shared";
+import { AppText, DISCLAIMTEXT, EIGHTEEN, SEMI_BOLD, TWELVE } from "../../../shared";
 import { colors, darkTheme } from "../../../theme/colors";
-import { activities_icon, checkIc, moreOption, searchIcon, NO_NOTIFICATION_ICON, spotWalletImg } from "../../../helper/ImageAssets";
+import { checkIc, searchIcon, NO_NOTIFICATION_ICON, spotWalletImg } from "../../../helper/ImageAssets";
 import CoinIcon from "../../../common/CoinIcon";
 import WalletTabQuickActions from "../WalletTabQuickActions";
 import TotalAssetsCard from "../TotalAssetsCard";
+import WalletAssetCard from "../WalletAssetCard";
 import NavigationService from "../../../navigation/NavigationService";
-import { SPOT_PNL_ANALYSIS_SCREEN } from "../../../navigation/routes";
+import { SPOT_PNL_ANALYSIS_SCREEN, MARGIN_TRANSFER_SCREEN } from "../../../navigation/routes";
 
 function parseSpotPnlValue(raw) {
   if (raw === undefined || raw === null || raw === "") return null;
@@ -30,19 +31,17 @@ const SpotWalletTab = ({
   safeNum,
   totalWalletQty,
   approxUsdLine,
-  buildCoinIconUri,
-  failedIconMap,
-  setFailedIconMap,
   userSpotWallet,
   spotPnlData,
   onDeposit,
-  onBuyCrypto,
   onTransfer,
   onWithdraw,
+  onTrade,
   onOpenCoinSheet,
 }) => {
   const [spotHideZeroBalance, setSpotHideZeroBalance] = React.useState(false);
   const [spotSearch, setSpotSearch] = React.useState("");
+  const isDark = theme === "Dark";
 
   const rawPnl = spotPnlData?.realized_pnl_usdt ?? spotPnlData?.realized_pnl ?? spotPnlData?.today_pnl_usd ?? spotPnlData?.today_pnl;
   const realizedPnl = parseSpotPnlValue(rawPnl);
@@ -70,6 +69,8 @@ const SpotWalletTab = ({
     }
     return out;
   }, [userSpotWallet, safeNum, spotSearch, spotHideZeroBalance, totalWalletQty]);
+
+  const mask = (v) => (showBalance ? v : "****");
 
   return (
     <View style={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 18 }}>
@@ -101,21 +102,20 @@ const SpotWalletTab = ({
         themeColors={themeColors}
         items={[
           { key: "deposit", label: "Deposit", variant: "deposit", onPress: onDeposit },
-          { key: "buyCrypto", label: "Buy Now", variant: "buyCrypto", onPress: onBuyCrypto },
           { key: "transfer", label: "Transfer", variant: "transfer", onPress: onTransfer },
           { key: "withdraw", label: "Withdraw", variant: "withdraw", onPress: onWithdraw },
         ]}
       />
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 14 }}>
-        <View style={[styles.searchBox, { backgroundColor: theme === 'Dark' ? darkTheme.darkThemeInputColor : '#F7F7F7' }]}>
+        <View style={[styles.searchBox, { backgroundColor: isDark ? darkTheme.darkThemeInputColor : "#F7F7F7" }]}>
           <FastImage source={searchIcon} style={{ width: 14, height: 14 }} resizeMode="contain" tintColor={themeColors.secondaryText} />
           <TextInput
             value={spotSearch}
             onChangeText={setSpotSearch}
             placeholder="Search"
             placeholderTextColor={themeColors.secondaryText}
-            cursorColor={theme === 'Dark' ? colors.white : colors.black}
+            cursorColor={isDark ? colors.white : colors.black}
             style={{ flex: 1, height: 40, fontSize: 13, color: themeColors.text }}
             returnKeyType="search"
           />
@@ -124,14 +124,14 @@ const SpotWalletTab = ({
         <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 8 }} onPress={() => setSpotHideZeroBalance((v) => !v)}>
           <View style={styles.checkbox}>
             {spotHideZeroBalance ? (
-              <FastImage source={checkIc} style={{ width: 8, height: 8 }} resizeMode="contain" tintColor={theme === 'Dark' ? colors.white : colors.buttonBg} />
+              <FastImage source={checkIc} style={{ width: 8, height: 8 }} resizeMode="contain" tintColor={isDark ? colors.white : colors.buttonBg} />
             ) : null}
           </View>
-          <AppText type={TWELVE} color={theme === 'Dark' ? colors.white : DISCLAIMTEXT}>Hide 0 balances</AppText>
+          <AppText type={TWELVE} color={isDark ? colors.white : DISCLAIMTEXT}>Hide 0 balances</AppText>
         </TouchableOpacity>
       </View>
 
-      <View style={[styles.hintBar, { backgroundColor: themeColors.themeElevationColor, borderColor: 'transparent' }]}>
+      <View style={[styles.hintBar, { backgroundColor: themeColors.themeElevationColor, borderColor: "transparent" }]}>
         <AppText color={DISCLAIMTEXT} style={{ marginRight: 8 }}>ⓘ</AppText>
         <AppText type={TWELVE} color={DISCLAIMTEXT} style={{ flex: 1 }}>
           To trade tokens, click Transfer to move the assets from your Funding Account to your Trading Account.
@@ -145,36 +145,40 @@ const SpotWalletTab = ({
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
         scrollEnabled={false}
-        renderItem={({ item, index }) => {
+        renderItem={({ item }) => {
           const total = totalWalletQty(item);
-          const isLast = index === spotRows.length - 1;
           return (
-            <View style={[styles.row, { borderBottomColor: themeColors.border }, isLast && { borderBottomWidth: 0 }]}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
-                <View style={{ borderRadius: 16, overflow: "hidden" }}>
-                  <CoinIcon
-                    coin={item}
-                    style={{ width: 28, height: 28 }}
-                    resizeMode="cover"
-                    fallback={activities_icon}
-                  />
+            <WalletAssetCard
+              theme={theme}
+              themeColors={themeColors}
+              icon={
+                <View style={{ borderRadius: 18, overflow: "hidden" }}>
+                  <CoinIcon coin={item} style={{ width: 36, height: 36, borderRadius: 18 }} resizeMode="cover" />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <AppText type={FOURTEEN} weight={SEMI_BOLD}>{item?.short_name}</AppText>
-                  <AppText type={TWELVE} color={DISCLAIMTEXT}>{item?.currency}</AppText>
-                </View>
-              </View>
-
-              <View style={{ alignItems: "flex-end" }}>
-                <AppText type={FOURTEEN} weight={SEMI_BOLD}>{safeRound(total, 8)}</AppText>
-                <AppText type={TWELVE} color={DISCLAIMTEXT}>{approxUsdLine(item)}</AppText>
-              </View>
-
-              <TouchableOpacity style={{ paddingLeft: 10, paddingVertical: 6 }} onPress={() => onOpenCoinSheet(item)}>
-                <FastImage source={moreOption} style={{ width: 18, height: 18, transform: [{ rotate: "90deg" }] }} resizeMode="contain"
-                  tintColor={theme === 'Dark' ? colors.white : colors.black} />
-              </TouchableOpacity>
-            </View>
+              }
+              symbol={item?.short_name}
+              name={item?.currency}
+              amount={mask(safeRound(total, 8))}
+              fiatAmount={mask(approxUsdLine(item))}
+              details={[
+                { key: "available", label: "Available", value: mask(safeRound(safeNum(item?.balance), 8)) },
+                { key: "orders", label: "In Orders", value: mask(safeRound(safeNum(item?.locked_balance), 8)) },
+              ]}
+              actions={[
+                { key: "trade", label: "Trade", primary: true, onPress: () => onTrade?.(item) },
+                {
+                  key: "transfer",
+                  label: "Transfer",
+                  primary: false,
+                  onPress: () =>
+                    NavigationService.navigate(MARGIN_TRANSFER_SCREEN, {
+                      fromWalletType: "spot",
+                      toWalletType: "main",
+                      coin: item?.short_name || item?.currency,
+                    }),
+                },
+              ]}
+            />
           );
         }}
         ListEmptyComponent={() => (
@@ -218,14 +222,6 @@ const styles = {
     borderRadius: 12,
     marginTop: 12,
   },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
 };
 
 export default SpotWalletTab;
-

@@ -1,46 +1,34 @@
 import React from "react";
-import { Platform, TouchableOpacity, View } from "react-native";
+import { TouchableOpacity, View } from "react-native";
 import FastImage from "react-native-fast-image";
-import { AppText, MEDIUM, SEMI_BOLD, TWELVE } from "../../shared";
-import { colors, darkTheme } from "../../theme/colors";
+import { AppText, MEDIUM, TWELVE } from "../../shared";
+import { colors } from "../../theme/colors";
 import {
   buyCrypto,
-  earningAsset1,
-  earningMenuDarkIcon,
-  earningMenuIcon,
+  depositWallet,
+  earnWallet,
   futuresActiveIcon,
-  futuresIcon,
-  history,
   historyIcon,
-  newDepositDarkIcon,
-  newDepositIcon,
-  newReferalIcon,
-  newReferImage,
-  newWidthrawDarkIcon,
-  newWidthrawIcon,
   p2pIcon,
-  referWallet,
   swap_line,
-  swapHistory,
-  swap as swapIconDark,
-  swapLight as swapIconLight,
+  transferWallet,
+  withdrawWallet,
 } from "../../helper/ImageAssets";
 
 /**
- * Resolve icon for wallet tab quick actions (ProfileDrawer-style assets).
- * `variant` can be explicit or falls back to `key` when it matches a known name.
+ * CoinCode-style wallet action icons (deposit/withdraw/transfer/earn already include
+ * the dark rounded container in the PNG). History is a line icon + matching box.
  */
-function iconSourceForVariant(variant, theme) {
-  const isDark = theme === "Dark";
+function iconSourceForVariant(variant) {
   switch (variant) {
     case "deposit":
-      return isDark ? newDepositDarkIcon : newDepositIcon;
+      return depositWallet;
     case "withdraw":
-      return isDark ? newWidthrawDarkIcon : newWidthrawIcon;
+      return withdrawWallet;
     case "transfer":
-      return theme !== "Dark" ? swapIconLight : swapIconLight;
+      return transferWallet;
     case "history":
-      return history;
+      return historyIcon;
     case "buyCrypto":
       return buyCrypto;
     case "p2p":
@@ -48,7 +36,7 @@ function iconSourceForVariant(variant, theme) {
     case "swap":
       return swap_line;
     case "earning":
-      return referWallet;
+      return earnWallet;
     case "futures":
       return futuresActiveIcon;
     default:
@@ -56,16 +44,11 @@ function iconSourceForVariant(variant, theme) {
   }
 }
 
-/**
- * Icon + label row (left-aligned), same layout as Wallet Overview quick actions.
- * @param {{ theme: string, themeColors: object, items: Array<{ key: string, label: string, onPress: () => void, variant?: string }> }} props
- */
+const COINCODE_WALLET_ICONS = new Set(["deposit", "withdraw", "transfer", "earning"]);
+
 const WalletTabQuickActions = ({ theme, themeColors, items }) => {
   if (!Array.isArray(items) || items.length === 0) return null;
   const isDark = theme === "Dark";
-  // console.log(items,'==items');
-
-
 
   return (
     <View
@@ -80,8 +63,12 @@ const WalletTabQuickActions = ({ theme, themeColors, items }) => {
     >
       {items.map((item) => {
         const variant = item.variant || item.key;
-        const src = iconSourceForVariant(variant, theme);
+        const src = iconSourceForVariant(variant);
         if (!src) return null;
+
+        const isCoinCodeWalletIcon = COINCODE_WALLET_ICONS.has(variant);
+        const isHistory = variant === "history";
+
         return (
           <TouchableOpacity
             key={item.key}
@@ -89,31 +76,55 @@ const WalletTabQuickActions = ({ theme, themeColors, items }) => {
             activeOpacity={0.78}
             accessibilityRole="button"
             accessibilityLabel={item.label}
-            style={{ alignItems: "center", width: 64, paddingHorizontal: 2, }}
+            style={{ alignItems: "center", width: 64, paddingHorizontal: 2 }}
           >
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 22,
-                backgroundColor: isDark ? colors.themeElevationColor : colors.iconBgColor,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <FastImage
-                source={src}
-                style={{ width: 26, height: 26 }}
-                resizeMode="contain"
-                tintColor={variant === "futures" ? "#787878" : isDark ? colors.white : colors.black}
-              />
-            </View>
+            {isCoinCodeWalletIcon ? (
+              <FastImage source={src} style={{ width: 48, height: 48 }} resizeMode="contain" />
+            ) : isHistory ? (
+              <View
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  backgroundColor: "#0A0A0A",
+                  borderWidth: 1,
+                  borderColor: "rgba(255,255,255,0.10)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <FastImage
+                  source={src}
+                  style={{ width: 24, height: 24 }}
+                  resizeMode="contain"
+                  tintColor={colors.white}
+                />
+              </View>
+            ) : (
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: isDark ? colors.themeElevationColor : colors.iconBgColor,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <FastImage
+                  source={src}
+                  style={{ width: 26, height: 26 }}
+                  resizeMode="contain"
+                  tintColor={variant === "futures" ? "#787878" : isDark ? colors.white : colors.black}
+                />
+              </View>
+            )}
             <AppText
               type={TWELVE}
               weight={MEDIUM}
               numberOfLines={2}
               style={{
-                marginTop: 6,
+                marginTop: 8,
                 textAlign: "center",
                 color: themeColors.text,
                 width: "100%",

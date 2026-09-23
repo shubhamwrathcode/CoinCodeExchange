@@ -9,6 +9,8 @@ import { colors } from "../../../theme/colors";
 import NavigationService from "../../../navigation/NavigationService";
 import { MARGIN_BORROW_REPAY_SCREEN, MARGIN_TRANSFER_SCREEN, TRADE_SCREEN } from "../../../navigation/routes";
 import { close_ic, INFO } from "../../../helper/ImageAssets";
+import { BlurSheetBackground, blurSheetRbCustomStyles, blurSheetTheme } from "../sheets/BlurSheetChrome";
+import CoinIcon from "../../../common/CoinIcon";
 import {
   formatMarginLevel,
   getMarginLevelStatus,
@@ -17,21 +19,21 @@ import {
   resolveMarginThresholds,
 } from "../../spotScreen/crossMargin/marginLevelUtils";
 
-const DetailRow = ({ label, valBase, valQuote, base, quote, themeColors }) => (
+const DetailRow = ({ label, valBase, valQuote, base, quote, themeColors, sheetTheme }) => (
   <View style={styles.row}>
-    <AppText type={FOURTEEN} style={{ color: themeColors.secondaryText }}>{label}</AppText>
+    <AppText type={FOURTEEN} style={{ color: sheetTheme?.subTextColor || themeColors.secondaryText }}>{label}</AppText>
     <View style={{ alignItems: "flex-end" }}>
-      <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text }}>{valBase} {base}</AppText>
-      <AppText type={FOURTEEN} style={{ color: themeColors.secondaryText }}>{valQuote} {quote}</AppText>
+      <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: sheetTheme?.textColor || themeColors.text }}>{valBase} {base}</AppText>
+      <AppText type={FOURTEEN} style={{ color: sheetTheme?.subTextColor || themeColors.secondaryText }}>{valQuote} {quote}</AppText>
     </View>
   </View>
 );
 
-const ActionBtn = ({ label, onPress, theme, themeColors }) => (
+const ActionBtn = ({ label, onPress, theme, themeColors, sheetTheme }) => (
   <TouchableOpacity
     style={[
       styles.actionBtn,
-      { backgroundColor: theme === "Dark" ? themeColors.themeElevationColor : colors.iconBgColor },
+      { backgroundColor: sheetTheme?.buttonBg || (theme === "Dark" ? themeColors.themeElevationColor : colors.iconBgColor) },
     ]}
     onPress={onPress}
   >
@@ -41,7 +43,7 @@ const ActionBtn = ({ label, onPress, theme, themeColors }) => (
       numberOfLines={1}
       adjustsFontSizeToFit
       minimumFontScale={0.85}
-      style={{ color: themeColors.text, textAlign: "center" }}
+      style={{ color: sheetTheme?.textColor || themeColors.text, textAlign: "center" }}
     >
       {label}
     </AppText>
@@ -51,6 +53,7 @@ const ActionBtn = ({ label, onPress, theme, themeColors }) => (
 const MarginPairDetailSheet = forwardRef(({ theme, themeColors, selectedPair, buildCoinIconUri, onOpenMarginRisk }, ref) => {
   const [liveData, setLiveData] = useState(null);
   const isDark = theme === "Dark";
+  const sheetTheme = blurSheetTheme(isDark);
 
   useEffect(() => {
     if (selectedPair?.pair_id) {
@@ -89,47 +92,40 @@ const MarginPairDetailSheet = forwardRef(({ theme, themeColors, selectedPair, bu
       customModalProps={{ statusBarTranslucent: true }}
       height={550}
       openDuration={250}
-      customStyles={{
-        container: {
-          backgroundColor: themeColors.background,
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-        },
-        wrapper: { backgroundColor: "#0006" },
-        draggableIcon: { backgroundColor: isDark ? "#444" : "#CCC", width: 40 },
-      }}
+      customStyles={blurSheetRbCustomStyles({ isDark, height: 550, borderRadius: 24 })}
     >
+      <BlurSheetBackground isDark={isDark} />
       {selectedPair && (
-        <View style={{ flex: 1, paddingBottom: 10, backgroundColor: themeColors.background }}>
-          <View style={[styles.header, { borderBottomWidth: 1, borderBottomColor: themeColors.border }]}>
+        <View style={{ flex: 1, paddingBottom: 10 }}>
+          <View style={[styles.header, { borderBottomWidth: 1, borderBottomColor: sheetTheme.rowBorderColor }]}>
             <View style={styles.titleRow}>
-              <FastImage
-                source={{ uri: buildCoinIconUri(selectedPair.icon_path) }}
+              <CoinIcon
+                coin={selectedPair}
                 style={styles.icon}
                 resizeMode="cover"
               />
               <View>
-                <AppText type={SIXTEEN} weight={BOLD} style={{ color: themeColors.text }}>{selectedPair.pair}</AppText>
-                <AppText type={FOURTEEN} style={{ color: themeColors.secondaryText }}>{selectedPair.base} / {selectedPair.quote}</AppText>
+                <AppText type={SIXTEEN} weight={BOLD} style={{ color: sheetTheme.textColor }}>{selectedPair.pair}</AppText>
+                <AppText type={FOURTEEN} style={{ color: sheetTheme.subTextColor }}>{selectedPair.base} / {selectedPair.quote}</AppText>
               </View>
             </View>
             <TouchableOpacity onPress={() => ref.current?.close()} style={styles.closeBtn}>
-              <FastImage source={close_ic} style={styles.closeIcon} tintColor={themeColors.text} />
+              <FastImage source={close_ic} style={styles.closeIcon} tintColor={sheetTheme.iconTint} />
             </TouchableOpacity>
           </View>
 
           <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
             <View style={styles.hero}>
-              <AppText type={TWENTY_SIX} weight={BOLD} style={{ color: themeColors.text }}>{selectedPair.netBase} {selectedPair.base}</AppText>
-              <AppText type={FOURTEEN} style={{ color: themeColors.secondaryText }}>{selectedPair.netQuote} {selectedPair.quote}</AppText>
+              <AppText type={TWENTY_SIX} weight={BOLD} style={{ color: sheetTheme.textColor }}>{selectedPair.netBase} {selectedPair.base}</AppText>
+              <AppText type={FOURTEEN} style={{ color: sheetTheme.subTextColor }}>{selectedPair.netQuote} {selectedPair.quote}</AppText>
             </View>
 
             <View style={styles.content}>
-              <DetailRow label="Available" valBase={selectedPair.availableBase} valQuote={selectedPair.availableQuote} base={selectedPair.base} quote={selectedPair.quote} themeColors={themeColors} />
-              <DetailRow label="Borrowable" valBase={borrowableBase} valQuote={borrowableQuote} base={selectedPair.base} quote={selectedPair.quote} themeColors={themeColors} />
-              <DetailRow label="Loan Cap" valBase={selectedPair.loanCapBase} valQuote={selectedPair.loanCapQuote} base={selectedPair.base} quote={selectedPair.quote} themeColors={themeColors} />
-              <DetailRow label="Borrowed" valBase={selectedPair.borrowedBase} valQuote={selectedPair.borrowedQuote} base={selectedPair.base} quote={selectedPair.quote} themeColors={themeColors} />
-              <DetailRow label="Frozen" valBase={selectedPair.frozenBase} valQuote={selectedPair.frozenQuote} base={selectedPair.base} quote={selectedPair.quote} themeColors={themeColors} />
+              <DetailRow label="Available" valBase={selectedPair.availableBase} valQuote={selectedPair.availableQuote} base={selectedPair.base} quote={selectedPair.quote} themeColors={themeColors} sheetTheme={sheetTheme} />
+              <DetailRow label="Borrowable" valBase={borrowableBase} valQuote={borrowableQuote} base={selectedPair.base} quote={selectedPair.quote} themeColors={themeColors} sheetTheme={sheetTheme} />
+              <DetailRow label="Loan Cap" valBase={selectedPair.loanCapBase} valQuote={selectedPair.loanCapQuote} base={selectedPair.base} quote={selectedPair.quote} themeColors={themeColors} sheetTheme={sheetTheme} />
+              <DetailRow label="Borrowed" valBase={selectedPair.borrowedBase} valQuote={selectedPair.borrowedQuote} base={selectedPair.base} quote={selectedPair.quote} themeColors={themeColors} sheetTheme={sheetTheme} />
+              <DetailRow label="Frozen" valBase={selectedPair.frozenBase} valQuote={selectedPair.frozenQuote} base={selectedPair.base} quote={selectedPair.quote} themeColors={themeColors} sheetTheme={sheetTheme} />
 
               <View style={styles.row}>
                 <AppText type={FOURTEEN} style={{ color: themeColors.secondaryText }}>Est. Liq. Price</AppText>
@@ -168,6 +164,7 @@ const MarginPairDetailSheet = forwardRef(({ theme, themeColors, selectedPair, bu
               label="Borrow / Repay"
               theme={theme}
               themeColors={themeColors}
+              sheetTheme={sheetTheme}
               onPress={() => {
                 ref.current?.close();
                 NavigationService.navigate(MARGIN_BORROW_REPAY_SCREEN, {
@@ -182,6 +179,7 @@ const MarginPairDetailSheet = forwardRef(({ theme, themeColors, selectedPair, bu
               label="Transfer"
               theme={theme}
               themeColors={themeColors}
+              sheetTheme={sheetTheme}
               onPress={() => {
                 ref.current?.close();
                 NavigationService.navigate(MARGIN_TRANSFER_SCREEN, {
@@ -195,6 +193,7 @@ const MarginPairDetailSheet = forwardRef(({ theme, themeColors, selectedPair, bu
               label="Trade"
               theme={theme}
               themeColors={themeColors}
+              sheetTheme={sheetTheme}
               onPress={() => {
                 ref.current?.close();
                 NavigationService.navigate(TRADE_SCREEN, { trade_pair: selectedPair.pairRaw });

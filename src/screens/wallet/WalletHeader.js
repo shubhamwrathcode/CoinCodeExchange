@@ -108,7 +108,7 @@ const WalletHeader = ({ routes = [], activeTab, setActiveTab }) => {
                   height: 3,
                   width: 22,
                   borderRadius: 2,
-                  backgroundColor: isActive ? isDark ? colors.white : colors.buttonBg : "transparent",
+                  backgroundColor: isActive ? colors.cyanTheme : "transparent",
                 }}
               />
             </TouchableOpacity>
