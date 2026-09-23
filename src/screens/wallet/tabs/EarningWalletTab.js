@@ -1,5 +1,6 @@
 import React from "react";
 import GenericWalletTab from "./GenericWalletTab";
+import { earningWalletImg } from "../../../helper/ImageAssets";
 
 const EarningWalletTab = (props) => {
   return (
@@ -7,6 +8,7 @@ const EarningWalletTab = (props) => {
       {...props}
       title="Earning Wallet Balance"
       hideZeroDefault={true}
+      imageSource={earningWalletImg}
     />
   );
 };

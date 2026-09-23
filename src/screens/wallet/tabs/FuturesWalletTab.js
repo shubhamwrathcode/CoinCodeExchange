@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { View, TouchableOpacity, FlatList, TextInput, StyleSheet, Dimensions } from "react-native";
 import FastImage from "react-native-fast-image";
-import { AppText, EIGHTEEN, FIFTEEN, FOURTEEN, SEMI_BOLD, SIXTEEN, TWELVE, TWENTY_SIX } from "../../../shared";
+import { AppText, EIGHTEEN, FOURTEEN, SEMI_BOLD, SIXTEEN, TWELVE, TWENTY_SIX } from "../../../shared";
 import { colors, darkTheme } from "../../../theme/colors";
 import { appOperation } from "../../../appOperation";
 import { CUSTOMER_TYPE } from "../../../appOperation/types";
-import { searchIcon, checkIc, NO_NOTIFICATION_ICON, moreOption } from "../../../helper/ImageAssets";
+import { searchIcon, checkIc, NO_NOTIFICATION_ICON, moreOption, futureWalletImg } from "../../../helper/ImageAssets";
+import TotalAssetsCard from "../TotalAssetsCard";
 import NavigationService from "../../../navigation/NavigationService";
 import { MARGIN_TRANSFER_SCREEN, FUTURES_SCREEN } from "../../../navigation/routes";
 import { useFocusEffect } from "@react-navigation/native";
@@ -283,29 +284,20 @@ const FuturesWalletTab = ({ theme, themeColors }) => {
         <AppText weight={SEMI_BOLD} type={EIGHTEEN} style={{ color: themeColors.text }}>Futures Wallet</AppText>
       </View>
 
-      {/* Summary Card */}
+      <TotalAssetsCard
+        style={{ marginTop: 12 }}
+        amount={fmt(totalWalletBalance, 2)}
+        currency="USDT"
+        usdAmount={fmt(totalWalletBalance, 2)}
+        pnlAmount={`${totalUnrealizedPnl >= 0 ? "" : "-"}${Math.abs(totalUnrealizedPnl).toFixed(2)}`}
+        pnlPercentage="0.00%"
+        imageSource={futureWalletImg}
+      />
+
       <View style={[styles.summaryCard, {
         backgroundColor: isDark ? "transparent" : colors.white,
         borderWidth: 0, borderColor: themeColors.border
       }]}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <View>
-            <AppText type={SIXTEEN} style={{ color: themeColors.secondaryText }} weight={SEMI_BOLD}>Total Assets</AppText>
-            <View style={styles.summaryValueRow}>
-              <AppText type={TWENTY_SIX} weight={SEMI_BOLD} style={{ color: themeColors.text }}>{fmt(totalWalletBalance, 2)} </AppText>
-              <AppText type={FIFTEEN} style={{ color: themeColors.secondaryText, top: 5 }}>USDT</AppText>
-            </View>
-            <AppText type={FOURTEEN} style={{ color: themeColors.secondaryText }}>≈ ${fmt(totalWalletBalance, 2)} USD</AppText>
-          </View>
-        </View>
-
-        <View style={{ marginTop: 15 }}>
-          <AppText type={TWELVE} style={{ color: themeColors.secondaryText }}>Unrealized PNL</AppText>
-          <AppText type={SIXTEEN} weight={SEMI_BOLD} style={{ color: totalUnrealizedPnl >= 0 ? colors.green : colors.red }}>
-            {totalUnrealizedPnl >= 0 ? "+" : ""}{totalUnrealizedPnl.toFixed(2)} USDT
-          </AppText>
-        </View>
-
         <View style={[styles.equityGrid, { marginTop: 15 }]}>
           <View style={{ flex: 1 }}>
             <AppText type={TWELVE} style={{ color: themeColors.secondaryText }}>Available Balance</AppText>

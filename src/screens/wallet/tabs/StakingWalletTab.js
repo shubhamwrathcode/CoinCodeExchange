@@ -28,7 +28,8 @@ import { colors } from "../../../theme/colors";
 import { appOperation } from "../../../appOperation";
 import moment from "moment";
 import FastImage from "react-native-fast-image";
-import { right_ic, NO_NOTIFICATION_ICON, NO_NOTIFICATION_ICON_LIGHT, eye_open_icon, closeDark_ic, filterNew, filterIcon, } from "../../../helper/ImageAssets";
+import { right_ic, NO_NOTIFICATION_ICON, NO_NOTIFICATION_ICON_LIGHT, eye_open_icon, closeDark_ic, filterNew, filterIcon, earningWalletImg } from "../../../helper/ImageAssets";
+import TotalAssetsCard from "../TotalAssetsCard";
 import NavigationService from "../../../navigation/NavigationService";
 
 import { showError, showSuccess } from "../../../helper/logger";
@@ -146,7 +147,7 @@ const StakingCard = React.memo(({ item, themeColors, isDark, onView, onStake, on
   );
 });
 
-const StakingWalletTab = ({ theme, themeColors }) => {
+const StakingWalletTab = ({ theme, themeColors, showBalance, setShowBalance }) => {
   const isDark = theme === "Dark";
   const isFocused = useIsFocused();
   const [positions, setPositions] = useState([]);
@@ -381,6 +382,12 @@ const StakingWalletTab = ({ theme, themeColors }) => {
 
   return (
     <View style={styles.container}>
+      <TotalAssetsCard
+        style={{ marginTop: 4, marginBottom: 12 }}
+        imageSource={earningWalletImg}
+        showBalance={showBalance}
+        onToggleBalance={() => setShowBalance?.((value) => !value)}
+      />
       {loading && positions.length === 0 ? (
         <View style={{ padding: 40, alignItems: "center" }}>
           <ActivityIndicator color={colors.buttonBg} />

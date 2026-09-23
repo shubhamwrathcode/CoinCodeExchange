@@ -1,5 +1,10 @@
 export const eye_open_icon = require('../../assets/images/eye.png');
 export const eye_close_icon = require('../../assets/images/eye_close_icon.png');
+export const overviewWalletImg = require('../../assets/images/overviewWalletImg.png');
+export const spotWalletImg = require('../../assets/images/spotWalletImg.png');
+export const futureWalletImg = require('../../assets/images/futureWalletImg.png');
+export const marginWalletImg = require('../../assets/images/marginWalletImg.png');
+export const earningWalletImg = require('../../assets/images/earningWalletImg.png');
 export const earnAsset2 = require('../../assets/images/earnAsset2.png');
 export const search_Img = require('../../assets/images/searchImg.png');
 export const back_ic = require('../../assets/images/back_ic.png');

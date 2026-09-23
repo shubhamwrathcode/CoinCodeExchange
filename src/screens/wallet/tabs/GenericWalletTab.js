@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from "react";
 import { FlatList, TextInput, TouchableOpacity, View } from "react-native";
 import FastImage from "react-native-fast-image";
-import { AppText, DISCLAIMTEXT, EIGHTEEN, FIFTEEN, FOURTEEN, SEMI_BOLD, SIXTEEN, TWELVE, TWENTY_SIX } from "../../../shared";
+import { AppText, DISCLAIMTEXT, EIGHTEEN, FOURTEEN, SEMI_BOLD, TWELVE } from "../../../shared";
 import { colors, darkTheme } from "../../../theme/colors";
-import { activities_icon, checkIc, moreOption, searchIcon, NO_NOTIFICATION_ICON } from "../../../helper/ImageAssets";
+import { activities_icon, checkIc, moreOption, searchIcon, NO_NOTIFICATION_ICON, overviewWalletImg } from "../../../helper/ImageAssets";
 import CoinIcon from "../../../common/CoinIcon";
 import WalletTabQuickActions from "../WalletTabQuickActions";
+import TotalAssetsCard from "../TotalAssetsCard";
 
 const GenericWalletTab = ({
   title,
@@ -29,8 +30,7 @@ const GenericWalletTab = ({
   actions,
   hintText,
   hideZeroDefault = false,
-  eyeCloseIcon,
-  eyeOpenIcon,
+  imageSource = overviewWalletImg,
   onOpenCoinSheet,
 }) => {
   const [hideZero, setHideZero] = useState(Boolean(hideZeroDefault));
@@ -60,45 +60,19 @@ const GenericWalletTab = ({
   }, [userWalletRows, safeNum, search, hideZero, totalWalletQty]);
 
   return (
-    <View style={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 18 }}>
-      <AppText weight={SEMI_BOLD} type={EIGHTEEN}>
+    <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 18 }}>
+      <AppText weight={SEMI_BOLD} type={EIGHTEEN} style={{ marginBottom: 12 }}>
         {title}
       </AppText>
 
-      <View
-        style={{
-          marginTop: 12,
-          paddingVertical: 0,
-          borderRadius: 14,
-          backgroundColor: theme === 'Dark' ? themeColors.background : colors.white,
-        }}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-          <AppText type={SIXTEEN} color={theme === 'Dark' ? colors.white : DISCLAIMTEXT} weight={SEMI_BOLD}>Total Assets</AppText>
-          <TouchableOpacity onPress={() => setShowBalance((v) => !v)}>
-            <FastImage
-              source={showBalance ? eyeCloseIcon : eyeOpenIcon}
-              resizeMode="contain"
-              style={{ width: 16, height: 16 }}
-              tintColor={theme !== "Dark" ? colors.disclaimText : colors.white}
-            />
-          </TouchableOpacity>
-        </View>
-        <View style={{ marginTop: 5 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
-            <AppText type={TWENTY_SIX} weight={SEMI_BOLD}>
-              {showBalance ? formatEstimateHeader(portfolioPreferredAmount(walletBalance), 5) : "****"}{" "}
-            </AppText>
-            <AppText type={FIFTEEN} color={theme === 'Dark' ? colors.white : DISCLAIMTEXT} style={{ top: 5 }}>{portfolioPreferredCurrency(walletBalance)}</AppText>
-          </View>
-          <View style={{ marginTop: 6 }}>
-            <AppText type={FOURTEEN} color={theme === 'Dark' ? colors.white : DISCLAIMTEXT}>
-              ≈ {showBalance ? formatEstimateHeader(portfolioUsdtEstimate(walletBalance), 5) : "****"}{" "}
-              {walletBalance?.Currency || "USD"}
-            </AppText>
-          </View>
-        </View>
-      </View>
+      <TotalAssetsCard
+        amount={formatEstimateHeader(portfolioPreferredAmount(walletBalance), 5)}
+        currency={portfolioPreferredCurrency(walletBalance)}
+        usdAmount={formatEstimateHeader(portfolioUsdtEstimate(walletBalance), 5)}
+        imageSource={imageSource}
+        showBalance={showBalance}
+        onToggleBalance={() => setShowBalance((value) => !value)}
+      />
 
       {actions?.length ? <WalletTabQuickActions theme={theme} themeColors={themeColors} items={actions} /> : null}
 

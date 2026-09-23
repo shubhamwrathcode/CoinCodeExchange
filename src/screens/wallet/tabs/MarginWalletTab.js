@@ -2,11 +2,12 @@ import React, { useEffect, useState, useMemo, useRef, useCallback } from "react"
 import { View, Text, TouchableOpacity, FlatList, TextInput, StyleSheet, ActivityIndicator, Dimensions } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import FastImage from "react-native-fast-image";
-import { AppText, BOLD, DISCLAIMTEXT, EIGHTEEN, FIFTEEN, FOURTEEN, SEMI_BOLD, SIXTEEN, TWELVE, TWENTY_SIX } from "../../../shared";
+import { AppText, DISCLAIMTEXT, EIGHTEEN, FOURTEEN, SEMI_BOLD, TWELVE } from "../../../shared";
 import { colors, darkTheme } from "../../../theme/colors";
 import { appOperation } from "../../../appOperation";
 import { CUSTOMER_TYPE } from "../../../appOperation/types";
-import { searchIcon, checkIc, NO_NOTIFICATION_ICON, moreOption, activities_icon, INFO } from "../../../helper/ImageAssets";
+import { searchIcon, checkIc, NO_NOTIFICATION_ICON, moreOption, activities_icon, INFO, marginWalletImg } from "../../../helper/ImageAssets";
+import TotalAssetsCard from "../TotalAssetsCard";
 import CoinIcon from "../../../common/CoinIcon";
 import MarginPairDetailSheet from "./MarginPairDetailSheet";
 import IsolatedMarginRiskModal from "../../spotScreen/isolatedMargin/IsolatedMarginRiskModal";
@@ -182,7 +183,6 @@ const MarginWalletTab = ({ theme, themeColors, marginSummary: propMarginSummary,
   }, [pairs, search, hideSmall, liabilitiesOnly]);
 
   const todayPnlStr = String(summary?.today_pnl_usd ?? "0.00");
-  const pnlTextColor = "#F6465D";
 
   return (
     <View style={styles.container}>
@@ -190,32 +190,25 @@ const MarginWalletTab = ({ theme, themeColors, marginSummary: propMarginSummary,
         <AppText weight={SEMI_BOLD} type={EIGHTEEN}>Isolated Margin Account</AppText>
       </View>
 
-      {/* Summary Card */}
-      <View style={[styles.summaryCard, { backgroundColor: theme === 'Dark' ? themeColors.background : colors.white }]}>
-        <AppText type={SIXTEEN} color={theme === 'Dark' ? colors.white : DISCLAIMTEXT} weight={SEMI_BOLD}>Total Assets</AppText>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <View>
-            <View style={styles.summaryValueRow}>
-              <AppText type={TWENTY_SIX} weight={SEMI_BOLD}>{summary?.total_assets_usd ?? "0.00"} </AppText>
-              <AppText type={FIFTEEN} color={theme === 'Dark' ? colors.white : DISCLAIMTEXT} style={{ top: 5 }}>USD</AppText>
-            </View>
-            <AppText type={FOURTEEN} color={theme === 'Dark' ? colors.white : DISCLAIMTEXT}>≈{summary?.total_assets_btc ?? "0.00000000"} BTC</AppText>
-          </View>
+      <TotalAssetsCard
+        style={{ marginTop: 12 }}
+        amount={summary?.total_assets_btc ?? "0.00"}
+        currency="BTC"
+        usdAmount={summary?.total_assets_usd ?? "0.00"}
+        pnlAmount={todayPnlStr}
+        pnlPercentage="0.00%"
+        imageSource={marginWalletImg}
+        topRightBadge={
           <TouchableOpacity
-            style={[styles.transferBtn, { backgroundColor: theme === 'Dark' ? themeColors.themeElevationColor : colors.iconBgColor }]}
+            style={[styles.transferBtn, { backgroundColor: theme === "Dark" ? themeColors.themeElevationColor : colors.iconBgColor }]}
             onPress={() => NavigationService.navigate(MARGIN_TRANSFER_SCREEN, { fromWalletType: "spot", toWalletType: "margin" })}
           >
             <AppText type={TWELVE} weight={SEMI_BOLD} style={{ color: themeColors.text }}>Transfer</AppText>
           </TouchableOpacity>
-        </View>
+        }
+      />
 
-        <View style={{ marginTop: 15, flexDirection: "row", alignItems: "center" }}>
-          <AppText type={FOURTEEN} color={theme === 'Dark' ? colors.white : DISCLAIMTEXT}>Today's PnL </AppText>
-          <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: pnlTextColor }}>
-            {todayPnlStr} USD
-          </AppText>
-        </View>
-
+      <View style={[styles.summaryCard, { backgroundColor: theme === 'Dark' ? themeColors.background : colors.white }]}>
         <View style={{ marginTop: 15, flexDirection: "row", justifyContent: "space-between" }}>
           <View style={{ flex: 1 }}>
             <AppText type={FOURTEEN} color={theme === 'Dark' ? colors.white : DISCLAIMTEXT}>Account Equity</AppText>

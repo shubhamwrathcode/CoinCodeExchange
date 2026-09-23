@@ -2,11 +2,12 @@ import React, { useEffect, useState, useMemo, useRef, useCallback } from "react"
 import { View, TouchableOpacity, FlatList, TextInput, StyleSheet, ActivityIndicator, Dimensions } from "react-native";
 import FastImage from "react-native-fast-image";
 import Svg, { Path, Circle, Text as SvgText } from "react-native-svg";
-import { AppText, BOLD, DISCLAIMTEXT, EIGHTEEN, FIFTEEN, FOURTEEN, SEMI_BOLD, SIXTEEN, TWELVE, TWENTY_SIX } from "../../../shared";
+import { AppText, BOLD, DISCLAIMTEXT, EIGHTEEN, FOURTEEN, SEMI_BOLD, SIXTEEN, TWELVE } from "../../../shared";
 import { colors, darkTheme } from "../../../theme/colors";
 import { appOperation } from "../../../appOperation";
 import { CUSTOMER_TYPE } from "../../../appOperation/types";
-import { searchIcon, checkIc, NO_NOTIFICATION_ICON, moreOption, bitcoin_ic } from "../../../helper/ImageAssets";
+import { searchIcon, checkIc, NO_NOTIFICATION_ICON, moreOption, bitcoin_ic, marginWalletImg } from "../../../helper/ImageAssets";
+import TotalAssetsCard from "../TotalAssetsCard";
 import NavigationService from "../../../navigation/NavigationService";
 import { MARGIN_BORROW_REPAY_SCREEN, MARGIN_TRANSFER_SCREEN } from "../../../navigation/routes";
 import CrossMarginDetailSheet from "../sheets/CrossMarginDetailSheet";
@@ -268,34 +269,30 @@ const CrossMarginWalletTab = ({ theme, themeColors, buildCoinIconUri }) => {
         <AppText weight={SEMI_BOLD} type={EIGHTEEN} color={themeColors.text}>Cross Margin Account</AppText>
       </View>
 
-      {/* Summary Card */}
-      <View style={[styles.summaryCard, { backgroundColor: theme === 'Dark' ? themeColors.background : colors.white }]}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <View>
-            <AppText type={SIXTEEN} color={sectionLabelColor} weight={SEMI_BOLD}>Total Balance</AppText>
-            <View style={styles.summaryValueRow}>
-              <AppText type={TWENTY_SIX} weight={SEMI_BOLD} color={themeColors.text}>{totalBalanceUsdt != null ? fmt(totalBalanceUsdt, 8) : "—"} </AppText>
-              <AppText type={FIFTEEN} color={sectionLabelColor} style={{ top: 5 }}>USDT</AppText>
-            </View>
-            {totalBalanceUsdt != null && <AppText type={FOURTEEN} color={sectionLabelColor}>≈ ${fmtPrice(totalBalanceUsdt)}</AppText>}
-          </View>
+      <TotalAssetsCard
+        style={{ marginTop: 12 }}
+        title="Total Balance"
+        amount={totalBalanceUsdt != null ? fmt(totalBalanceUsdt, 2) : "0.00"}
+        currency="USDT"
+        usdAmount={totalBalanceUsdt != null ? fmtPrice(totalBalanceUsdt) : "0.00"}
+        pnlAmount={pnlNetRealized != null ? `${pnlNetRealized >= 0 ? "" : "-"}${Math.abs(pnlNetRealized).toFixed(2)}` : "0.00"}
+        pnlPercentage="0.00%"
+        imageSource={marginWalletImg}
+        topRightBadge={
           <View style={{ alignItems: "flex-end" }}>
-            <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: colors.cyanTheme, marginBottom: 5 }}>Cross {risk?.max_leverage ?? account?.max_leverage ?? "—"}x</AppText>
-
-            {riskStatus && (
-              <View style={[styles.statusBadge, { backgroundColor: riskStatus === "NORMAL" ? colors.green : riskStatus === "MARGIN_CALL" ? "#f59e0b" : colors.red, marginBottom: 8 }]}>
+            <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: colors.cyanTheme, marginBottom: 5 }}>
+              Cross {risk?.max_leverage ?? account?.max_leverage ?? "—"}x
+            </AppText>
+            {riskStatus ? (
+              <View style={[styles.statusBadge, { backgroundColor: riskStatus === "NORMAL" ? colors.green : riskStatus === "MARGIN_CALL" ? "#f59e0b" : colors.red }]}>
                 <AppText type={TWELVE} style={{ color: colors.white }} weight={SEMI_BOLD}>{riskStatus}</AppText>
               </View>
-            )}
-            {/* <TouchableOpacity
-              style={[styles.transferBtn, { backgroundColor: colors.iconBgColor }]}
-              onPress={() => NavigationService.navigate(MARGIN_TRANSFER_SCREEN, { fromWalletType: "spot", toWalletType: "cross_margin" })}
-            >
-              <AppText type={TWELVE} weight={SEMI_BOLD} style={{ color: colors.black }}>Transfer</AppText>
-            </TouchableOpacity> */}
+            ) : null}
           </View>
-        </View>
+        }
+      />
 
+      <View style={[styles.summaryCard, { backgroundColor: theme === 'Dark' ? themeColors.background : colors.white }]}>
         <View style={styles.equityGrid}>
           <View style={{ flex: 1 }}>
             <AppText type={TWELVE} color={sectionLabelColor}>Margin Level</AppText>

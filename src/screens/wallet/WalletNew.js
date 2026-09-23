@@ -30,6 +30,7 @@ import {
   searchIcon,
   eye_close_icon,
   eye_open_icon,
+  overviewWalletImg,
   externalLinkIcon,
   checkIc,
   NO_NOTIFICATION_ICON,
@@ -93,6 +94,7 @@ import OptionsWalletTab from "./tabs/OptionsWalletTab";
 import MarginWalletTab from "./tabs/MarginWalletTab";
 import CrossMarginWalletTab from "./tabs/CrossMarginWalletTab";
 import WalletTabQuickActions from "./WalletTabQuickActions";
+import TotalAssetsCard from "./TotalAssetsCard";
 import { appOperation } from "../../appOperation";
 import { CUSTOMER_TYPE } from "../../appOperation/types";
 
@@ -828,58 +830,20 @@ const WalletNew = ({ route }) => {
               if (!route) return null;
               if (route.key === "Overview") {
                 return (
-                  <View style={{ flex: 1, marginVertical: 10, paddingHorizontal: 20, display: topRoutes[topIndex].key === route.key ? 'flex' : 'none' }}>
-                    <View>
-
-
-                      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                  <View style={{ flex: 1, paddingTop: 10, paddingHorizontal: 20, display: topRoutes[topIndex].key === route.key ? 'flex' : 'none' }}>
+                    <View style={{ width: "100%" }}>
+                      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                         <AppText weight={SEMI_BOLD} type={EIGHTEEN}>Assets Overview</AppText>
                       </View>
 
-                      <View
-                        style={{
-                          marginTop: 12,
-                          paddingVertical: 0,
-                          borderRadius: 14,
-                          backgroundColor: isDark ? themeColors.background : colors.white,
-                        }}
-                      >
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-                          <AppText type={SIXTEEN} color={isDark ? colors.white : DISCLAIMTEXT}>Estimated Balance</AppText>
-                          <TouchableOpacity onPress={() => setShowBalance(!showBalance)}>
-                            <FastImage
-                              source={!showBalance ? eye_close_icon : eye_open_icon}
-                              resizeMode="contain"
-                              style={{ width: 16, height: 16 }}
-                              tintColor={theme !== "Dark" ? colors.disclaimText : colors.white}
-                            />
-                          </TouchableOpacity>
-                        </View>
-
-                        <View style={{ marginTop: 5 }}>
-                          <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
-                            <AppText type={TWENTY_SIX} weight={SEMI_BOLD}>
-                              {!showBalance ? "****" : formatEstimateHeader(portfolioPreferredAmount(currentBalance), 5)}{" "}
-                            </AppText>
-                            <AppText color={isDark ? colors.white : DISCLAIMTEXT} type={FIFTEEN} style={{ top: 5 }}>
-                              {portfolioPreferredCurrency(currentBalance)}
-                            </AppText>
-                          </View>
-                          <View style={{ marginTop: 6 }}>
-                            <AppText type={FOURTEEN} color={isDark ? colors.white : DISCLAIMTEXT}>
-                              ≈ {!showBalance ? "****" : formatEstimateHeader(portfolioUsdtEstimate(currentBalance), 5)} USD
-                            </AppText>
-                          </View>
-                          {/* <TouchableOpacity
-                            onPress={() => NavigationService.navigate(DEPOSIT_COIN_SCREEN)}
-                            style={{ marginTop: 10 }}
-                          >
-                            <AppText color={DISCLAIMTEXT}>
-                              Deposit crypto instantly with one-click {"›"}
-                            </AppText>
-                          </TouchableOpacity> */}
-                        </View>
-                      </View>
+                      <TotalAssetsCard
+                        amount={formatEstimateHeader(portfolioPreferredAmount(currentBalance), 5)}
+                        currency={portfolioPreferredCurrency(currentBalance)}
+                        usdAmount={formatEstimateHeader(portfolioUsdtEstimate(currentBalance), 5)}
+                        imageSource={overviewWalletImg}
+                        showBalance={showBalance}
+                        onToggleBalance={() => setShowBalance((value) => !value)}
+                      />
 
 
                       <WalletTabQuickActions

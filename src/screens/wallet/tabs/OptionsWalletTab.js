@@ -29,9 +29,9 @@ import {
   checkIc,
   NO_NOTIFICATION_ICON,
   moreOption,
-  eye_close_icon,
-  eye_open_icon,
+  futureWalletImg,
 } from "../../../helper/ImageAssets";
+import TotalAssetsCard from "../TotalAssetsCard";
 import NavigationService from "../../../navigation/NavigationService";
 import { FUTURES_SCREEN, MARGIN_TRANSFER_SCREEN, OPTIONS_PNL_ANALYSIS_SCREEN } from "../../../navigation/routes";
 import useOptionsWebSocket from "../../Futures/OptionsTrade/hooks/useOptionsWebSocket";
@@ -359,38 +359,20 @@ const OptionsWalletTab = ({ theme, themeColors }) => {
         <AppText weight={SEMI_BOLD} type={EIGHTEEN}>Options Wallet</AppText>
       </View>
 
+      <TotalAssetsCard
+        style={{ marginTop: 12 }}
+        title="Total Equity"
+        amount={loading ? "0.00" : fmt(totalEquity, 4)}
+        currency="USDT"
+        usdAmount={loading ? "0.00" : parseBal(totalEquity).toFixed(2)}
+        pnlAmount={loading || dailyPnlLoading ? "0.00" : `${dailyPnl >= 0 ? "" : "-"}${Math.abs(dailyPnl).toFixed(2)}`}
+        pnlPercentage={loading || dailyPnlLoading ? "0.00%" : `${dailyPnlPct.toFixed(2)}%`}
+        imageSource={futureWalletImg}
+        showBalance={showBalance}
+        onToggleBalance={() => setShowBalance((value) => !value)}
+      />
+
       <View style={[styles.summaryCard, { backgroundColor: isDark ? themeColors.background : colors.white }]}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <AppText type={SIXTEEN} color={isDark ? colors.white : DISCLAIMTEXT} weight={SEMI_BOLD}>Total Equity</AppText>
-          <TouchableOpacity onPress={() => setShowBalance((v) => !v)}>
-            <FastImage
-              source={showBalance ? eye_close_icon : eye_open_icon}
-              resizeMode="contain"
-              style={{ width: 16, height: 16 }}
-              tintColor={isDark ? colors.white : colors.disclaimText}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.summaryValueRow}>
-          <AppText type={TWENTY_SIX} weight={SEMI_BOLD}>
-            {loading ? "—" : mask(fmt(totalEquity, 4))}
-          </AppText>
-          <AppText type={FIFTEEN} color={isDark ? colors.white : DISCLAIMTEXT} style={{ top: 5 }}> USDT</AppText>
-        </View>
-        <AppText type={FOURTEEN} color={isDark ? colors.white : DISCLAIMTEXT}>
-          ≈ {loading ? "—" : mask(fmtUsd(totalEquity))}
-        </AppText>
-
-        <View style={{ marginTop: 10 }}>
-          <AppText type={TWELVE} color={isDark ? colors.white : DISCLAIMTEXT}>Daily PNL</AppText>
-          <AppText type={SIXTEEN} weight={SEMI_BOLD} style={{ color: pnlColor(dailyPnl) }}>
-            {loading || dailyPnlLoading
-              ? "—"
-              : mask(`${dailyPnl >= 0 ? "+" : "-"}${fmtUsd(Math.abs(dailyPnl))} (${dailyPnlPct >= 0 ? "+" : ""}${dailyPnlPct.toFixed(2)}%)`)}
-          </AppText>
-        </View>
-
         <View style={[styles.equityGrid, { marginTop: 15 }]}>
           <View style={{ flex: 1 }}>
             <AppText type={TWELVE} color={isDark ? colors.white : DISCLAIMTEXT}>Margin Balance (USDT)</AppText>
