@@ -19,6 +19,7 @@ import {
 import NavigationService from "../../navigation/NavigationService";
 import {
   ACCOUNT_SCREEN,
+  BUY_CRYPTO_SCREEN,
   NAVIGATION_BOTTOM_TAB_STACK,
   TRADE_SCREEN,
   WALLET_SCREEN,
@@ -119,11 +120,7 @@ const HomeMenuBar = () => {
       id: "4",
       title: "Swap",
       icon: swapIcon,
-      onPress: () =>
-        NavigationService.navigate(NAVIGATION_BOTTOM_TAB_STACK, {
-          screen: TRADE_SCREEN,
-          params: { activeTab: "Buy Crypto" },
-        }),
+      onPress: () => NavigationService.navigate(BUY_CRYPTO_SCREEN),
     },
     {
       id: "5",

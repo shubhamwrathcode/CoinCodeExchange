@@ -45,8 +45,6 @@ import {
   pairHasDebt,
   resolveMarginThresholds,
 } from "./crossMargin/marginLevelUtils";
-import ConvertSection from "./ConvertSection";
-import BuyCryptoScreen from "../buyCrypto/BuyCryptoScreen";
 import FuturesTrade from "../Futures/FuturesTrade";
 import SpotChartScreen from "./SpotChartScreen";
 import {
@@ -2127,10 +2125,15 @@ const Spot = () => {
   );
 
   const [tab, setTab] = useState("Buy");
-  const [headerTab, setHeaderTab] = useState(route?.params?.activeTab || "Spot");
+  const [headerTab, setHeaderTab] = useState(() => {
+    const t = route?.params?.activeTab;
+    if (t === "Buy Crypto" || t === "Convert") return "Spot";
+    return t || "Spot";
+  });
   useEffect(() => {
     if (route?.params?.activeTab) {
-      setHeaderTab(route.params.activeTab);
+      const t = route.params.activeTab;
+      setHeaderTab(t === "Buy Crypto" || t === "Convert" ? "Spot" : t);
       navigation.setParams({ activeTab: undefined });
     }
   }, [route?.params?.activeTab, navigation]);
@@ -2380,7 +2383,8 @@ const Spot = () => {
   useFocusEffect(
     useCallback(() => {
       if (route?.params?.activeTab) {
-        setHeaderTab(route.params.activeTab);
+        const t = route.params.activeTab;
+        setHeaderTab(t === "Buy Crypto" || t === "Convert" ? "Spot" : t);
         navigation.setParams({ activeTab: undefined });
       }
       if (headerTab === "Futures") {
@@ -4467,8 +4471,6 @@ const Spot = () => {
 
         {headerTab === "Futures" ? (
           <FuturesTrade navigation={navigation} isEmbedded={true} />
-        ) : headerTab === "Buy Crypto" || headerTab === "Convert" ? (
-          <BuyCryptoScreen isEmbedded={true} navigation={navigation} />
         ) : viewMode === "candles" ? (
           <SpotChartScreen
             isEmbedded={true}

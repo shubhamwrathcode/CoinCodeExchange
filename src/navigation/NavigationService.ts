@@ -74,8 +74,11 @@ function resetToAuthCddScreen(cddRouteName: string) {
 }
 
 function goBack() {
+  if (!navigator) return;
+  if (typeof navigator.canGoBack === "function" && !navigator.canGoBack()) {
+    return;
+  }
   navigator.dispatch(CommonActions.goBack());
-  // navigator._navigation.goBack();
 }
 function openDrawer() {
   navigator.dispatch(DrawerActions.openDrawer());

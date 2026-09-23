@@ -32,8 +32,6 @@ import {
   NAVIGATION_AUTH_STACK,
   LOGIN_SCREEN,
   BUY_CRYPTO_SCREEN,
-  NAVIGATION_BOTTOM_TAB_STACK,
-  TRADE_SCREEN,
 } from "../../navigation/routes";
 import { showSuccess, showError } from "../../helper/logger";
 import AnimatedBottomSheet from "../../common/AnimatedBottomSheet/AnimatedBottomSheet";
@@ -289,10 +287,11 @@ const ConvertHistoryScreen = ({ navigation }) => {
   };
 
   const handleBack = () => {
-    NavigationService.navigate(NAVIGATION_BOTTOM_TAB_STACK, {
-      screen: TRADE_SCREEN,
-      params: { activeTab: "Buy Crypto" },
-    });
+    if (navigation?.canGoBack?.()) {
+      navigation.goBack();
+      return;
+    }
+    NavigationService.navigate(BUY_CRYPTO_SCREEN);
   };
 
   return (

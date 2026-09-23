@@ -31,8 +31,9 @@ import {
 import NavigationService from "../../navigation/NavigationService";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import AnimatedBottomSheet from "../../common/AnimatedBottomSheet/AnimatedBottomSheet";
+import { blurSheetTheme } from "../wallet/sheets/BlurSheetChrome";
 import { appOperation } from "../../appOperation";
-import { NAVIGATION_AUTH_STACK, LOGIN_SCREEN, CONVERT_HISTORY_SCREEN } from "../../navigation/routes";
+import { NAVIGATION_AUTH_STACK, LOGIN_SCREEN, CONVERT_HISTORY_SCREEN, NAVIGATION_BOTTOM_TAB_STACK, HOME_SCREEN } from "../../navigation/routes";
 import { showError, showSuccess } from "../../helper/logger";
 import {
   FALLBACK_CATALOG,
@@ -69,6 +70,13 @@ const CRYPTO_ICON_MAP = {
 
 const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
   const { colors: themeColors, isDark } = useTheme();
+  const sheetTheme = blurSheetTheme(isDark);
+  const inputBg = isDark ? colors.lightBlackLatest : "#EDEDEE";
+  const inputBorder = isDark ? "#151619" : "#E5E7EB";
+  const cardBorder = isDark ? themeColors.border || "#151619" : "#DFE0E2";
+  const mutedText = isDark ? (colors.darkShadeColorText || "#6A7282") : "#8A94A6";
+  const tabIdleBg = isDark ? colors.lightBlackLatest : "#F2F3F4";
+  const tabActiveBg = isDark ? "#151619" : "#FFFFFF";
   const dispatch = useAppDispatch();
   const userData = useAppSelector((state) => state.auth.userData);
   const loggedIn = !!(userData?.id || userData?._id);
@@ -371,7 +379,15 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
       {!isEmbedded && (
         <View style={[styles.header, { borderBottomColor: isDark ? themeColors.border : "#EEEEEE" }]}>
           <TouchableOpacity
-            onPress={() => navigation?.goBack?.() || NavigationService.goBack()}
+            onPress={() => {
+              if (navigation?.canGoBack?.()) {
+                navigation.goBack();
+                return;
+              }
+              NavigationService.navigate(NAVIGATION_BOTTOM_TAB_STACK, {
+                screen: HOME_SCREEN,
+              });
+            }}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             style={styles.headerBtn}
           >
@@ -384,7 +400,7 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
           </TouchableOpacity>
 
           <AppText weight={SEMI_BOLD} style={[styles.headerTitle, { color: themeColors.text }]}>
-            Buy / Sell Crypto
+            Swap
           </AppText>
 
           <TouchableOpacity onPress={handleOpenHistory} style={styles.headerBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
@@ -430,8 +446,8 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
           style={[
             styles.tradeCard,
             {
-              backgroundColor: isDark ? 'transparent' : "#FFFFFF",
-              borderColor: isDark ? "#282D3B" : "#DFE0E2",
+              backgroundColor: isDark ? "transparent" : "#FFFFFF",
+              borderColor: cardBorder,
             },
           ]}
         >
@@ -440,8 +456,8 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
             style={[
               styles.tabsRow,
               {
-                backgroundColor: isDark ? "#202329" : "#F2F3F4",
-                borderBottomColor: isDark ? "#282D3B" : "#DFE0E2",
+                backgroundColor: tabIdleBg,
+                borderBottomColor: cardBorder,
               },
             ]}
           >
@@ -452,15 +468,9 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
                 styles.tabBtn,
                 styles.tabBtnLeft,
                 {
-                  backgroundColor: isBuy
-                    ? isDark
-                      ? "#181A20"
-                      : "#FFFFFF"
-                    : isDark
-                      ? "#202329"
-                      : "#F2F3F4",
+                  backgroundColor: isBuy ? tabActiveBg : tabIdleBg,
                   borderBottomWidth: isBuy ? 0 : 1,
-                  borderBottomColor: isDark ? "#282D3B" : "#DFE0E2",
+                  borderBottomColor: cardBorder,
                 },
               ]}
             >
@@ -478,9 +488,7 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
                   {
                     color: isBuy
                       ? "#00C087"
-                      : isDark
-                        ? "#8E94A0"
-                        : "#A0A3A7",
+                      : mutedText,
                     fontWeight: isBuy ? "800" : "600",
                     fontSize: isBuy ? 17 : 15,
                   },
@@ -497,15 +505,9 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
                 styles.tabBtn,
                 styles.tabBtnRight,
                 {
-                  backgroundColor: !isBuy
-                    ? isDark
-                      ? "#181A20"
-                      : "#FFFFFF"
-                    : isDark
-                      ? "#202329"
-                      : "#F2F3F4",
+                  backgroundColor: !isBuy ? tabActiveBg : tabIdleBg,
                   borderBottomWidth: !isBuy ? 0 : 1,
-                  borderBottomColor: isDark ? "#282D3B" : "#DFE0E2",
+                  borderBottomColor: cardBorder,
                 },
               ]}
             >
@@ -523,9 +525,7 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
                   {
                     color: !isBuy
                       ? "#FF4D4F"
-                      : isDark
-                        ? "#8E94A0"
-                        : "#A0A3A7",
+                      : mutedText,
                     fontWeight: !isBuy ? "800" : "600",
                     fontSize: !isBuy ? 17 : 15,
                   },
@@ -542,19 +542,20 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
               style={[
                 styles.fieldBox,
                 {
-                  backgroundColor: isDark ? "#191D28" : "#FFFFFF",
-                  borderColor: isDark ? "#282E3E" : "#DFE0E2",
+                  backgroundColor: inputBg,
+                  borderColor: inputBorder,
                 },
               ]}
             >
-              <Text style={[styles.fieldLabel, { color: isDark ? "#9CA3AF" : "#6B7280" }]}>
+              <Text style={[styles.fieldLabel, { color: mutedText }]}>
                 {isBuy ? "Spend" : "Sell"}
               </Text>
               <View style={styles.fieldRow}>
                 <TextInput
-                  style={[styles.fieldInput, { color: isDark ? "#FFFFFF" : "#111827" }]}
+                  style={[styles.fieldInput, { color: themeColors.text }]}
                   placeholder={isBuy ? "0.00 min" : "0.00"}
-                  placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                  placeholderTextColor={mutedText}
+                  cursorColor={themeColors.text}
                   keyboardType="decimal-pad"
                   value={spendAmountValue}
                   onChangeText={(text) => {
@@ -597,20 +598,21 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
               style={[
                 styles.fieldBox,
                 {
-                  backgroundColor: isDark ? "#191D28" : "#FFFFFF",
-                  borderColor: isDark ? "#282E3E" : "#DFE0E2",
+                  backgroundColor: inputBg,
+                  borderColor: inputBorder,
                   marginTop: 12,
                 },
               ]}
             >
-              <Text style={[styles.fieldLabel, { color: isDark ? "#9CA3AF" : "#6B7280" }]}>
+              <Text style={[styles.fieldLabel, { color: mutedText }]}>
                 Receive
               </Text>
               <View style={styles.fieldRow}>
                 <TextInput
-                  style={[styles.fieldInput, { color: isDark ? "#FFFFFF" : "#111827" }]}
+                  style={[styles.fieldInput, { color: themeColors.text }]}
                   placeholder="0"
-                  placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                  placeholderTextColor={mutedText}
+                  cursorColor={themeColors.text}
                   keyboardType="decimal-pad"
                   value={receiveAmountValue}
                   onChangeText={(text) => {
@@ -657,9 +659,7 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
                     {
                       color: insufficientBalance
                         ? "#FF4D4F"
-                        : isDark
-                          ? "#7E8B9E"
-                          : "#8A94A6",
+                        : mutedText,
                     },
                   ]}
                 >
@@ -674,7 +674,7 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
                 )}
               </View>
               {isBuy && (
-                <Text style={[styles.hintText, { color: isDark ? "#7E8B9E" : "#8A94A6", marginTop: 4 }]}>
+                <Text style={[styles.hintText, { color: mutedText, marginTop: 4 }]}>
                   Ticket 0.00 min {fiat?.code || "AED"}
                 </Text>
               )}
@@ -685,41 +685,41 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
               style={[
                 styles.quotePanel,
                 {
-                  backgroundColor: isDark ? 'transparent' : "#F9FAFB",
-                  borderColor: isDark ? "#232836" : "#E5E7EB",
+                  backgroundColor: isDark ? "transparent" : "#F9FAFB",
+                  borderColor: cardBorder,
                 },
               ]}
             >
               <View style={styles.quoteRow}>
-                <Text style={[styles.quoteLabel, { color: isDark ? "#7E8B9E" : "#8A94A6" }]}>Mid</Text>
+                <Text style={[styles.quoteLabel, { color: mutedText }]}>Mid</Text>
                 <Text style={[styles.quoteVal, { color: isDark ? "#D1D5DB" : "#374151" }]}>
                   {preview ? `${preview.cmc_rate} ${fiat?.code || "AED"}` : "—"}
                 </Text>
               </View>
 
               <View style={styles.quoteRow}>
-                <Text style={[styles.quoteLabel, { color: isDark ? "#7E8B9E" : "#8A94A6" }]}>Fee</Text>
+                <Text style={[styles.quoteLabel, { color: mutedText }]}>Fee</Text>
                 <Text style={[styles.quoteVal, { color: isDark ? "#D1D5DB" : "#374151" }]}>
                   {preview ? "0.00 AED" : "—"}
                 </Text>
               </View>
 
               <View style={styles.quoteRow}>
-                <Text style={[styles.quoteLabel, { color: isDark ? "#7E8B9E" : "#8A94A6" }]}>You receive</Text>
+                <Text style={[styles.quoteLabel, { color: mutedText }]}>You receive</Text>
                 <Text style={[styles.quoteVal, { color: isDark ? "#D1D5DB" : "#374151" }]}>
                   {preview ? `${formatQuoteAmount(preview.you_receive, receiveAsset?.qty_decimals)} ${receiveAsset?.code}` : "—"}
                 </Text>
               </View>
 
               <View style={styles.quoteRow}>
-                <Text style={[styles.quoteLabel, { color: isDark ? "#7E8B9E" : "#8A94A6" }]}>You spend</Text>
+                <Text style={[styles.quoteLabel, { color: mutedText }]}>You spend</Text>
                 <Text style={[styles.quoteVal, { color: isDark ? "#D1D5DB" : "#374151" }]}>
                   {preview ? `${formatQuoteAmount(preview.you_spend, spendAsset?.qty_decimals)} ${spendAsset?.code}` : "—"}
                 </Text>
               </View>
 
               <View style={styles.quoteRow}>
-                <Text style={[styles.quoteLabel, { color: isDark ? "#7E8B9E" : "#8A94A6" }]}>Rate</Text>
+                <Text style={[styles.quoteLabel, { color: mutedText }]}>Rate</Text>
                 <Text style={[styles.quoteValRate, { color: isDark ? "#E5E7EB" : "#111827" }]}>
                   {liveRateText}
                 </Text>
@@ -747,7 +747,7 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
                       ? colors.buttonBg
                       : !isPositiveMoneyString(spendAmountValue) || insufficientBalance
                         ? isDark
-                          ? "#262C3A"
+                          ? colors.buttonBg
                           : "#DFE2E8"
                         : isBuy
                           ? "#01bc8d"
@@ -793,12 +793,12 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
       >
         <View style={styles.sheetInner}>
           <View style={styles.sheetHeader}>
-            <Text style={[styles.sheetTitle, { color: isDark ? "#E6EDF6" : "#1A202C" }]}>
+            <Text style={[styles.sheetTitle, { color: sheetTheme.textColor }]}>
               Select Currency
             </Text>
             <TouchableOpacity
               onPress={() => rbSheetAssetPicker.current?.close()}
-              style={[styles.closeCircle, { backgroundColor: isDark ? "#1C2430" : "#F0F3F8" }]}
+              style={[styles.closeCircle, { backgroundColor: sheetTheme.closeCircleBg }]}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               activeOpacity={0.75}
             >
@@ -806,7 +806,7 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
                 source={closeIcon}
                 style={styles.closeIcon}
                 resizeMode={FastImage.resizeMode.contain}
-                tintColor={isDark ? "#C5D1E0" : "#4A5568"}
+                tintColor={sheetTheme.iconTint}
               />
             </TouchableOpacity>
           </View>
@@ -815,8 +815,8 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
             style={[
               styles.searchRow,
               {
-                backgroundColor: isDark ? "#121824" : "#F4F6F9",
-                borderColor: isDark ? "#2A3649" : "#E2E8F0",
+                backgroundColor: sheetTheme.cardBg,
+                borderColor: sheetTheme.borderColor,
               },
             ]}
           >
@@ -824,14 +824,15 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
               source={searchIcon}
               style={styles.searchGlyph}
               resizeMode={FastImage.resizeMode.contain}
-              tintColor={isDark ? "#7E8B9E" : "#94A3B8"}
+              tintColor={isDark ? "rgba(255,255,255,0.65)" : "#595757"}
             />
             <TextInput
               placeholder="Search token"
-              placeholderTextColor={isDark ? "#7E8B9E" : "#8A94A6"}
-              style={[styles.searchInput, { color: isDark ? "#E6EDF6" : "#1A202C" }]}
+              placeholderTextColor={sheetTheme.subTextColor}
+              style={[styles.searchInput, { color: sheetTheme.textColor }]}
               value={pickerSearch}
               onChangeText={setPickerSearch}
+              cursorColor={sheetTheme.textColor}
               autoCorrect={false}
               autoCapitalize="none"
               clearButtonMode="while-editing"
@@ -857,7 +858,7 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
                   style={[
                     styles.assetListItem,
                     {
-                      borderBottomColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
+                      borderBottomColor: sheetTheme.rowBorderColor,
                     },
                     isSelected && {
                       backgroundColor: isDark ? "rgba(209, 170, 103, 0.1)" : "rgba(209, 170, 103, 0.08)",
@@ -878,10 +879,10 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
                     />
                   )}
                   <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={[styles.assetCodeText, { color: isDark ? "#E6EDF6" : "#1A202C" }]}>
+                    <Text style={[styles.assetCodeText, { color: sheetTheme.textColor }]}>
                       {item.code}
                     </Text>
-                    <Text style={[styles.assetNameText, { color: isDark ? "#7E8B9E" : "#8A94A6" }]}>
+                    <Text style={[styles.assetNameText, { color: sheetTheme.subTextColor }]}>
                       {item.name}
                     </Text>
                   </View>
@@ -973,7 +974,10 @@ const BuyCryptoScreen = ({ navigation, isEmbedded = false }) => {
                 onPress={handleExecuteConvert}
                 style={[
                   styles.confirmFullBtn,
-                  { backgroundColor: "#2B313D" },
+                  {
+                    backgroundColor: isBuy ? "#01bc8d" : "#e45561",
+                    opacity: executing ? 0.7 : 1,
+                  },
                 ]}
               >
                 {executing ? (
@@ -1207,6 +1211,7 @@ const styles = StyleSheet.create({
     paddingRight: 8,
     paddingVertical: 4,
     marginBottom: 12,
+    minHeight: 42,
   },
   searchGlyph: {
     width: 14,
