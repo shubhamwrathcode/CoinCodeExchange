@@ -146,8 +146,9 @@ const SpotHeader = ({
             </AppText>
             <FastImage
               source={downIcon}
-              style={{ width: 35, height: 35, marginLeft: 6, marginTop: 2 }}
+              style={{ width: 12, height: 12, marginLeft: 6, marginTop: 2 }}
               resizeMode="contain"
+              tintColor={iconTint}
             />
           </View>
           <AppText weight={MEDIUM} style={[styles.changeText, { color: changeColor }]}>

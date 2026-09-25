@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity, Platform, ScrollView, Share } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Platform, ScrollView, Dimensions, Share } from 'react-native';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import Svg, { Path } from 'react-native-svg';
 import FastImage from 'react-native-fast-image';
-import { AppSafeAreaView, AppText, MEDIUM, SEMI_BOLD } from '../../shared';
+import { BlurView } from '@react-native-community/blur';
+import LinearGradient from 'react-native-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppText, MEDIUM, SEMI_BOLD } from '../../shared';
 import { useTheme } from '../../hooks/useTheme';
-import { back_ic, invite_earn_img, share_link, link_friends, earn_link_icon, infoNewIc, INFO, calendarIcon, paste1, pasteImg } from '../../helper/ImageAssets';
+import { back_ic, INFO, calendarIcon, pasteImg, closeIcon, downIcon, referalBanner } from '../../helper/ImageAssets';
 import Clipboard from '@react-native-clipboard/clipboard';
 import Toast from 'react-native-simple-toast';
 import { colors } from '../../theme/colors';
@@ -14,6 +17,9 @@ import NavigationService from '../../navigation/NavigationService';
 import { fontFamilySemiBold, fontFamilyMedium, fontFamilyBold } from '../../theme/typography';
 import { appOperation } from '../../appOperation';
 import { CHART_WEB_BASE_URL } from '../../helper/Constants';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CYAN = colors.cyanTheme || colors.cyan || '#0AA8C5';
 
 const REFERRAL_FAQ_ITEMS = [
   {
@@ -144,6 +150,7 @@ const formatJoinDate = (value: any) => {
 
 const ReferAndEarn = () => {
   const { colors: themeColors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [referralCode, setReferralCode] = useState("");
   const [referCount, setReferCount] = useState(0);
@@ -210,6 +217,14 @@ const ReferAndEarn = () => {
   const baseWebUrl = CHART_WEB_BASE_URL.replace(/\/$/, "");
   const referralLink = referralCode ? `${baseWebUrl}/signup?referral_code=${referralCode}` : '';
 
+  // Match TradingDataModal sheet theme
+  const sheetTextColor = isDark ? '#FFFFFF' : '#000000';
+  const sheetSubTextColor = isDark ? 'rgba(255,255,255,0.55)' : '#9D9D9D';
+  const sheetRowBorderColor = isDark ? 'rgba(255,255,255,0.08)' : '#EEEEEE';
+  const sheetCloseCircleBg = isDark ? 'rgba(255,255,255,0.12)' : '#E8E8E8';
+  const sheetIconTint = isDark ? colors.white : colors.black;
+  const sheetHandleColor = isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.15)';
+
   const onShare = async () => {
     try {
       if (!referralLink) {
@@ -225,45 +240,45 @@ const ReferAndEarn = () => {
   };
 
   return (
-    <AppSafeAreaView style={{ flex: 1, backgroundColor: themeColors.background }}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => NavigationService.goBack()}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      {/* Absolute header — icons already have their own border */}
+      <View style={[styles.headerAbsolute, { top: Math.max(insets.top, 10) }]}>
+        <TouchableOpacity
+          onPress={() => NavigationService.goBack()}
+          activeOpacity={0.75}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
         </TouchableOpacity>
-        <AppText style={[styles.headerTitle, { color: themeColors.text }]}>Referral Program</AppText>
-        <TouchableOpacity style={styles.backBtn} onPress={() => faqSheetRef.current?.open()}>
-          <FastImage source={INFO} style={styles.backIcon} tintColor={themeColors.text} resizeMode="contain" />
+        <TouchableOpacity
+          onPress={() => faqSheetRef.current?.open()}
+          activeOpacity={0.75}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <FastImage source={INFO} style={styles.infoIcon} tintColor={colors.white} resizeMode="contain" />
         </TouchableOpacity>
       </View>
 
       {/* Main Content */}
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.content}>
-          <View style={styles.textSection}>
-            <AppText style={[styles.titleTop, { color: themeColors.text }]}>Invite. Earn.</AppText>
-            <AppText style={[styles.titleBottom, { color: '#EABE53' }]}>Grow Together.</AppText>
-
-            <AppText style={[styles.desc, { color: isDark ? '#A0A0A0' : '#666' }]}>
-              Share, invite and earn up to 100 USDT!
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Banner Section — matches CoinCode ReferralScreen */}
+        <View style={styles.bannerContainer}>
+          <FastImage source={referalBanner} style={styles.bannerImage} resizeMode="cover" />
+          <View style={[styles.bannerTextContainer, { top: Math.max(insets.top, 10) + 52 }]}>
+            <AppText style={[styles.bannerEyebrow, { color: isDark ? '#A0A0A0' : 'rgba(255,255,255,0.7)' }]}>
+              Refer Friends
             </AppText>
-
-            <TouchableOpacity style={styles.inviteBtn} onPress={onShare}>
+            <AppText style={styles.bannerTitle}>
+              Earn Up to <AppText style={[styles.bannerTitle, { color: CYAN }]}>20%</AppText>
+            </AppText>
+            <AppText style={styles.bannerTitle}>in Bonuses</AppText>
+            <TouchableOpacity style={styles.inviteBtn} onPress={onShare} activeOpacity={0.85}>
               <AppText style={styles.inviteBtnText}>Invite Friends</AppText>
-              <View style={styles.arrowCircle}>
-                <AppText style={styles.arrowText}>{'>'}</AppText>
-              </View>
             </TouchableOpacity>
           </View>
+        </View>
 
-          <View style={styles.imageSection}>
-            <FastImage
-              source={invite_earn_img}
-              style={styles.giftImage}
-              resizeMode="contain"
-            />
-          </View>
-
+        <View style={styles.content}>
           {/* Stats Section */}
           <View style={[styles.statsContainer, { backgroundColor: isDark ? colors.newThemeColor : '#F9F9F9' }]}>
             <AppText style={[styles.sectionHeader, { color: isDark ? '#A0A0A0' : '#666' }]}>Your Referral Code</AppText>
@@ -363,59 +378,49 @@ const ReferAndEarn = () => {
         </View>
 
         {/* How to Invite Section */}
-        <View style={styles.howToInviteContainer}>
+        <View style={[styles.howToInviteContainer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
           <AppText style={[styles.howToInviteTitle, { color: themeColors.text }]}>
-            How to <AppText weight={MEDIUM} style={{ color: '#EABE53', fontSize: 24 }}>Invite?</AppText>
+            How to <AppText weight={MEDIUM} style={{ color: CYAN, fontSize: 24 }}>Invite?</AppText>
           </AppText>
           <AppText style={[styles.howToInviteSub, { color: isDark ? '#A0A0A0' : '#666' }]}>
             Get started with referrals and grow your rewards.
           </AppText>
 
           <View style={styles.stepsContainer}>
-            {/* Step 1 */}
-            <View style={[styles.stepWrapper, { backgroundColor: isDark ? colors.newThemeColor : '#F9F9F9', borderColor: isDark ? 'rgba(255,255,255,0.05)' : '#EEE' }]}>
-              <View style={styles.stepNumberBadge}>
-                <AppText style={styles.stepNumberText}>01</AppText>
+            {[
+              { step: '01', text: 'Send\nInvitation by\nLink' },
+              { step: '02', text: 'Friends\nRegister and\nTrade' },
+              { step: '03', text: 'Get\nCorresponding\nRewards' },
+            ].map((item) => (
+              <View
+                key={item.step}
+                style={[
+                  styles.stepWrapper,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9F9F9',
+                    borderColor: isDark ? 'rgba(255,255,255,0.15)' : '#EEE',
+                  },
+                ]}
+              >
+                <LinearGradient
+                  colors={['#0AA8C5', '#067A8F']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.stepNumberBadge}
+                >
+                  <AppText style={styles.stepNumberText}>{item.step}</AppText>
+                </LinearGradient>
+                <AppText style={[styles.stepDesc, { color: isDark ? '#A0A0A0' : '#666' }]}>
+                  {item.text}
+                </AppText>
               </View>
-              <View style={[styles.stepIconBox, { backgroundColor: isDark ? colors.newThemeColor : colors.white, borderColor: isDark ? colors.themeElevationColor : '#EEE' }]}>
-                <FastImage source={share_link} style={styles.stepIcon} tintColor={themeColors.text} resizeMode="contain" />
-              </View>
-              <AppText style={[styles.stepTitle, { color: themeColors.text }]}>Share Your Referral{'\n'}Code or Link</AppText>
-              <View style={[styles.stepDivider, { backgroundColor: isDark ? '#333' : '#E0E0E0' }]} />
-              <AppText style={[styles.stepDesc, { color: isDark ? '#A0A0A0' : '#666' }]}>Refer friends to Coincode &{'\n'}get rewarded.</AppText>
-            </View>
-
-            {/* Step 2 */}
-            <View style={[styles.stepWrapper, { backgroundColor: isDark ? colors.newThemeColor : '#F9F9F9', borderColor: isDark ? 'rgba(255,255,255,0.05)' : '#EEE' }]}>
-              <View style={styles.stepNumberBadge}>
-                <AppText style={styles.stepNumberText}>02</AppText>
-              </View>
-              <View style={[styles.stepIconBox, { backgroundColor: isDark ? colors.newThemeColor : colors.white, borderColor: isDark ? colors.themeElevationColor : '#EEE' }]}>
-                <FastImage source={link_friends} style={styles.stepIcon} tintColor={themeColors.text} resizeMode="contain" />
-              </View>
-              <AppText style={[styles.stepTitle, { color: themeColors.text }]}>Link Up with{'\n'}Friends</AppText>
-              <View style={[styles.stepDivider, { backgroundColor: isDark ? '#333' : '#E0E0E0' }]} />
-              <AppText style={[styles.stepDesc, { color: isDark ? '#A0A0A0' : '#666' }]}>Friends connect upon{'\n'}registration.</AppText>
-            </View>
-
-            {/* Step 3 */}
-            <View style={[styles.stepWrapper, { backgroundColor: isDark ? colors.newThemeColor : '#F9F9F9', borderColor: isDark ? 'rgba(255,255,255,0.05)' : '#EEE' }]}>
-              <View style={styles.stepNumberBadge}>
-                <AppText style={styles.stepNumberText}>03</AppText>
-              </View>
-              <View style={[styles.stepIconBox, { backgroundColor: isDark ? colors.newThemeColor : colors.white, borderColor: isDark ? colors.themeElevationColor : '#EEE' }]}>
-                <FastImage source={earn_link_icon} style={styles.stepIcon} tintColor={themeColors.text} resizeMode="contain" />
-              </View>
-              <AppText style={[styles.stepTitle, { color: themeColors.text }]}>Earn Commissions{'\n'}and More</AppText>
-              <View style={[styles.stepDivider, { backgroundColor: isDark ? '#333' : '#E0E0E0' }]} />
-              <AppText style={[styles.stepDesc, { color: isDark ? '#A0A0A0' : '#666' }]}>Earn rewards when your{'\n'}friends start trading.</AppText>
-            </View>
+            ))}
           </View>
         </View>
 
       </ScrollView>
 
-      {/* FAQ Bottom Sheet */}
+      {/* FAQ Bottom Sheet — theme matches TradingDataModal */}
       <RBSheet
         ref={faqSheetRef}
         height={500}
@@ -423,31 +428,97 @@ const ReferAndEarn = () => {
         {...({ customModalProps: { statusBarTranslucent: true, navigationBarTranslucent: true } } as any)}
         customStyles={{
           container: {
-            backgroundColor: isDark ? colors.newThemeColor : colors.white,
+            backgroundColor: 'transparent',
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
-            padding: 24,
-          }
+            borderTopWidth: 1,
+            borderLeftWidth: 1,
+            borderRightWidth: 1,
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+            overflow: 'hidden',
+            paddingHorizontal: 14,
+            paddingTop: 8,
+            paddingBottom: 10,
+          },
         }}
       >
+        <BlurView
+          style={StyleSheet.absoluteFill}
+          blurType="light"
+          blurAmount={20}
+          reducedTransparencyFallbackColor="#111214"
+        />
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: isDark ? 'rgba(10, 12, 16, 0.68)' : 'rgba(255, 255, 255, 0.85)' },
+          ]}
+        />
+        {isDark && (
+          <>
+            <LinearGradient
+              colors={[
+                'rgba(16, 185, 129, 0.10)',
+                'rgba(6, 182, 212, 0.04)',
+                'rgba(16, 185, 129, 0.02)',
+                'rgba(16, 185, 129, 0.07)',
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            <LinearGradient
+              colors={['transparent', 'rgba(16, 185, 129, 0.04)', 'transparent']}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </>
+        )}
+
+        <View style={{ alignItems: 'center', marginBottom: 8, marginTop: 2 }}>
+          <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: sheetHandleColor }} />
+        </View>
+
         <View style={styles.sheetHeader}>
-          <AppText style={[styles.sheetTitle, { color: themeColors.text }]}>FAQ</AppText>
-          <TouchableOpacity onPress={() => faqSheetRef.current?.close()}>
-            <AppText style={[styles.closeIcon, { color: isDark ? '#A0A0A0' : '#666' }]}>✕</AppText>
+          <AppText style={[styles.sheetTitle, { color: sheetTextColor }]}>FAQ</AppText>
+          <TouchableOpacity
+            onPress={() => faqSheetRef.current?.close()}
+            style={[styles.sheetCloseCircle, { backgroundColor: sheetCloseCircleBg }]}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            activeOpacity={0.75}
+          >
+            <FastImage
+              source={closeIcon}
+              resizeMode="contain"
+              style={styles.sheetCloseIcon}
+              tintColor={sheetIconTint}
+            />
           </TouchableOpacity>
         </View>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
           {REFERRAL_FAQ_ITEMS.map((faq, index) => (
-            <View key={index} style={[styles.faqItem, { borderBottomColor: isDark ? '#222' : '#EEE' }]}>
+            <View key={index} style={[styles.faqItem, { borderBottomColor: sheetRowBorderColor }]}>
               <TouchableOpacity
                 style={styles.faqQuestionBtn}
                 onPress={() => setActiveFaq(activeFaq === index ? null : index)}
               >
-                <AppText style={[styles.faqQuestion, { color: themeColors.text }]}>{faq.question}</AppText>
-                <AppText style={{ color: isDark ? '#A0A0A0' : '#666', fontSize: 20 }}>{activeFaq === index ? '⌃' : '⌄'}</AppText>
+                <AppText style={[styles.faqQuestion, { color: sheetTextColor }]}>{faq.question}</AppText>
+                <FastImage
+                  source={downIcon}
+                  style={{
+                    width: 12,
+                    height: 12,
+                    transform: [{ rotate: activeFaq === index ? '180deg' : '0deg' }],
+                  }}
+                  tintColor={sheetSubTextColor}
+                  resizeMode="contain"
+                />
               </TouchableOpacity>
               {activeFaq === index && (
-                <AppText style={[styles.faqAnswer, { color: isDark ? '#A0A0A0' : '#666' }]}>{faq.answer}</AppText>
+                <AppText style={[styles.faqAnswer, { color: sheetSubTextColor }]}>{faq.answer}</AppText>
               )}
             </View>
           ))}
@@ -474,7 +545,7 @@ const ReferAndEarn = () => {
         onCancel={() => setDatePickerVisibility(false)}
         date={datePickerType === 'start' ? startDate : endDate}
       />
-    </AppSafeAreaView>
+    </View>
   );
 };
 
@@ -482,94 +553,58 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
+  headerAbsolute: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    height: 56,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
   },
   backIcon: {
     width: 35,
     height: 35,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontFamily: fontFamilySemiBold,
+  infoIcon: {
+    width: 25,
+    height: 25,
   },
   scrollContent: {
     paddingBottom: 40,
   },
-  content: {
-    paddingHorizontal: 20,
-    marginTop: 20,
+  bannerContainer: {
+    width: '100%',
+    height: SCREEN_WIDTH * 0.75,
+    position: 'relative',
   },
-  textSection: {
-    width: '55%',
-    zIndex: 2,
-  },
-  imageSection: {
+  bannerImage: {
+    width: '100%',
+    height: '100%',
     position: 'absolute',
-    right: -10,
-    top: -20,
-    zIndex: 1,
   },
-  titleTop: {
-    fontSize: 22,
-    fontFamily: fontFamilyBold,
-    marginBottom: -2,
+  bannerTextContainer: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
   },
-  titleBottom: {
-    fontSize: 22,
-    fontFamily: fontFamilyBold,
+  bannerEyebrow: {
+    fontSize: 12,
+    fontFamily: fontFamilyMedium,
     marginBottom: 8,
   },
-  desc: {
-    fontSize: 13,
-    fontFamily: fontFamilyMedium,
-    lineHeight: 20,
-    marginBottom: 15,
-  },
-  inviteBtn: {
-    backgroundColor: '#D1AA67',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-  },
-  inviteBtnText: {
+  bannerTitle: {
+    fontSize: 28,
     color: colors.white,
-    fontSize: 14,
-    fontFamily: fontFamilySemiBold,
-    marginRight: 8,
-  },
-  arrowCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  arrowText: {
-    color: colors.white,
-    fontSize: 10,
     fontFamily: fontFamilyBold,
   },
-  giftImage: {
-    width: 220,
-    height: 220,
+  content: {
+    paddingHorizontal: 20,
+    marginTop: 8,
   },
   statsContainer: {
-    marginTop: 30,
+    marginTop: 16,
     borderRadius: 24,
     padding: 10,
     borderWidth: 1,
@@ -720,7 +755,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: '#EABE53',
+    backgroundColor: CYAN,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -844,14 +879,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   applyBtn: {
-    backgroundColor: '#EABE53',
+    backgroundColor: CYAN,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 24,
   },
   applyBtnText: {
-    color: '#000',
+    color: colors.white,
     fontSize: 16,
     fontFamily: fontFamilyBold,
   },
@@ -967,17 +1002,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    paddingHorizontal: 4,
   },
   sheetTitle: {
     fontSize: 20,
     fontFamily: fontFamilyBold,
   },
-  closeIcon: {
-    fontSize: 24,
+  sheetCloseCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetCloseIcon: {
+    width: 12,
+    height: 12,
   },
   faqItem: {
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     paddingVertical: 16,
+    paddingHorizontal: 4,
   },
   faqQuestionBtn: {
     flexDirection: 'row',
@@ -999,7 +1044,7 @@ const styles = StyleSheet.create({
   howToInviteContainer: {
     marginTop: 32,
     marginHorizontal: 16,
-    marginBottom: 40,
+    marginBottom: 16,
   },
   howToInviteTitle: {
     fontSize: 24,
@@ -1011,64 +1056,55 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: fontFamilyMedium,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 28,
   },
   stepsContainer: {
-    gap: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
   },
   stepWrapper: {
-    borderRadius: 24,
+    width: (SCREEN_WIDTH - 52) / 3,
+    borderRadius: 12,
     borderWidth: 1,
-    padding: 24,
+    paddingHorizontal: 10,
+    paddingTop: 14,
+    paddingBottom: 16,
     alignItems: 'center',
-    position: 'relative',
-    marginTop: 16,
   },
   stepNumberBadge: {
-    position: 'absolute',
-    top: -16,
-    backgroundColor: '#EABE53',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
-    zIndex: 1,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   stepNumberText: {
-    color: '#000',
+    color: colors.white,
     fontFamily: fontFamilyBold,
-    fontSize: 14,
-  },
-  stepIconBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  stepIcon: {
-    width: 32,
-    height: 32,
-  },
-  stepTitle: {
-    fontSize: 18,
-    fontFamily: fontFamilyBold,
-    textAlign: 'center',
-    marginBottom: 16,
-    lineHeight: 24,
-  },
-  stepDivider: {
-    width: 40,
-    height: 2,
-    marginBottom: 16,
+    fontSize: 11,
   },
   stepDesc: {
-    fontSize: 14,
+    fontSize: 10,
     fontFamily: fontFamilyMedium,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 14,
+  },
+  inviteBtn: {
+    backgroundColor: CYAN,
+    alignSelf: 'flex-start',
+    borderRadius: 24,
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+  },
+  inviteBtnText: {
+    color: colors.white,
+    fontSize: 13,
+    fontFamily: fontFamilySemiBold,
   },
   historyContainer: {
     paddingHorizontal: 16,

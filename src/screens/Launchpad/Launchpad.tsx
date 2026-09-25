@@ -1,29 +1,33 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
 import FastImage from 'react-native-fast-image';
-import { AppSafeAreaView, AppText, SEMI_BOLD } from '../../shared';
+import { BlurView } from '@react-native-community/blur';
+import LinearGradient from 'react-native-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppText } from '../../shared';
 import { useTheme } from '../../hooks/useTheme';
 import {
   back_ic,
   usdtIcon,
   bitcoinIcon,
   INFO,
-  upIcon,
   downIcon,
-  launchpad_acge
+  launchpadBanner,
+  closeIcon,
 } from '../../helper/ImageAssets';
 import NavigationService from '../../navigation/NavigationService';
-import Toast from 'react-native-simple-toast';
 import {
   LAUNCHPAD_DETAIL_SCREEN
 } from '../../navigation/routes';
 import { colors } from '../../theme/colors';
-import { fontFamilyMedium, fontFamilySemiBold } from '../../theme/typography';
+import { fontFamilyBold, fontFamilyMedium, fontFamilySemiBold } from '../../theme/typography';
 import { appOperation } from '../../appOperation';
 import { IMAGE_BASE_URL } from '../../helper/Constants';
 import RBSheet from 'react-native-raw-bottom-sheet';
 
-const { width } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CYAN = colors.cyanTheme || colors.cyan || '#0AA8C5';
+const BANNER_IMAGE_HEIGHT = Math.round(SCREEN_WIDTH * 0.72);
 
 const LAUNCHPAD_FAQ_ITEMS = [
   { question: "1. What is Launchpad?", answer: "Launchpad is a platform where users can stake their assets or provide liquidity to earn rewards in new project tokens. Users can lock specified tokens in the Launchpad pool to receive corresponding project token rewards." },
@@ -81,6 +85,8 @@ const normalizeLaunchpad = (item: any) => {
     subscriptionPrice: [subPrice],
     participants,
     eventTime: formatLaunchpadTime(item?.startTime),
+    totalRaised: Number(item?.totalRaised ?? 0) || 0,
+    totalParticipants: Number(item?.totalParticipants ?? 0) || 0,
     pools: [
       {
         name: acceptedCurrency,
@@ -99,8 +105,23 @@ const normalizeLaunchpad = (item: any) => {
   };
 };
 
+const formatCompact = (n: number) => {
+  if (!n || n <= 0) return '0';
+  if (n >= 1e9) return `$${(n / 1e9).toFixed(1)}B`;
+  if (n >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
+  if (n >= 1e3) return `$${(n / 1e3).toFixed(1)}K`;
+  return `$${n}`;
+};
+
+const formatParticipants = (n: number) => {
+  if (!n || n <= 0) return '0';
+  if (n >= 1e3) return `${(n / 1e3).toFixed(2)}K`;
+  return String(n);
+};
+
 const Launchpad = () => {
   const { colors: themeColors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => getStyles(themeColors, isDark), [themeColors, isDark]);
   const [activeTab, setActiveTab] = useState<'Ongoing' | 'Upcoming' | 'Ended'>('Ongoing');
   const [projects, setProjects] = useState<any[]>([]);
@@ -136,6 +157,27 @@ const Launchpad = () => {
 
   const currentProjects = projects.filter(p => p.status === activeTab);
 
+  const bannerStats = useMemo(() => {
+    const totalRaised = projects.reduce((sum, p) => sum + (Number(p.totalRaised) || 0), 0);
+    const totalParticipants = projects.reduce((sum, p) => sum + (Number(p.totalParticipants) || 0), 0);
+    return {
+      raised: totalRaised > 0 ? formatCompact(totalRaised) : '$2.6B',
+      participants: totalParticipants > 0 ? formatParticipants(totalParticipants) : '110.09K',
+    };
+  }, [projects]);
+
+  const muted = isDark ? themeColors.secondaryText : '#888';
+  const cardBg = isDark ? 'rgba(255,255,255,0.03)' : '#F9F9F9';
+  const cardBorder = isDark ? 'rgba(255,255,255,0.15)' : '#EAEAEA';
+
+  // Match TradingDataModal / ReferAndEarn sheet theme
+  const sheetTextColor = isDark ? '#FFFFFF' : '#000000';
+  const sheetSubTextColor = isDark ? 'rgba(255,255,255,0.55)' : '#9D9D9D';
+  const sheetRowBorderColor = isDark ? 'rgba(255,255,255,0.08)' : '#EEEEEE';
+  const sheetCloseCircleBg = isDark ? 'rgba(255,255,255,0.12)' : '#E8E8E8';
+  const sheetIconTint = isDark ? colors.white : colors.black;
+  const sheetHandleColor = isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.15)';
+
   const getIconForCoin = (symbol: string, path: any) => {
     const sym = String(symbol || '').toUpperCase();
     const base = String(IMAGE_BASE_URL || 'https://backend.arabglobal.ae/').replace(/\/+$/, '');
@@ -166,72 +208,92 @@ const Launchpad = () => {
   };
 
   return (
-    <AppSafeAreaView style={{ backgroundColor: themeColors.background }}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => NavigationService.goBack()} style={{ padding: 8 }}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      {/* Absolute header — same pattern as CoinCode LaunchpadScreen */}
+      <View style={[styles.headerAbsolute, { top: Math.max(insets.top, 10) }]}>
+        <TouchableOpacity
+          onPress={() => NavigationService.goBack()}
+          activeOpacity={0.75}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
         </TouchableOpacity>
-        <AppText style={[styles.headerTitle, { color: themeColors.text }]} weight={SEMI_BOLD}>Launchpad</AppText>
-        <TouchableOpacity style={{ padding: 8 }}>
-          <View style={{ width: 24 }} />
+        <TouchableOpacity
+          onPress={() => faqSheetRef.current?.open()}
+          activeOpacity={0.75}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <FastImage source={INFO} style={styles.infoIcon} tintColor={themeColors.text} resizeMode="contain" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* Hero Section */}
-        <View style={styles.heroContainer}>
-          <View style={styles.heroLeft}>
-            <AppText style={[styles.heroTitle, { color: themeColors.text }]}>Launchpad</AppText>
-            <AppText style={[styles.heroSubtitle, { color: themeColors.secondaryText }]}>Be Early to the Next Big Token Project</AppText>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Banner — matches CoinCode LaunchpadScreen layout */}
+        <View style={[styles.bannerContainer, { paddingTop: Math.max(insets.top, 10) + 44 }]}>
+          <View style={styles.bannerTextContainer}>
+            <AppText style={[styles.bannerTitle, { color: themeColors.text }]}>Launchpad</AppText>
+            <AppText style={[styles.bannerSubtitle, { color: muted }]}>
+              Participate in token sales, support innovative projects and earn exclusive rewards.
+            </AppText>
 
-            <View style={styles.heroBtnRow}>
-              <TouchableOpacity style={styles.aboutBtn} onPress={() => faqSheetRef.current?.open()}>
-                <AppText style={styles.aboutBtnText}>About Launchpad</AppText>
-              </TouchableOpacity>
-            </View>
+            {/* <View style={styles.bannerStatsRow}>
+              <View style={styles.bannerStatItem}>
+                <AppText style={[styles.bannerStatValue, { color: themeColors.text }]}>{bannerStats.raised}</AppText>
+                <AppText style={[styles.bannerStatLabel, { color: muted }]}>Total Raised</AppText>
+              </View>
+              <View style={styles.bannerStatItem}>
+                <AppText style={[styles.bannerStatValue, { color: themeColors.text }]}>{bannerStats.participants}</AppText>
+                <AppText style={[styles.bannerStatLabel, { color: muted }]}>Total Participants</AppText>
+              </View>
+            </View> */}
           </View>
-          <View style={styles.heroRight}>
-            <FastImage source={launchpad_acge} style={styles.heroImage} resizeMode="contain" />
+
+          <View style={styles.bannerImageWrap}>
+            <FastImage
+              source={launchpadBanner}
+              style={styles.bannerImage}
+              resizeMode="cover"
+            />
           </View>
         </View>
 
         {/* Tabs */}
         <View style={styles.tabContainer}>
           <TouchableOpacity onPress={() => setActiveTab('Ongoing')} style={styles.tabButton}>
-            <AppText style={[styles.tabText, { color: activeTab === 'Ongoing' ? themeColors.text : themeColors.secondaryText, fontFamily: activeTab === 'Ongoing' ? fontFamilySemiBold : fontFamilyMedium }]}>Ongoing ({ongoingCount})</AppText>
+            <AppText style={[styles.tabText, { color: activeTab === 'Ongoing' ? themeColors.text : muted, fontFamily: activeTab === 'Ongoing' ? fontFamilySemiBold : fontFamilyMedium }]}>Ongoing ({ongoingCount})</AppText>
+            {activeTab === 'Ongoing' && <View style={[styles.tabUnderline, { backgroundColor: CYAN }]} />}
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setActiveTab('Upcoming')} style={styles.tabButton}>
-            <AppText style={[styles.tabText, { color: activeTab === 'Upcoming' ? themeColors.text : themeColors.secondaryText, fontFamily: activeTab === 'Upcoming' ? fontFamilySemiBold : fontFamilyMedium }]}>Upcoming ({upcomingCount})</AppText>
+            <AppText style={[styles.tabText, { color: activeTab === 'Upcoming' ? themeColors.text : muted, fontFamily: activeTab === 'Upcoming' ? fontFamilySemiBold : fontFamilyMedium }]}>Upcoming ({upcomingCount})</AppText>
+            {activeTab === 'Upcoming' && <View style={[styles.tabUnderline, { backgroundColor: CYAN }]} />}
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setActiveTab('Ended')} style={styles.tabButton}>
-            <AppText style={[styles.tabText, { color: activeTab === 'Ended' ? themeColors.text : themeColors.secondaryText, fontFamily: activeTab === 'Ended' ? fontFamilySemiBold : fontFamilyMedium }]}>Ended ({endedCount})</AppText>
+            <AppText style={[styles.tabText, { color: activeTab === 'Ended' ? themeColors.text : muted, fontFamily: activeTab === 'Ended' ? fontFamilySemiBold : fontFamilyMedium }]}>Ended ({endedCount})</AppText>
+            {activeTab === 'Ended' && <View style={[styles.tabUnderline, { backgroundColor: CYAN }]} />}
           </TouchableOpacity>
         </View>
 
         <View style={styles.projectsContainer}>
           {loading ? (
             <View style={{ padding: 40, alignItems: 'center' }}>
-              <ActivityIndicator size="large" color={themeColors.text} />
+              <ActivityIndicator size="large" color={CYAN} />
             </View>
           ) : currentProjects.length === 0 ? (
             <View style={{ padding: 40, alignItems: 'center' }}>
-              <AppText style={{ color: themeColors.secondaryText }}>No projects found for {activeTab}.</AppText>
+              <AppText style={{ color: muted }}>No projects found for {activeTab}.</AppText>
             </View>
           ) : (
             currentProjects.map((project, idx) => (
               <TouchableOpacity
                 key={project.id || idx}
-                style={[styles.projectCard, { backgroundColor: isDark ? themeColors.background : '#F9F9F9', borderColor: isDark ? themeColors.border : '#EAEAEA' }]}
+                style={[styles.projectCard, { backgroundColor: cardBg, borderColor: cardBorder }]}
                 onPress={() => NavigationService.navigate(LAUNCHPAD_DETAIL_SCREEN, { projectId: project.id })}
                 activeOpacity={0.8}
               >
-                {/* Status Badge */}
-                <View style={[styles.projectStatusBadge, { backgroundColor: isDark ? themeColors.card : '#EAEAEA' }]}>
-                  <AppText style={[styles.projectStatusText, { color: isDark ? themeColors.secondaryText : '#888' }]}>{project.status}</AppText>
+                <View style={[styles.projectStatusBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#EAEAEA' }]}>
+                  <AppText style={[styles.projectStatusText, { color: muted }]}>{project.status}</AppText>
                 </View>
 
-                {/* Project Header */}
                 <View style={styles.projectHeader}>
                   <FastImage source={getIconForCoin(project.logo, project.iconPath)} style={styles.projectLogo} resizeMode="contain" />
                   <View>
@@ -239,10 +301,9 @@ const Launchpad = () => {
                   </View>
                 </View>
 
-                {/* Project Info */}
                 <View style={styles.projectInfoRow}>
                   <View style={styles.projectInfoCol}>
-                    <AppText style={styles.infoLabel}>Subscription Price</AppText>
+                    <AppText style={[styles.infoLabel, { color: muted }]}>Subscription Price</AppText>
                     {project.subscriptionPrice.map((price: string, i: number) => (
                       <AppText key={i} style={[styles.infoValue, { color: themeColors.text }]}>{price}</AppText>
                     ))}
@@ -250,20 +311,19 @@ const Launchpad = () => {
                 </View>
                 <View style={styles.projectInfoRow}>
                   <View style={styles.projectInfoCol}>
-                    <AppText style={styles.infoLabel}>Number of Participants</AppText>
+                    <AppText style={[styles.infoLabel, { color: muted }]}>Number of Participants</AppText>
                     <AppText style={[styles.infoValue, { color: themeColors.text }]}>{project.participants}</AppText>
                   </View>
                 </View>
                 <View style={[styles.projectInfoRow, { marginBottom: 20 }]}>
                   <View style={styles.projectInfoCol}>
-                    <AppText style={styles.infoLabel}>Event Time</AppText>
+                    <AppText style={[styles.infoLabel, { color: muted }]}>Event Time</AppText>
                     <AppText style={[styles.infoValue, { color: themeColors.text }]}>{project.eventTime}</AppText>
                   </View>
                 </View>
 
-                {/* Pools */}
                 {project.pools.map((pool: any, pIdx: number) => (
-                  <View key={pIdx} style={[styles.poolCard, { backgroundColor: isDark ? 'transparent' : colors.white, borderColor: isDark ? themeColors.border : '#EAEAEA' }]}>
+                  <View key={pIdx} style={[styles.poolCard, { backgroundColor: isDark ? 'transparent' : colors.white, borderColor: cardBorder }]}>
                     <View style={styles.poolHeader}>
                       <FastImage source={getIconForCoin(pool.coinIcon, pool.iconPath)} style={styles.poolIcon} resizeMode="contain" />
                       <AppText style={[styles.poolName, { color: themeColors.text }]}>{pool.name}</AppText>
@@ -271,13 +331,13 @@ const Launchpad = () => {
 
                     <View style={styles.poolStatsRow}>
                       <View style={styles.poolStatCol}>
-                        <AppText style={styles.infoLabel}>Allocation</AppText>
+                        <AppText style={[styles.infoLabel, { color: muted }]}>Allocation</AppText>
                         <AppText style={[styles.poolValue, { color: themeColors.text }]}>
                           {pool.allocation} <AppText style={[styles.poolCoin, { color: themeColors.text }]}>{pool.allocationCoin}</AppText>
                         </AppText>
                       </View>
                       <View style={[styles.poolStatCol, { alignItems: 'flex-end' }]}>
-                        <AppText style={styles.infoLabel}>Commitment</AppText>
+                        <AppText style={[styles.infoLabel, { color: muted }]}>Commitment</AppText>
                         <AppText style={[styles.poolValue, { color: themeColors.text }]}>
                           {pool.commitment} <AppText style={[styles.poolCoin, { color: themeColors.text }]}>{pool.commitmentCoin}</AppText>
                         </AppText>
@@ -286,28 +346,29 @@ const Launchpad = () => {
 
                     <View style={styles.poolStatsRow}>
                       <View style={styles.poolStatCol}>
-                        <AppText style={styles.infoLabel}>Cap per Subscriber</AppText>
+                        <AppText style={[styles.infoLabel, { color: muted }]}>Cap per Subscriber</AppText>
                         <AppText style={[styles.poolValue, { color: themeColors.text }]}>
                           {pool.cap} <AppText style={[styles.poolCoin, { color: themeColors.text }]}>{pool.capCoin}</AppText>
                         </AppText>
                       </View>
                     </View>
 
-                    <View style={[styles.poolDivider, { backgroundColor: isDark ? '#303744' : '#EAEAEA' }]} />
+                    <View style={[styles.poolDivider, { backgroundColor: isDark ? themeColors.border : '#EAEAEA' }]} />
 
                     <View style={styles.poolSummaryRow}>
-                      <AppText style={styles.infoLabel}>Subscription Price</AppText>
+                      <AppText style={[styles.infoLabel, { color: muted }]}>Subscription Price</AppText>
                       <AppText style={[styles.poolSummaryValue, { color: themeColors.text }]}>{pool.subPrice}</AppText>
                     </View>
                     <View style={styles.poolSummaryRow}>
-                      <AppText style={styles.infoLabel}>Number of Participants</AppText>
+                      <AppText style={[styles.infoLabel, { color: muted }]}>Number of Participants</AppText>
                       <AppText style={[styles.poolSummaryValue, { color: themeColors.text }]}>{pool.poolParticipants}</AppText>
                     </View>
 
-                    <TouchableOpacity style={[styles.tradeBtn, { backgroundColor: isDark ? '#303237' : '#F0F0F0' }]}
+                    <TouchableOpacity
+                      style={[styles.tradeBtn, { backgroundColor: CYAN }]}
                       onPress={() => NavigationService.navigate(LAUNCHPAD_DETAIL_SCREEN, { projectId: project.id })}
                     >
-                      <AppText style={[styles.tradeBtnText, { color: themeColors.text }]}>Trade</AppText>
+                      <AppText style={styles.tradeBtnText}>Trade</AppText>
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -317,123 +378,208 @@ const Launchpad = () => {
         </View>
       </ScrollView>
 
-      {/* FAQ Sheet */}
+      {/* FAQ Sheet — theme matches TradingDataModal */}
       <RBSheet
         ref={faqSheetRef}
-        keyboardAvoidingViewEnabled={false}
-        {...({ customModalProps: { statusBarTranslucent: true } } as any)}
+        height={500}
+        openDuration={250}
         closeOnDragDown={true}
         closeOnPressMask={true}
-        height={500}
+        {...({ customModalProps: { statusBarTranslucent: true, navigationBarTranslucent: true } } as any)}
         customStyles={{
           wrapper: {
-            backgroundColor: "rgba(0,0,0,0.5)"
+            backgroundColor: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.35)',
           },
           draggableIcon: {
-            backgroundColor: "transparent",
+            backgroundColor: 'transparent',
+            height: 0,
           },
           container: {
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            paddingBottom: 20,
-            backgroundColor: isDark ? themeColors.background : colors.white
-          }
+            backgroundColor: 'transparent',
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            borderTopWidth: 1,
+            borderLeftWidth: 1,
+            borderRightWidth: 1,
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+            overflow: 'hidden',
+            paddingHorizontal: 14,
+            paddingTop: 8,
+            paddingBottom: 10,
+          },
         }}
       >
-        <View style={styles.modalHeader}>
-          <AppText style={[styles.modalTitle, { color: themeColors.text }]}>About Launchpad</AppText>
-          <TouchableOpacity onPress={() => faqSheetRef.current?.close()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <AppText style={[styles.modalCloseText, { color: themeColors.text }]}>×</AppText>
+        <BlurView
+          style={StyleSheet.absoluteFill}
+          blurType="light"
+          blurAmount={20}
+          reducedTransparencyFallbackColor="#111214"
+        />
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: isDark ? 'rgba(10, 12, 16, 0.68)' : 'rgba(255, 255, 255, 0.85)' },
+          ]}
+        />
+        {isDark && (
+          <>
+            <LinearGradient
+              colors={[
+                'rgba(16, 185, 129, 0.10)',
+                'rgba(6, 182, 212, 0.04)',
+                'rgba(16, 185, 129, 0.02)',
+                'rgba(16, 185, 129, 0.07)',
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            <LinearGradient
+              colors={['transparent', 'rgba(16, 185, 129, 0.04)', 'transparent']}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </>
+        )}
+
+        <View style={{ alignItems: 'center', marginBottom: 8, marginTop: 2 }}>
+          <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: sheetHandleColor }} />
+        </View>
+
+        <View style={styles.sheetHeader}>
+          <AppText style={[styles.sheetTitle, { color: sheetTextColor }]}>About Launchpad</AppText>
+          <TouchableOpacity
+            onPress={() => faqSheetRef.current?.close()}
+            style={[styles.sheetCloseCircle, { backgroundColor: sheetCloseCircleBg }]}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            activeOpacity={0.75}
+          >
+            <FastImage
+              source={closeIcon}
+              resizeMode="contain"
+              style={styles.sheetCloseIcon}
+              tintColor={sheetIconTint}
+            />
           </TouchableOpacity>
         </View>
-        <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
           {LAUNCHPAD_FAQ_ITEMS.map((item, index) => (
-            <View key={String(index)} style={[styles.faqItemInner, { borderBottomColor: isDark ? themeColors.border : '#F0F0F5' }, index === LAUNCHPAD_FAQ_ITEMS.length - 1 && styles.faqItemInnerLast]}>
+            <View
+              key={String(index)}
+              style={[
+                styles.faqItemInner,
+                { borderBottomColor: sheetRowBorderColor },
+                index === LAUNCHPAD_FAQ_ITEMS.length - 1 && styles.faqItemInnerLast,
+              ]}
+            >
               <TouchableOpacity
                 style={styles.faqQuestionRow}
                 onPress={() => setFaqActiveIndex(faqActiveIndex === index ? null : index)}
                 activeOpacity={0.7}
               >
-                <AppText style={[styles.faqQuestion, { color: themeColors.text }]}>{item.question}</AppText>
+                <AppText style={[styles.faqQuestion, { color: sheetTextColor }]}>{item.question}</AppText>
                 <FastImage
-                  source={faqActiveIndex === index ? upIcon : downIcon}
+                  source={downIcon}
                   resizeMode="contain"
-                  style={styles.faqArrow}
-                  tintColor={themeColors.text}
+                  style={[
+                    styles.faqArrow,
+                    { transform: [{ rotate: faqActiveIndex === index ? '180deg' : '0deg' }] },
+                  ]}
+                  tintColor={sheetSubTextColor}
                 />
               </TouchableOpacity>
               {faqActiveIndex === index && (
                 <View style={styles.faqAnswer}>
-                  <AppText style={[styles.faqAnswerText, { color: themeColors.secondaryText }]}>{item.answer}</AppText>
+                  <AppText style={[styles.faqAnswerText, { color: sheetSubTextColor }]}>{item.answer}</AppText>
                 </View>
               )}
             </View>
           ))}
         </ScrollView>
       </RBSheet>
-    </AppSafeAreaView>
+    </View>
   );
 };
 
 const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
-  header: {
+  container: {
+    flex: 1,
+  },
+  headerAbsolute: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    paddingHorizontal: 16,
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    height: 56,
+    alignItems: 'center',
   },
   backIcon: {
     width: 35,
     height: 35,
   },
-  headerTitle: {
-    fontSize: 18,
+  infoIcon: {
+    width: 25,
+    height: 25,
   },
-  heroContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
+  scrollContent: {
+    paddingBottom: 40,
   },
-  heroLeft: {
-    flex: 1,
-  },
-  heroTitle: {
-    fontSize: 28,
-    fontFamily: fontFamilySemiBold,
-    marginBottom: 8,
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    fontFamily: fontFamilyMedium,
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  heroBtnRow: {
-    flexDirection: 'row',
-  },
-  aboutBtn: {
-    backgroundColor: isDark ? colors.themeElevationColor : '#F0F0F0',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  aboutBtnText: {
-    color: isDark ? themeColors.text : '#333',
-    fontSize: 14,
-    fontFamily: fontFamilySemiBold,
-  },
-  heroRight: {
-    width: 120,
-    height: 120,
-    marginLeft: 10,
-  },
-  heroImage: {
+  bannerContainer: {
     width: '100%',
-    height: '100%',
+    position: 'relative',
+  },
+  bannerTextContainer: {
+    alignItems: 'center',
+    zIndex: 2,
+    paddingHorizontal: 20,
+  },
+  bannerTitle: {
+    fontSize: 24,
+    fontFamily: fontFamilyBold,
+    textAlign: 'center',
+  },
+  bannerSubtitle: {
+    fontSize: 12,
+    fontFamily: fontFamilyMedium,
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 24,
+    lineHeight: 18,
+  },
+  bannerStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 16,
+  },
+  bannerStatItem: {
+    alignItems: 'center',
+    marginHorizontal: 16,
+  },
+  bannerStatValue: {
+    fontSize: 18,
+    fontFamily: fontFamilyBold,
+  },
+  bannerStatLabel: {
+    fontSize: 10,
+    fontFamily: fontFamilyMedium,
+    marginTop: 4,
+  },
+  bannerImageWrap: {
+    width: SCREEN_WIDTH,
+    height: BANNER_IMAGE_HEIGHT,
+    marginTop: 10,
+    overflow: 'hidden',
+    alignSelf: 'center',
+  },
+  bannerImage: {
+    width: SCREEN_WIDTH,
+    height: BANNER_IMAGE_HEIGHT,
   },
   tabContainer: {
     flexDirection: 'row',
@@ -445,9 +591,18 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
   tabButton: {
     paddingVertical: 12,
     marginRight: 24,
+    position: 'relative',
   },
   tabText: {
     fontSize: 16,
+  },
+  tabUnderline: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    borderRadius: 1,
   },
   projectsContainer: {
     paddingHorizontal: 20,
@@ -497,7 +652,6 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
   },
   infoLabel: {
     fontSize: 13,
-    color: isDark ? themeColors.secondaryText : '#888',
     fontFamily: fontFamilyMedium,
     marginBottom: 4,
   },
@@ -556,38 +710,41 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
   },
   tradeBtn: {
     paddingVertical: 12,
-    borderRadius: 6,
+    borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,
   },
   tradeBtnText: {
     fontSize: 16,
     fontFamily: fontFamilySemiBold,
+    color: colors.white,
   },
-  modalHeader: {
+  sheetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: isDark ? themeColors.border : '#F0F0F5',
+    marginBottom: 12,
+    paddingHorizontal: 4,
   },
-  modalTitle: {
+  sheetTitle: {
     fontSize: 18,
-    fontFamily: fontFamilySemiBold,
+    fontFamily: fontFamilyBold,
   },
-  modalCloseText: {
-    fontSize: 28,
-    lineHeight: 32,
-    color: isDark ? themeColors.secondaryText : '#999',
+  sheetCloseCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  modalList: {
-    paddingHorizontal: 20,
+  sheetCloseIcon: {
+    width: 12,
+    height: 12,
   },
   faqItemInner: {
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     paddingVertical: 16,
+    paddingHorizontal: 4,
   },
   faqItemInnerLast: {
     borderBottomWidth: 0,
@@ -598,22 +755,22 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
     alignItems: 'center',
   },
   faqQuestion: {
-    fontSize: 16,
+    fontSize: 14,
     flex: 1,
-    fontFamily: fontFamilySemiBold,
+    fontFamily: fontFamilyMedium,
+    marginRight: 12,
   },
   faqArrow: {
     width: 12,
     height: 12,
-    marginLeft: 10,
   },
   faqAnswer: {
     marginTop: 12,
   },
   faqAnswerText: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: fontFamilyMedium,
-    lineHeight: 22,
+    lineHeight: 20,
   },
 });
 

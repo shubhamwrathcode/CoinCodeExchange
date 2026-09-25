@@ -6,11 +6,12 @@ import {
   TouchableOpacity,
   TextInput,
   Text,
+  Share,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FastImage from "react-native-fast-image";
 import LinearGradient from "react-native-linear-gradient";
-import { Edit3, Gift, Search } from "lucide-react-native";
+import { Gift, Search } from "lucide-react-native";
 import Toast from "react-native-simple-toast";
 import { AppText, SEMI_BOLD } from "../../shared";
 import NavigationService from "../../navigation/NavigationService";
@@ -18,6 +19,8 @@ import { useTheme } from "../../hooks/useTheme";
 import { colors } from "../../theme/colors";
 import DepositChoiceSheet from "../wallet/sheets/DepositChoiceSheet";
 import WithdrawChoiceSheet from "../wallet/sheets/WithdrawChoiceSheet";
+import { appOperation } from "../../appOperation";
+import { CHART_WEB_BASE_URL } from "../../helper/Constants";
 import {
   BUY_CRYPTO_SCREEN,
   FUTURES_SCREEN,
@@ -50,14 +53,40 @@ import {
 
 const CYAN = colors.cyanTheme || "#0AA8C5";
 
-const showComingSoon = () =>
-  Toast.showWithGravity("Coming soon", Toast.LONG, Toast.BOTTOM);
+const pickReferralCode = (payload) => {
+  if (payload == null) return "";
+  if (typeof payload === "string" || typeof payload === "number") return String(payload).trim();
+  if (typeof payload !== "object") return "";
+
+  const fromData =
+    payload?.data?.refer_code ||
+    payload?.data?.user_code ||
+    payload?.data?.referral_code ||
+    payload?.data?.referCode ||
+    payload?.data?.code;
+  if (fromData) return String(fromData).trim();
+
+  const nested = payload.data ?? payload.result ?? payload;
+  if (typeof nested === "string" || typeof nested === "number") return String(nested).trim();
+  if (typeof nested !== "object" || nested == null) return "";
+  return String(
+    nested.refer_code ||
+      nested.user_code ||
+      nested.referral_code ||
+      nested.referCode ||
+      nested.code ||
+      nested.refferal_code ||
+      nested.user_refer_code ||
+      ""
+  ).trim();
+};
 
 const MoreServicesScreen = () => {
   const insets = useSafeAreaInsets();
   const { colors: themeColors, isDark } = useTheme();
   const [activeFilter, setActiveFilter] = useState("Recommended");
   const [searchQuery, setSearchQuery] = useState("");
+  const [inviteSharing, setInviteSharing] = useState(false);
 
   const filters = ["Recommended", "Buy Crypto", "Trade", "Earn"];
 
@@ -87,6 +116,28 @@ const MoreServicesScreen = () => {
   const handleOpenWithdraw = useCallback(() => {
     withdrawChoiceSheetRef.current?.open?.();
   }, []);
+
+  const handleInviteFriends = useCallback(async () => {
+    if (inviteSharing) return;
+    setInviteSharing(true);
+    try {
+      const codeRes = await appOperation.customer.user_refer_code();
+      const code = codeRes?.success ? pickReferralCode(codeRes) : "";
+      if (!code) {
+        Toast.showWithGravity("Referral link not available", Toast.SHORT, Toast.BOTTOM);
+        return;
+      }
+      const baseWebUrl = CHART_WEB_BASE_URL.replace(/\/$/, "");
+      const referralLink = `${baseWebUrl}/signup?referral_code=${code}`;
+      await Share.share({
+        message: `Join Coincode using my referral link!\n${referralLink}`,
+      });
+    } catch (error) {
+      Toast.showWithGravity(error?.message || "Unable to share referral link", Toast.SHORT, Toast.BOTTOM);
+    } finally {
+      setInviteSharing(false);
+    }
+  }, [inviteSharing]);
 
   const sections = useMemo(
     () => [
@@ -343,7 +394,7 @@ const MoreServicesScreen = () => {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {visibleSections.filter((s) => s.key === "favourites").map(renderSection)}
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
+        {/* <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
           {filters.map((f) => (
             <TouchableOpacity
               key={f}
@@ -366,12 +417,12 @@ const MoreServicesScreen = () => {
               </AppText>
             </TouchableOpacity>
           ))}
-        </ScrollView>
+        </ScrollView> */}
 
         <View style={styles.bannersRow}>
           <TouchableOpacity
             style={[styles.bannerBox, { backgroundColor: cardBg, borderColor: cardBorder }]}
-            onPress={showComingSoon}
+            onPress={() => NavigationService.navigate(REFER_AND_EARN_SCREEN)}
             activeOpacity={0.85}
           >
             <LinearGradient
@@ -393,8 +444,9 @@ const MoreServicesScreen = () => {
 
           <TouchableOpacity
             style={[styles.bannerBox, { backgroundColor: cardBg, borderColor: cardBorder }]}
-            onPress={() => NavigationService.navigate(REFER_AND_EARN_SCREEN)}
+            onPress={handleInviteFriends}
             activeOpacity={0.85}
+            disabled={inviteSharing}
           >
             <LinearGradient
               colors={["rgba(0, 255, 255, 0.15)", "rgba(255, 255, 255, 0.0)"]}
