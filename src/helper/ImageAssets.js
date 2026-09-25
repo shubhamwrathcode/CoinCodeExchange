@@ -361,6 +361,7 @@ export const kycixon = require('../../assets/images/kycixon.png');
 export const p2pIcon = require('../../assets/images/p2pIcon.png');
 export const editnew = require('../../assets/images/editnew.png');
 export const softStaking = require('../../assets/images/softStaking.png');
+export const stakingPromo = require('../../assets/images/stakingPromo.png');
 export const transferNew = require('../../assets/images/transferNew.png');
 export const deliveryFuture = require('../../assets/images/deliveryFuture.png');
 export const marginIc = require('../../assets/images/marginIc.png');
