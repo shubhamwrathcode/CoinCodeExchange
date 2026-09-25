@@ -153,7 +153,6 @@ import SelectCoin from "../screens/wallet/Withdrawal/SelectCoin";
 import WithdrawForm from "../screens/wallet/Withdrawal/WithdrawForm";
 import AddFavouriteScreen from '../screens/other/AddFavouriteScreen';
 import Earning from '../screens/earning/Earning';
-import EarnComingSoonScreen from '../screens/earning/EarnComingSoonScreen';
 import SoftStaking from '../screens/SoftStaking/SoftStaking';
 import AccountDetails from "../screens/Security/AccountDetails";
 import VipServices from "../screens/account/VipServices";
@@ -958,7 +957,7 @@ function BottomNavigation() {
               </View>
             ),
           }}
-          component={EarnComingSoonScreen}
+          component={Earning}
         />
         <Tab.Screen
           name={routes.WALLET_SCREEN}

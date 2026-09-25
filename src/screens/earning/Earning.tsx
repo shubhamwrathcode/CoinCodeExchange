@@ -5,7 +5,7 @@ import { AppSafeAreaView, AppText, SEMI_BOLD } from '../../shared';
 import { useTheme } from '../../hooks/useTheme';
 import {
   back_ic, backChevronIcon, searchIcon, historyIcon, eye_open_icon, eye_close_icon,
-  launchpad, referAndEarn, vip, simpleEarn, stakingNew,
+  launchpadIcon, moreSvcReferIcon, vipIcon, softStakingIcon, simpleEarnIcon,
   upDown, NO_NOTIFICATION_ICON, closeIcon, usdtIcon,
   infoNewIc,
   INFO
@@ -29,14 +29,14 @@ import { IMAGE_BASE_URL } from '../../helper/Constants';
 import { appOperation } from '../../appOperation';
 
 const { width } = Dimensions.get('window');
+const CYAN = colors.cyanTheme || colors.cyan || '#0AA8C5';
 
 const gridItems = [
-  { id: 1, title: 'Launchpad', icon: launchpad, route: LAUNCHPAD_SCREEN },
-  { id: 2, title: 'Refer & Earn', icon: referAndEarn, route: REFER_AND_EARN_SCREEN },
-  { id: 3, title: 'VIP', icon: vip, route: VIP_SERVICES_SCREEN },
-  { id: 5, title: 'Staking', icon: stakingNew, route: STAKING_DASHBOARD_SCREEN },
-  { id: 6, title: 'Soft Staking', icon: stakingNew, route: SOFT_STAKING_SCREEN },
-  // { id: 4, title: 'Simple Earn', icon: simpleEarn },
+  { id: 1, title: 'Launchpad', icon: launchpadIcon, route: LAUNCHPAD_SCREEN },
+  { id: 2, title: 'Refer & Earn', icon: moreSvcReferIcon, route: REFER_AND_EARN_SCREEN },
+  // { id: 3, title: 'VIP', icon: vipIcon, route: VIP_SERVICES_SCREEN },
+  { id: 5, title: 'Staking', icon: simpleEarnIcon, route: STAKING_DASHBOARD_SCREEN },
+  { id: 6, title: 'Soft Staking', icon: softStakingIcon, route: SOFT_STAKING_SCREEN },
 ];
 
 const STAKING_TYPE_LABELS: any = {
@@ -83,6 +83,9 @@ const Earning = () => {
   const styles = useMemo(() => getStyles(themeColors, isDark), [themeColors, isDark]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHide, setIsHide] = useState(false);
+  const muted = isDark ? 'rgba(255,255,255,0.55)' : '#9D9D9D';
+  const iconBoxBg = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)';
+  const textColor = themeColors.text;
 
   // Staking logic
   const sheetRef = useRef<any>(null);
@@ -192,7 +195,7 @@ const Earning = () => {
             <TouchableOpacity onPress={() => NavigationService.goBack()} style={{ paddingRight: 12 }}>
               <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
             </TouchableOpacity>
-            <AppText style={[styles.title, { color: themeColors.text }]} weight={SEMI_BOLD}>Earn</AppText>
+            <AppText style={[styles.title, { color: textColor }]} weight={SEMI_BOLD}>Earn</AppText>
           </View>
 
         </View>
@@ -203,27 +206,21 @@ const Earning = () => {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                  <AppText style={{ color: themeColors.secondaryText, fontSize: 16, marginRight: 6 }}>Total Assets</AppText>
+                  <AppText style={{ color: muted, fontSize: 16, marginRight: 6 }}>Total Assets</AppText>
                   <TouchableOpacity onPress={() => setIsHide(!isHide)} style={{ padding: 4 }}>
-                    <FastImage source={isHide ? eye_close_icon : eye_open_icon} style={{ width: 16, height: 16 }} tintColor={themeColors.secondaryText} resizeMode="contain" />
+                    <FastImage source={isHide ? eye_close_icon : eye_open_icon} style={{ width: 16, height: 16 }} tintColor={muted} resizeMode="contain" />
                   </TouchableOpacity>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginBottom: 8 }}>
-                  <AppText style={{ color: themeColors.text, fontSize: 28, fontFamily: fontFamilySemiBold, marginRight: 6 }}>
+                  <AppText style={{ color: textColor, fontSize: 28, fontFamily: fontFamilySemiBold, marginRight: 6 }}>
                     {isHide ? '******' : '0.00'}
                   </AppText>
-                  <AppText style={{ color: themeColors.text, fontSize: 16, marginBottom: 4 }}>USD</AppText>
+                  <AppText style={{ color: textColor, fontSize: 16, marginBottom: 4 }}>USD</AppText>
                 </View>
-                <AppText style={{ color: themeColors.secondaryText, fontSize: 12, borderBottomWidth: 1, borderBottomColor: themeColors.secondaryText, borderStyle: 'dotted', alignSelf: 'flex-start' }}>
+                <AppText style={{ color: muted, fontSize: 12, borderBottomWidth: 1, borderBottomColor: muted, borderStyle: 'dotted', alignSelf: 'flex-start' }}>
                   Yesterday's PnL {isHide ? '******' : '+0.00 USD'}
                 </AppText>
               </View>
-              {/* <TouchableOpacity
-                style={{ padding: 4 }}
-                onPress={() => faqSheetRef.current?.open()}
-              >
-                <FastImage source={INFO} style={{ width: 20, height: 20 }} tintColor={themeColors.text} resizeMode="contain" />
-              </TouchableOpacity> */}
             </View>
           </View>
 
@@ -236,10 +233,10 @@ const Earning = () => {
                 onPress={() => handleGridPress(item)}
                 activeOpacity={0.7}
               >
-                <View style={[styles.iconWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-                  <FastImage source={item.icon} style={styles.gridIcon} resizeMode="contain" {...(isDark ? { tintColor: '#FFFFFF' } : {})} />
+                <View style={[styles.iconWrap, { backgroundColor: iconBoxBg }]}>
+                  <FastImage source={item.icon} style={styles.gridIcon} resizeMode="contain" />
                 </View>
-                <AppText style={[styles.gridText, { color: themeColors.text }]} numberOfLines={2}>
+                <AppText style={[styles.gridText, { color: muted }]} numberOfLines={2}>
                   {item.title}
                 </AppText>
               </TouchableOpacity>
@@ -249,7 +246,7 @@ const Earning = () => {
                 <FastImage
                   source={backChevronIcon}
                   style={{ width: 12, height: 12, transform: [{ rotate: isExpanded ? '90deg' : '-90deg' }] }}
-                  tintColor={themeColors.secondaryText}
+                  tintColor={muted}
                   resizeMode="contain"
                 />
               </TouchableOpacity>
@@ -259,14 +256,14 @@ const Earning = () => {
           {/* Staking Section */}
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeaderRow}>
-              <AppText style={[styles.sectionTitle, { color: themeColors.text }]}>Staking</AppText>
+              <AppText style={[styles.sectionTitle, { color: textColor }]}>Staking</AppText>
             </View>
 
             <View style={styles.tableHeader}>
-              <AppText style={styles.tableHeaderText}>Coin</AppText>
+              <AppText style={[styles.tableHeaderText, { color: muted }]}>Coin</AppText>
               <View style={styles.aprHeader}>
-                <AppText style={styles.tableHeaderText}>Est. APR</AppText>
-                <FastImage source={upDown} style={styles.upDownIcon} resizeMode="contain" tintColor={themeColors.secondaryText} />
+                <AppText style={[styles.tableHeaderText, { color: muted }]}>Est. APR</AppText>
+                <FastImage source={upDown} style={styles.upDownIcon} resizeMode="contain" tintColor={muted} />
               </View>
             </View>
 
@@ -289,28 +286,28 @@ const Earning = () => {
                   <TouchableOpacity style={styles.tableRow} onPress={() => openSheet(item)}>
                     <View style={styles.coinInfo}>
                       <FastImage source={{ uri: `${IMAGE_BASE_URL}${item.iconPath}` }} style={styles.coinIcon} resizeMode="contain" />
-                      <AppText style={[styles.coinName, { color: themeColors.text }]}>{item?.currency || item?.coin || 'Unknown'}</AppText>
+                      <AppText style={[styles.coinName, { color: textColor }]}>{item?.currency || item?.coin || 'Unknown'}</AppText>
                       {!!item?.tag && (
                         <View style={[
                           styles.newBadge,
                           {
-                            backgroundColor: String(item.tag).toLowerCase() === 'vip' ? 'rgba(240, 185, 11, 0.15)' :
+                            backgroundColor: String(item.tag).toLowerCase() === 'vip' ? `${CYAN}26` :
                               String(item.tag).toLowerCase() === 'new' ? 'rgba(3, 166, 109, 0.15)' :
-                                'rgba(240, 185, 11, 0.15)',
+                                `${CYAN}26`,
                           }
                         ]}>
                           <AppText style={[
                             styles.newBadgeText,
                             {
-                              color: String(item.tag).toLowerCase() === 'vip' ? '#f0b90b' :
+                              color: String(item.tag).toLowerCase() === 'vip' ? CYAN :
                                 String(item.tag).toLowerCase() === 'new' ? '#03a66d' :
-                                  '#f0b90b',
+                                  CYAN,
                             }
                           ]}>{item.tag}</AppText>
                         </View>
                       )}
                     </View>
-                    <AppText style={[styles.aprText, { color: themeColors.text }]}>{formatApr(item)}</AppText>
+                    <AppText style={[styles.aprText, { color: textColor }]}>{formatApr(item)}</AppText>
                   </TouchableOpacity>
                 )}
                 ListEmptyComponent={() => (
@@ -369,8 +366,8 @@ const Earning = () => {
           </AppText>
         </View>
 
-        <TouchableOpacity style={styles.stakeBtn} onPress={openPlanSheet}>
-          <AppText style={styles.stakeBtnText}>Stake</AppText>
+        <TouchableOpacity style={[styles.stakeBtn, { backgroundColor: CYAN }]} onPress={openPlanSheet}>
+          <AppText style={[styles.stakeBtnText, { color: colors.white }]}>Stake</AppText>
         </TouchableOpacity>
       </RBSheet>
 
@@ -599,7 +596,6 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
   },
   tableHeaderText: {
     fontSize: 12,
-    color: isDark ? themeColors.secondaryText : '#888',
     fontFamily: fontFamilyMedium,
   },
   aprHeader: {
@@ -690,7 +686,6 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
     height: 24,
   },
   stakeBtn: {
-    backgroundColor: isDark ? themeColors.button : colors.black,
     borderRadius: 8,
     height: 48,
     justifyContent: 'center',
@@ -699,7 +694,6 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
   },
   stakeBtnText: {
     fontSize: 16,
-    color: isDark ? themeColors.buttonText : colors.white,
     fontFamily: fontFamilySemiBold,
   },
   planHeader: {

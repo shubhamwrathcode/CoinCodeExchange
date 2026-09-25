@@ -18,6 +18,7 @@ import {
   NO_NOTIFICATION_ICON,
   closeIcon,
   stakingPromo,
+  softStakingBanner,
 } from '../../helper/ImageAssets';
 import NavigationService from '../../navigation/NavigationService';
 import { TRADE_SCREEN } from '../../navigation/routes';
@@ -328,7 +329,7 @@ const SoftStaking = () => {
             </TouchableOpacity>
           </View>
           <FastImage
-            source={stakingPromo}
+            source={softStakingBanner}
             style={styles.heroImage}
             resizeMode="contain"
           />
@@ -700,16 +701,17 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
   },
   bannerContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingLeft: 20,
-    paddingRight: 4,
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingRight: 0,
+    paddingTop: 0,
+    paddingBottom: 8,
   },
   heroLeft: {
     flex: 1,
-    paddingRight: 10,
+    paddingRight: 8,
+    paddingTop: 8,
   },
   heroEyebrow: {
     fontSize: 15,
@@ -719,17 +721,18 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
   heroTitle: {
     fontSize: 20,
     fontFamily: fontFamilySemiBold,
-    lineHeight: 32,
+    lineHeight: 28,
     marginBottom: 8,
   },
   heroDesc: {
     fontSize: 12,
     lineHeight: 18,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   heroImage: {
-    width: 180,
-    height: 250,
+    width: 190,
+    height: 220,
+    marginTop: -4,
   },
   stakeNowBtn: {
     flexDirection: 'row',

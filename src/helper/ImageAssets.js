@@ -703,3 +703,6 @@ export const helpCenterIcon = require('../../assets/images/helpCenterIcon.png');
 export const announcementIcon = require('../../assets/images/announcementIcon.png');
 export const affilateIcon = require('../../assets/images/affilateIcon.png');
 export const chatIcon = require('../../assets/images/chatIcon.png');
+export const softStakingBanner = require('../../assets/images/softStakingBanner.png');
+
+

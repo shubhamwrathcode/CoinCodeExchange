@@ -234,11 +234,11 @@ const MoreServicesScreen = () => {
             image: moreSvcReferIcon,
             onPress: () => NavigationService.navigate(REFER_AND_EARN_SCREEN),
           },
-          {
-            title: "VIP",
-            image: vipIcon,
-            onPress: () => NavigationService.navigate(VIP_SERVICES_SCREEN),
-          },
+          // {
+          //   title: "VIP",
+          //   image: vipIcon,
+          //   onPress: () => NavigationService.navigate(VIP_SERVICES_SCREEN),
+          // },
           // { title: "Simple Earn", image: simpleEarnIcon, onPress: showComingSoon },
           {
             title: "Soft Staking",

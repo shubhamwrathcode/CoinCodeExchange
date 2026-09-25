@@ -1,10 +1,12 @@
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, FlatList, Alert } from 'react-native';
 import FastImage from 'react-native-fast-image';
+import { BlurView } from '@react-native-community/blur';
+import LinearGradient from 'react-native-linear-gradient';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import { AppSafeAreaView, AppText } from '../../shared';
 import { colors } from '../../theme/colors';
-import { staking_bnr_img, back_ic, INFO, searchIcon, upDown, usdtIcon, checkIcon, closeIcon, checkIc, wallet_ic, SECURITY_SHEIELD, earningIcon, secure_icon, crypto_staking_icon, crypto_staking_icon2, crypto_staking_icon3, stake_crypto, stake_acge_icon, stake_acge_icon2, stake_acge_icon3, deposit_icon2, withdrawal_icon2, upIcon, downIcon, NO_NOTIFICATION_ICON, stakingBannerDark } from '../../helper/ImageAssets';
+import { stakingPromo, back_ic, INFO, searchIcon, upDown, usdtIcon, checkIcon, closeIcon, checkIc, wallet_ic, SECURITY_SHEIELD, earningIcon, secure_icon, crypto_staking_icon, crypto_staking_icon2, crypto_staking_icon3, stake_crypto, stake_acge_icon, stake_acge_icon2, stake_acge_icon3, deposit_icon2, withdrawal_icon2, downIcon, NO_NOTIFICATION_ICON } from '../../helper/ImageAssets';
 import { fontFamilyMedium, fontFamilySemiBold } from '../../theme/typography';
 import NavigationService from '../../navigation/NavigationService';
 import { useDispatch, useSelector } from 'react-redux';
@@ -13,6 +15,49 @@ import { getStaking } from '../../actions/homeActions';
 import { IMAGE_BASE_URL } from '../../helper/Constants';
 import { appOperation } from '../../appOperation';
 import { useTheme } from '../../hooks/useTheme';
+
+const CYAN = colors.cyanTheme || colors.cyan || '#0AA8C5';
+
+/** Shared sheet chrome — matches TradingDataModal / CoinCode theme */
+const ThemedSheetChrome = ({ isDark }: { isDark: boolean }) => (
+  <>
+    <BlurView
+      style={StyleSheet.absoluteFill}
+      blurType="light"
+      blurAmount={20}
+      reducedTransparencyFallbackColor="#111214"
+    />
+    <View
+      style={[
+        StyleSheet.absoluteFill,
+        { backgroundColor: isDark ? 'rgba(10, 12, 16, 0.68)' : 'rgba(255, 255, 255, 0.85)' },
+      ]}
+    />
+    {isDark && (
+      <>
+        <LinearGradient
+          colors={[
+            'rgba(16, 185, 129, 0.10)',
+            'rgba(6, 182, 212, 0.04)',
+            'rgba(16, 185, 129, 0.02)',
+            'rgba(16, 185, 129, 0.07)',
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+        <LinearGradient
+          colors={['transparent', 'rgba(16, 185, 129, 0.04)', 'transparent']}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+      </>
+    )}
+  </>
+);
 
 const faqData = [
   {
@@ -144,46 +189,84 @@ const StakingDashboard = () => {
   const { colors: themeColors, theme, isDark } = useTheme();
   const styles = useMemo(() => getStyles(themeColors, isDark), [themeColors, isDark]);
 
+  const textColor = isDark ? '#FFFFFF' : '#000000';
+  const muted = isDark ? 'rgba(255,255,255,0.55)' : '#9D9D9D';
+  const inputBg = isDark ? 'rgba(255,255,255,0.06)' : '#F5F5F5';
+  const inputBorder = isDark ? 'rgba(255,255,255,0.12)' : '#E8E8E8';
+  const rowBorder = isDark ? 'rgba(255,255,255,0.08)' : '#EEEEEE';
+  const cardBg = isDark ? 'rgba(255,255,255,0.03)' : '#F9F9F9';
+  const cardBorder = isDark ? 'rgba(255,255,255,0.15)' : '#E8E8E8';
+  const pillBg = isDark ? 'rgba(255,255,255,0.08)' : '#F0F0F0';
+  const sheetCloseCircleBg = isDark ? 'rgba(255,255,255,0.12)' : '#E8E8E8';
+  const sheetIconTint = isDark ? colors.white : colors.black;
+  const sheetHandleColor = isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.15)';
+
+  const sheetContainerStyles = {
+    wrapper: { backgroundColor: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.35)' },
+    draggableIcon: { backgroundColor: 'transparent' as const, height: 0 },
+    container: {
+      backgroundColor: 'transparent' as const,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      borderTopWidth: 1,
+      borderLeftWidth: 1,
+      borderRightWidth: 1,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+      overflow: 'hidden' as const,
+      paddingHorizontal: 14,
+      paddingTop: 8,
+      paddingBottom: 10,
+    },
+  };
+
   return (
     <>
-      <AppSafeAreaView style={{ ...styles.container, backgroundColor: themeColors.background }} forceBarStyle="dark-content">
+      <AppSafeAreaView style={{ ...styles.container, backgroundColor: themeColors.background }}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => NavigationService.goBack()}>
-            <FastImage source={back_ic} style={styles.icon} resizeMode="contain" />
+          <TouchableOpacity
+            onPress={() => NavigationService.goBack()}
+            activeOpacity={0.75}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <FastImage source={back_ic} style={styles.backIcon} resizeMode="contain" />
           </TouchableOpacity>
-          <AppText style={styles.headerTitle}>Staking</AppText>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => faqSheetRef.current?.open()}>
-            <FastImage source={INFO} style={styles.icon} resizeMode="contain" tintColor={themeColors.text} />
+          <TouchableOpacity
+            onPress={() => faqSheetRef.current?.open()}
+            activeOpacity={0.75}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <FastImage source={INFO} style={styles.infoIcon} resizeMode="contain" tintColor={textColor} />
           </TouchableOpacity>
         </View>
         <ScrollView showsVerticalScrollIndicator={false}>
+          {/* Hero banner — SoftStaking layout, Staking content + promo */}
           <View style={styles.bannerContainer}>
-            <View style={styles.bannerTextContainer}>
-              <AppText style={styles.bannerTitle}>Staking</AppText>
-              <AppText style={styles.bannerSubtitle}>
+            <View style={styles.heroLeft}>
+              <AppText style={[styles.heroEyebrow, { color: CYAN }]}>Coincode Staking</AppText>
+              <AppText style={[styles.heroTitle, { color: textColor }]}>Staking</AppText>
+              <AppText style={[styles.heroDesc, { color: muted }]}>
                 Stake cryptos to earn in{"\n"}PoS products
               </AppText>
-
             </View>
-            <View style={styles.bannerImgContainer}>
-              <FastImage source={isDark ? stakingBannerDark : staking_bnr_img} style={styles.bannerImg} resizeMode="contain" />
-            </View>
+            <FastImage
+              source={stakingPromo}
+              style={styles.heroImage}
+              resizeMode="contain"
+            />
           </View>
 
-          <View style={[styles.sectionContainer, {
-            backgroundColor: isDark ? colors.newThemeColor : colors.white,
-          }]}>
+          <View style={[styles.sectionContainer, { backgroundColor: 'transparent' }]}>
             <View style={styles.sectionHeaderRow}>
-              <AppText style={styles.sectionTitle}>All Products</AppText>
+              <AppText style={[styles.sectionTitle, { color: textColor }]}>All Products</AppText>
             </View>
 
             <View style={styles.filterRow}>
-              <View style={styles.searchContainer}>
-                <FastImage source={searchIcon} style={styles.searchIcon} resizeMode="contain" tintColor="#888" />
+              <View style={[styles.searchContainer, { backgroundColor: inputBg, borderWidth: 1, borderColor: inputBorder }]}>
+                <FastImage source={searchIcon} style={styles.searchIcon} resizeMode="contain" tintColor={muted} />
                 <TextInput
-                  style={styles.searchInput}
+                  style={[styles.searchInput, { color: textColor }]}
                   placeholder="Search"
-                  placeholderTextColor="#888"
+                  placeholderTextColor={muted}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                 />
@@ -191,21 +274,21 @@ const StakingDashboard = () => {
             </View>
 
             <View style={styles.tableHeader}>
-              <AppText style={styles.tableHeaderText}>Coin</AppText>
+              <AppText style={[styles.tableHeaderText, { color: muted }]}>Coin</AppText>
               <View style={styles.aprHeader}>
-                <AppText style={styles.tableHeaderText}>Est. APR</AppText>
-                <FastImage source={upDown} style={styles.upDownIcon} resizeMode="contain" />
+                <AppText style={[styles.tableHeaderText, { color: muted }]}>Est. APR</AppText>
+                <FastImage source={upDown} style={styles.upDownIcon} resizeMode="contain" tintColor={muted} />
               </View>
             </View>
 
             {isListLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
-                <View key={i} style={styles.tableRow}>
+                <View key={i} style={[styles.tableRow, { borderBottomColor: rowBorder }]}>
                   <View style={styles.coinInfo}>
-                    <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: isDark ? themeColors.border : '#EEE', marginRight: 10 }} />
-                    <View style={{ width: 60, height: 16, borderRadius: 4, backgroundColor: isDark ? themeColors.border : '#EEE' }} />
+                    <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: pillBg, marginRight: 10 }} />
+                    <View style={{ width: 60, height: 16, borderRadius: 4, backgroundColor: inputBg }} />
                   </View>
-                  <View style={{ width: 50, height: 16, borderRadius: 4, backgroundColor: isDark ? themeColors.border : '#EEE' }} />
+                  <View style={{ width: 50, height: 16, borderRadius: 4, backgroundColor: inputBg }} />
                 </View>
               ))
             ) : (
@@ -213,38 +296,38 @@ const StakingDashboard = () => {
                 data={filteredPackages}
                 keyExtractor={(item, index) => String(item._id || item.id || index)}
                 scrollEnabled={false}
-                renderItem={({ item }) => (
-                  <TouchableOpacity style={styles.tableRow} onPress={() => openSheet(item)}>
-                    <View style={styles.coinInfo}>
-                      <FastImage source={{ uri: `${IMAGE_BASE_URL}${item.iconPath}` }} style={styles.coinIcon} resizeMode="contain" />
-                      <AppText style={styles.coinName}>{item?.currency || item?.coin || 'Unknown'}</AppText>
-                      {!!item?.tag && (
-                        <View style={[
-                          styles.newBadge,
-                          {
-                            backgroundColor: String(item.tag).toLowerCase() === 'vip' ? 'rgba(240, 185, 11, 0.15)' :
-                              String(item.tag).toLowerCase() === 'new' ? 'rgba(3, 166, 109, 0.15)' :
-                                'rgba(240, 185, 11, 0.15)',
-                          }
-                        ]}>
-                          <AppText style={[
-                            styles.newBadgeText,
+                renderItem={({ item }) => {
+                  const tagLower = String(item.tag || '').toLowerCase();
+                  const isNew = tagLower === 'new';
+                  return (
+                    <TouchableOpacity style={[styles.tableRow, { borderBottomColor: rowBorder }]} onPress={() => openSheet(item)}>
+                      <View style={styles.coinInfo}>
+                        <FastImage source={{ uri: `${IMAGE_BASE_URL}${item.iconPath}` }} style={styles.coinIcon} resizeMode="contain" />
+                        <AppText style={[styles.coinName, { color: textColor }]}>{item?.currency || item?.coin || 'Unknown'}</AppText>
+                        {!!item?.tag && (
+                          <View style={[
+                            styles.newBadge,
                             {
-                              color: String(item.tag).toLowerCase() === 'vip' ? '#f0b90b' :
-                                String(item.tag).toLowerCase() === 'new' ? '#03a66d' :
-                                  '#f0b90b',
+                              backgroundColor: isNew ? 'rgba(3, 166, 109, 0.15)' : `${CYAN}26`,
                             }
-                          ]}>{item.tag}</AppText>
-                        </View>
-                      )}
-                    </View>
-                    <AppText style={styles.aprText}>{formatApr(item)}</AppText>
-                  </TouchableOpacity>
-                )}
+                          ]}>
+                            <AppText style={[
+                              styles.newBadgeText,
+                              {
+                                color: isNew ? '#03a66d' : CYAN,
+                              }
+                            ]}>{item.tag}</AppText>
+                          </View>
+                        )}
+                      </View>
+                      <AppText style={[styles.aprText, { color: textColor }]}>{formatApr(item)}</AppText>
+                    </TouchableOpacity>
+                  );
+                }}
                 ListEmptyComponent={() => (
                   <View style={styles.emptyContainer}>
                     <FastImage source={NO_NOTIFICATION_ICON} style={styles.emptyIcon} resizeMode="contain" />
-                    <AppText style={styles.emptyText}>No Products Found</AppText>
+                    <AppText style={[styles.emptyText, { color: muted }]}>No Products Found</AppText>
                   </View>
                 )}
               />
@@ -253,115 +336,109 @@ const StakingDashboard = () => {
           </View>
 
           <View style={styles.infoSection}>
-            <AppText style={styles.infoSectionTitle}>What is crypto staking?</AppText>
+            <AppText style={[styles.infoSectionTitle, { color: textColor }]}>What is crypto staking?</AppText>
 
-            <View style={styles.stepContainer}>
-              <View style={styles.stepIconContainer}>
-                <View style={styles.stepIconBg}>
-                  <FastImage source={crypto_staking_icon} style={styles.stepIcon} resizeMode="contain" tintColor="#A07246" />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.whatIsRow}>
+              <View style={[styles.whatIsCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+                <View style={[styles.whatIsIconWrap, { backgroundColor: `${CYAN}26` }]}>
+                  <FastImage source={crypto_staking_icon} style={styles.whatIsIcon} resizeMode="contain" tintColor={CYAN} />
                 </View>
-                <View style={styles.stepLine} />
+                <AppText style={[styles.whatIsTitle, { color: textColor }]}>Deposit Your Assets</AppText>
+                <AppText style={[styles.whatIsDesc, { color: muted }]}>
+                  Choose your asset and stake with just a few clicks.
+                </AppText>
               </View>
-              <View style={styles.stepContent}>
-                <AppText style={styles.stepTitle}>Deposit Your Assets</AppText>
-                <AppText style={styles.stepDesc}>Choose your asset and stake with just a few clicks.</AppText>
-              </View>
-            </View>
 
-            <View style={styles.stepContainer}>
-              <View style={styles.stepIconContainer}>
-                <View style={styles.stepIconBg}>
-                  <FastImage source={crypto_staking_icon2} style={styles.stepIcon} resizeMode="contain" tintColor="#A07246" />
+              <View style={[styles.whatIsCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+                <View style={[styles.whatIsIconWrap, { backgroundColor: `${CYAN}26` }]}>
+                  <FastImage source={crypto_staking_icon2} style={styles.whatIsIcon} resizeMode="contain" tintColor={CYAN} />
                 </View>
-                <View style={styles.stepLine} />
+                <AppText style={[styles.whatIsTitle, { color: textColor }]}>Secure The Network</AppText>
+                <AppText style={[styles.whatIsDesc, { color: muted }]}>
+                  Your stake helps validate transactions and keep the network secure.
+                </AppText>
               </View>
-              <View style={styles.stepContent}>
-                <AppText style={styles.stepTitle}>Secure The Network</AppText>
-                <AppText style={styles.stepDesc}>Your stake helps validate transactions and keep the network secure.</AppText>
-              </View>
-            </View>
 
-            <View style={styles.stepContainer}>
-              <View style={styles.stepIconContainer}>
-                <View style={styles.stepIconBg}>
-                  <FastImage source={crypto_staking_icon3} style={styles.stepIcon} resizeMode="contain" tintColor="#A07246" />
+              <View style={[styles.whatIsCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+                <View style={[styles.whatIsIconWrap, { backgroundColor: `${CYAN}26` }]}>
+                  <FastImage source={crypto_staking_icon3} style={styles.whatIsIcon} resizeMode="contain" tintColor={CYAN} />
                 </View>
+                <AppText style={[styles.whatIsTitle, { color: textColor }]}>Earn Rewards</AppText>
+                <AppText style={[styles.whatIsDesc, { color: muted }]}>
+                  Get rewarded in real-time proportional to your contribution.
+                </AppText>
               </View>
-              <View style={styles.stepContent}>
-                <AppText style={styles.stepTitle}>Earn Rewards</AppText>
-                <AppText style={styles.stepDesc}>Get rewarded in real-time proportional to your contribution.</AppText>
-              </View>
-            </View>
+            </ScrollView>
           </View>
 
 
           <View style={styles.howToStakeSection}>
-            <AppText style={styles.whyStakeTitle}>How to stake on Coincode ?</AppText>
+            <AppText style={[styles.whyStakeTitle, { color: textColor }]}>How to stake on Coincode ?</AppText>
 
             <View style={styles.gridContainer}>
               <View style={styles.gridItem}>
                 <View style={styles.gridIconWrapper}>
-                  <View style={styles.gridIconCircle}>
-                    <FastImage source={wallet_ic} style={styles.gridIcon} resizeMode="contain" tintColor={themeColors.text} />
+                  <View style={[styles.gridIconCircle, { backgroundColor: cardBg, borderWidth: 1, borderColor: cardBorder }]}>
+                    <FastImage source={wallet_ic} style={styles.gridIcon} resizeMode="contain" tintColor={textColor} />
                   </View>
-                  <View style={styles.badgeContainer}>
-                    <AppText style={styles.badgeText}>1</AppText>
+                  <View style={[styles.badgeContainer, { backgroundColor: CYAN }]}>
+                    <AppText style={[styles.badgeText, { color: colors.white }]}>1</AppText>
                   </View>
                 </View>
-                <AppText style={styles.gridTitle}>Connect Wallet</AppText>
-                <AppText style={styles.gridDesc}>Securely connect wallet to get started.</AppText>
+                <AppText style={[styles.gridTitle, { color: textColor }]}>Connect Wallet</AppText>
+                <AppText style={[styles.gridDesc, { color: muted }]}>Securely connect wallet to get started.</AppText>
               </View>
 
               <View style={styles.gridItem}>
                 <View style={styles.gridIconWrapper}>
-                  <View style={styles.gridIconCircle}>
-                    <FastImage source={deposit_icon2} style={styles.gridIcon} resizeMode="contain" tintColor={themeColors.text} />
+                  <View style={[styles.gridIconCircle, { backgroundColor: cardBg, borderWidth: 1, borderColor: cardBorder }]}>
+                    <FastImage source={deposit_icon2} style={styles.gridIcon} resizeMode="contain" tintColor={textColor} />
                   </View>
-                  <View style={styles.badgeContainer}>
-                    <AppText style={styles.badgeText}>2</AppText>
+                  <View style={[styles.badgeContainer, { backgroundColor: CYAN }]}>
+                    <AppText style={[styles.badgeText, { color: colors.white }]}>2</AppText>
                   </View>
                 </View>
-                <AppText style={styles.gridTitle}>Choose Asset</AppText>
-                <AppText style={styles.gridDesc}>Select the asset you want to stake.</AppText>
+                <AppText style={[styles.gridTitle, { color: textColor }]}>Choose Asset</AppText>
+                <AppText style={[styles.gridDesc, { color: muted }]}>Select the asset you want to stake.</AppText>
               </View>
 
               <View style={styles.gridItem}>
                 <View style={styles.gridIconWrapper}>
-                  <View style={styles.gridIconCircle}>
-                    <FastImage source={crypto_staking_icon} style={styles.gridIcon} resizeMode="contain" tintColor={themeColors.text} />
+                  <View style={[styles.gridIconCircle, { backgroundColor: cardBg, borderWidth: 1, borderColor: cardBorder }]}>
+                    <FastImage source={crypto_staking_icon} style={styles.gridIcon} resizeMode="contain" tintColor={textColor} />
                   </View>
-                  <View style={styles.badgeContainer}>
-                    <AppText style={styles.badgeText}>3</AppText>
+                  <View style={[styles.badgeContainer, { backgroundColor: CYAN }]}>
+                    <AppText style={[styles.badgeText, { color: colors.white }]}>3</AppText>
                   </View>
                 </View>
-                <AppText style={styles.gridTitle}>Start Staking</AppText>
-                <AppText style={styles.gridDesc}>Enter amount and confirm your staking.</AppText>
+                <AppText style={[styles.gridTitle, { color: textColor }]}>Start Staking</AppText>
+                <AppText style={[styles.gridDesc, { color: muted }]}>Enter amount and confirm your staking.</AppText>
               </View>
 
               <View style={styles.gridItem}>
                 <View style={styles.gridIconWrapper}>
-                  <View style={styles.gridIconCircle}>
-                    <FastImage source={earningIcon} style={styles.gridIcon} resizeMode="contain" tintColor={themeColors.text} />
+                  <View style={[styles.gridIconCircle, { backgroundColor: cardBg, borderWidth: 1, borderColor: cardBorder }]}>
+                    <FastImage source={earningIcon} style={styles.gridIcon} resizeMode="contain" tintColor={textColor} />
                   </View>
-                  <View style={styles.badgeContainer}>
-                    <AppText style={styles.badgeText}>4</AppText>
+                  <View style={[styles.badgeContainer, { backgroundColor: CYAN }]}>
+                    <AppText style={[styles.badgeText, { color: colors.white }]}>4</AppText>
                   </View>
                 </View>
-                <AppText style={styles.gridTitle}>Earn Rewards</AppText>
-                <AppText style={styles.gridDesc}>Watch your rewards grow in real-time.</AppText>
+                <AppText style={[styles.gridTitle, { color: textColor }]}>Earn Rewards</AppText>
+                <AppText style={[styles.gridDesc, { color: muted }]}>Watch your rewards grow in real-time.</AppText>
               </View>
 
               <View style={styles.gridItem}>
                 <View style={styles.gridIconWrapper}>
-                  <View style={styles.gridIconCircle}>
-                    <FastImage source={withdrawal_icon2} style={styles.gridIcon} resizeMode="contain" tintColor={themeColors.text} />
+                  <View style={[styles.gridIconCircle, { backgroundColor: cardBg, borderWidth: 1, borderColor: cardBorder }]}>
+                    <FastImage source={withdrawal_icon2} style={styles.gridIcon} resizeMode="contain" tintColor={textColor} />
                   </View>
-                  <View style={styles.badgeContainer}>
-                    <AppText style={styles.badgeText}>5</AppText>
+                  <View style={[styles.badgeContainer, { backgroundColor: CYAN }]}>
+                    <AppText style={[styles.badgeText, { color: colors.white }]}>5</AppText>
                   </View>
                 </View>
-                <AppText style={styles.gridTitle}>Withdraw Anytime</AppText>
-                <AppText style={styles.gridDesc}>Claim rewards or unstake whenever you want.</AppText>
+                <AppText style={[styles.gridTitle, { color: textColor }]}>Withdraw Anytime</AppText>
+                <AppText style={[styles.gridDesc, { color: muted }]}>Claim rewards or unstake whenever you want.</AppText>
               </View>
             </View>
           </View>
@@ -370,110 +447,114 @@ const StakingDashboard = () => {
 
       <RBSheet
         ref={sheetRef}
+        height={340}
+        openDuration={250}
         keyboardAvoidingViewEnabled={false}
-        {...({ customModalProps: { statusBarTranslucent: true } } as any)}
+        {...({ customModalProps: { statusBarTranslucent: true, navigationBarTranslucent: true } } as any)}
         closeOnDragDown={true}
         closeOnPressMask={true}
-        customStyles={{
-          wrapper: {
-            backgroundColor: "rgba(0,0,0,0.5)"
-          },
-          draggableIcon: {
-            backgroundColor: "transparent",
-          },
-          container: {
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            height: 340,
-            paddingHorizontal: 20,
-            paddingBottom: 30,
-            backgroundColor: isDark ? themeColors.background : colors.white
-          }
-        }}
+        customStyles={sheetContainerStyles}
       >
+        <ThemedSheetChrome isDark={isDark} />
+
+        <View style={{ alignItems: 'center', marginBottom: 8, marginTop: 2 }}>
+          <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: sheetHandleColor }} />
+        </View>
+
         <View style={styles.sheetHeader}>
-          <AppText style={styles.sheetTitle}>{selectedPackage?.currency || "Coin"}</AppText>
+          <AppText style={[styles.sheetTitle, { color: textColor }]}>{selectedPackage?.currency || "Coin"}</AppText>
+          <TouchableOpacity
+            onPress={() => sheetRef.current?.close()}
+            style={[styles.sheetCloseCircle, { backgroundColor: sheetCloseCircleBg }]}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            activeOpacity={0.75}
+          >
+            <FastImage source={closeIcon} resizeMode="contain" style={styles.sheetCloseIcon} tintColor={sheetIconTint} />
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.sheetRow}>
-          <AppText style={styles.sheetLabel}>Est. APR</AppText>
-          <AppText style={styles.sheetValue}>{formatApr(selectedPackage)}</AppText>
+        <View style={[styles.sheetRow, { borderBottomColor: rowBorder }]}>
+          <AppText style={[styles.sheetLabel, { color: muted }]}>Est. APR</AppText>
+          <AppText style={[styles.sheetValue, { color: textColor }]}>{formatApr(selectedPackage)}</AppText>
         </View>
 
-        <View style={styles.sheetRow}>
-          <AppText style={styles.sheetLabel}>Reward Coin</AppText>
+        <View style={[styles.sheetRow, { borderBottomColor: rowBorder }]}>
+          <AppText style={[styles.sheetLabel, { color: muted }]}>Reward Coin</AppText>
           <FastImage source={{ uri: `${IMAGE_BASE_URL}${selectedPackage?.iconPath || ''}` }} style={styles.sheetCoinIcon} resizeMode="contain" />
         </View>
 
-        <View style={styles.sheetRow}>
-          <AppText style={styles.sheetLabel}>Type</AppText>
-          <AppText style={styles.sheetValue}>
+        <View style={[styles.sheetRow, { borderBottomColor: rowBorder }]}>
+          <AppText style={[styles.sheetLabel, { color: muted }]}>Type</AppText>
+          <AppText style={[styles.sheetValue, { color: textColor }]}>
             {selectedPackage?.stakingType ? (STAKING_TYPE_LABELS[selectedPackage.stakingType] || selectedPackage.stakingType) : "Locked Staking"}
           </AppText>
         </View>
 
-        <TouchableOpacity style={styles.stakeBtn} onPress={openPlanSheet}>
-          <AppText style={styles.stakeBtnText}>Stake</AppText>
+        <TouchableOpacity style={[styles.stakeBtn, { backgroundColor: CYAN }]} onPress={openPlanSheet}>
+          <AppText style={[styles.stakeBtnText, { color: colors.white }]}>Stake</AppText>
         </TouchableOpacity>
       </RBSheet>
 
       <RBSheet
         ref={planSheetRef}
+        height={450}
+        openDuration={250}
         keyboardAvoidingViewEnabled={false}
-        {...({ customModalProps: { statusBarTranslucent: true } } as any)}
+        {...({ customModalProps: { statusBarTranslucent: true, navigationBarTranslucent: true } } as any)}
         closeOnDragDown={true}
         closeOnPressMask={true}
-        height={450}
-        customStyles={{
-          wrapper: {
-            backgroundColor: "rgba(0,0,0,0.5)"
-          },
-          draggableIcon: {
-            backgroundColor: "transparent",
-          },
-          container: {
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            paddingBottom: 20,
-            backgroundColor: isDark ? themeColors.background : colors.white
-          }
-        }}
+        customStyles={sheetContainerStyles}
       >
-        <View style={styles.planHeader}>
+        <ThemedSheetChrome isDark={isDark} />
+
+        <View style={{ alignItems: 'center', marginBottom: 8, marginTop: 2 }}>
+          <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: sheetHandleColor }} />
+        </View>
+
+        <View style={[styles.planHeader, { borderBottomColor: rowBorder }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <FastImage
               source={selectedPackage?.iconPath ? { uri: `${IMAGE_BASE_URL}${selectedPackage.iconPath}` } : usdtIcon}
               style={styles.planHeaderIcon}
               resizeMode="contain"
             />
-            <AppText style={styles.planHeaderTitle}>{selectedPackage?.currency || "Coin"} Staking</AppText>
+            <AppText style={[styles.planHeaderTitle, { color: textColor }]}>{selectedPackage?.currency || "Coin"} Staking</AppText>
           </View>
-          <TouchableOpacity onPress={() => planSheetRef.current?.close()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <FastImage source={closeIcon} style={{ width: 16, height: 16 }} resizeMode="contain" tintColor="#888" />
+          <TouchableOpacity
+            onPress={() => planSheetRef.current?.close()}
+            style={[styles.sheetCloseCircle, { backgroundColor: sheetCloseCircleBg }]}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            activeOpacity={0.75}
+          >
+            <FastImage source={closeIcon} style={styles.sheetCloseIcon} resizeMode="contain" tintColor={sheetIconTint} />
           </TouchableOpacity>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
           {planLoading ? (
             <View style={{ padding: 40, alignItems: 'center' }}>
-              <AppText style={{ color: isDark ? themeColors.secondaryText : '#848e9c' }}>Loading plans...</AppText>
+              <AppText style={{ color: muted }}>Loading plans...</AppText>
             </View>
           ) : planPackages.length === 0 ? (
             <View style={{ padding: 40, alignItems: 'center' }}>
-              <AppText style={{ color: isDark ? themeColors.secondaryText : '#848e9c' }}>No plans available.</AppText>
+              <AppText style={{ color: muted }}>No plans available.</AppText>
             </View>
           ) : (
             planPackages.map((plan: any) => (
-              <TouchableOpacity key={plan._id || plan.id} style={styles.planCard} onPress={() => openStakeSheet(plan)}>
+              <TouchableOpacity
+                key={plan._id || plan.id}
+                style={[styles.planCard, { borderColor: cardBorder, backgroundColor: cardBg }]}
+                onPress={() => openStakeSheet(plan)}
+              >
                 <View style={styles.planRowTop}>
-                  <AppText style={styles.planDuration}>{plan.duration} {plan.durationType || 'DAYS'}</AppText>
+                  <AppText style={[styles.planDuration, { color: textColor }]}>{plan.duration} {plan.durationType || 'DAYS'}</AppText>
                   <AppText style={styles.planApr}>{plan.returnPercentage}%</AppText>
                 </View>
                 <View style={styles.planRowBottom}>
-                  <AppText style={styles.planLimits}>
+                  <AppText style={[styles.planLimits, { color: muted }]}>
                     Min: {Number(plan.minAmount || 0).toLocaleString()} — Max: {Number(plan.maxAmount || 0).toLocaleString()} {plan.currency}
                   </AppText>
-                  <AppText style={styles.planEstAprLabel}>Est. APR</AppText>
+                  <AppText style={[styles.planEstAprLabel, { color: muted }]}>Est. APR</AppText>
                 </View>
               </TouchableOpacity>
             ))
@@ -483,51 +564,60 @@ const StakingDashboard = () => {
 
       <RBSheet
         ref={faqSheetRef}
+        height={450}
+        openDuration={250}
         keyboardAvoidingViewEnabled={false}
-        {...({ customModalProps: { statusBarTranslucent: true } } as any)}
+        {...({ customModalProps: { statusBarTranslucent: true, navigationBarTranslucent: true } } as any)}
         closeOnDragDown={true}
         closeOnPressMask={true}
-        height={450}
-        customStyles={{
-          wrapper: {
-            backgroundColor: "rgba(0,0,0,0.5)"
-          },
-          draggableIcon: {
-            backgroundColor: "transparent",
-          },
-          container: {
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            paddingBottom: 20,
-            backgroundColor: isDark ? themeColors.background : colors.white
-          }
-        }}
+        customStyles={sheetContainerStyles}
       >
-        <View style={styles.modalHeader}>
-          <AppText style={styles.modalTitle}>FAQ</AppText>
-          <TouchableOpacity onPress={() => faqSheetRef.current?.close()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <AppText style={styles.modalCloseText}>×</AppText>
+        <ThemedSheetChrome isDark={isDark} />
+
+        <View style={{ alignItems: 'center', marginBottom: 8, marginTop: 2 }}>
+          <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: sheetHandleColor }} />
+        </View>
+
+        <View style={styles.sheetHeader}>
+          <AppText style={[styles.sheetTitle, { color: textColor }]}>FAQ</AppText>
+          <TouchableOpacity
+            onPress={() => faqSheetRef.current?.close()}
+            style={[styles.sheetCloseCircle, { backgroundColor: sheetCloseCircleBg }]}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            activeOpacity={0.75}
+          >
+            <FastImage source={closeIcon} resizeMode="contain" style={styles.sheetCloseIcon} tintColor={sheetIconTint} />
           </TouchableOpacity>
         </View>
-        <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 20 }}>
           {faqData.map((item, index) => (
-            <View key={String(index)} style={[styles.faqItemInner, index === faqData.length - 1 && styles.faqItemInnerLast]}>
+            <View
+              key={String(index)}
+              style={[
+                styles.faqItemInner,
+                { borderBottomColor: rowBorder },
+                index === faqData.length - 1 && styles.faqItemInnerLast,
+              ]}
+            >
               <TouchableOpacity
                 style={styles.faqQuestionRow}
                 onPress={() => setFaqActiveIndex(faqActiveIndex === index ? null : index)}
                 activeOpacity={0.7}
               >
-                <AppText style={styles.faqQuestion}>{item.title}</AppText>
+                <AppText style={[styles.faqQuestion, { color: textColor }]}>{item.title}</AppText>
                 <FastImage
-                  source={faqActiveIndex === index ? upIcon : downIcon}
+                  source={downIcon}
                   resizeMode="contain"
-                  style={styles.faqArrow}
-                  tintColor={isDark ? colors.white : "#333"}
+                  style={[
+                    styles.faqArrow,
+                    { transform: [{ rotate: faqActiveIndex === index ? '180deg' : '0deg' }] },
+                  ]}
+                  tintColor={muted}
                 />
               </TouchableOpacity>
               {faqActiveIndex === index && (
                 <View style={styles.faqAnswer}>
-                  <AppText style={styles.faqAnswerText}>{item.content}</AppText>
+                  <AppText style={[styles.faqAnswerText, { color: muted }]}>{item.content}</AppText>
                 </View>
               )}
             </View>
@@ -544,74 +634,56 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
     flex: 1,
 
   },
+  bannerContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingLeft: 20,
+    paddingRight: 4,
+    paddingTop: 0,
+  },
+  heroLeft: {
+    flex: 1,
+    paddingRight: 10,
+    paddingTop: 12,
+  },
+  heroEyebrow: {
+    fontSize: 15,
+    fontFamily: fontFamilySemiBold,
+    marginBottom: 8,
+  },
+  heroTitle: {
+    fontSize: 20,
+    fontFamily: fontFamilySemiBold,
+    lineHeight: 28,
+    marginBottom: 8,
+  },
+  heroDesc: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  heroImage: {
+    width: 160,
+    height: 200,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    height: 56,
-  },
-  iconBtn: {
-    padding: 8,
-  },
-  icon: {
-    width: 20,
-    height: 20,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontFamily: fontFamilySemiBold,
-    color: themeColors.text,
-  },
-  bannerContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 5,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  bannerTextContainer: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  bannerTitle: {
-    fontSize: 22,
-    color: themeColors.text,
-    marginBottom: 8,
-    fontFamily: fontFamilySemiBold
-  },
-  bannerSubtitle: {
-    fontSize: 14,
-    color: isDark ? themeColors.secondaryText : '#333333',
-    marginBottom: 20,
-    lineHeight: 18,
-  },
-  aboutBtn: {
-    backgroundColor: isDark ? themeColors.themeSelection : '#F0F0F5',
-    paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
+    paddingTop: 4,
+    paddingBottom: 4,
   },
-  aboutBtnText: {
-    fontSize: 14,
-    color: themeColors.text,
-    fontFamily: fontFamilyMedium
+  backIcon: {
+    width: 35,
+    height: 35,
   },
-  bannerImgContainer: {
-    width: 140,
-    height: 140,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 10,
-  },
-  bannerImg: {
-    width: '100%',
-    height: '100%',
+  infoIcon: {
+    width: 25,
+    height: 25,
   },
   sectionContainer: {
     paddingHorizontal: 20,
-    marginTop: 10,
 
   },
   sectionHeaderRow: {
@@ -631,7 +703,6 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: isDark ? themeColors.card : '#F7F7F7',
     borderRadius: 8,
     paddingHorizontal: 12,
     height: 40,
@@ -706,60 +777,53 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
     color: themeColors.text,
   },
   infoSection: {
-    paddingHorizontal: 20,
+    paddingLeft: 20,
     marginTop: 20,
   },
   infoSectionTitle: {
     fontSize: 18,
     fontFamily: fontFamilySemiBold,
     color: themeColors.text,
-    marginBottom: 20,
+    marginBottom: 16,
+    paddingRight: 20,
   },
-  stepContainer: {
-    flexDirection: 'row',
+  whatIsRow: {
+    paddingRight: 20,
+    paddingBottom: 8,
   },
-  stepIconContainer: {
+  whatIsCard: {
+    width: 140,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 12,
+    minHeight: 150,
+  },
+  whatIsIconWrap: {
     width: 48,
-  },
-  stepIconBg: {
-    width: 44,
-    height: 44,
+    height: 48,
     borderRadius: 24,
-    backgroundColor: isDark ? 'rgba(209,170,103,0.15)' : '#F3E5D8',
-    justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 2,
+    justifyContent: 'center',
+    marginBottom: 12,
   },
-  stepIcon: {
-    width: 20,
-    height: 20,
+  whatIsIcon: {
+    width: 22,
+    height: 22,
   },
-  stepLine: {
-    width: 2,
-    flex: 1,
-    backgroundColor: isDark ? 'rgba(209,170,103,0.3)' : '#E6D2C0',
-    marginTop: -8,
-    marginBottom: -8,
-    zIndex: 1,
-  },
-  stepContent: {
-    flex: 1,
-    paddingTop: 4,
-    paddingBottom: 24,
-  },
-  stepTitle: {
-    fontSize: 14,
-    fontFamily: fontFamilySemiBold,
-    color: themeColors.text,
-    marginBottom: 4,
-  },
-  stepDesc: {
+  whatIsTitle: {
     fontSize: 12,
-    color: isDark ? themeColors.secondaryText : '#666',
+    fontFamily: fontFamilySemiBold,
+    textAlign: 'center',
+    marginBottom: 6,
     lineHeight: 16,
+  },
+  whatIsDesc: {
+    fontSize: 10,
     fontFamily: fontFamilyMedium,
+    textAlign: 'center',
+    lineHeight: 14,
   },
   whyStakeSection: {
     paddingHorizontal: 20,
@@ -832,14 +896,8 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: isDark ? themeColors.card : '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3.84,
-    elevation: 2,
   },
   gridIcon: {
     width: 28,
@@ -852,7 +910,6 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: isDark ? 'rgba(209,170,103,0.15)' : '#F3E5D8',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
@@ -860,7 +917,6 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
   badgeText: {
     fontSize: 10,
     fontFamily: fontFamilySemiBold,
-    color: themeColors.text,
   },
   gridTitle: {
     fontSize: 15,
@@ -881,13 +937,23 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
-    marginTop: 10,
+    marginBottom: 12,
+    paddingHorizontal: 4,
   },
   sheetTitle: {
     fontSize: 18,
     fontFamily: fontFamilySemiBold,
-    color: themeColors.text,
+  },
+  sheetCloseCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetCloseIcon: {
+    width: 12,
+    height: 12,
   },
   closeIcon: {
     width: 20,
@@ -898,7 +964,6 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: isDark ? themeColors.border : '#f0f0f0'
   },
   emptyContainer: {
     alignItems: 'center',
@@ -922,16 +987,13 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: isDark ? themeColors.border : '#F0F0F5',
   },
   sheetLabel: {
     fontSize: 14,
-    color: isDark ? themeColors.secondaryText : '#888',
     fontFamily: fontFamilyMedium,
   },
   sheetValue: {
     fontSize: 14,
-    color: themeColors.text,
     fontFamily: fontFamilySemiBold,
   },
   sheetCoinIcon: {
@@ -939,7 +1001,6 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
     height: 24,
   },
   stakeBtn: {
-    backgroundColor: isDark ? themeColors.button : '#2b2f36',
     borderRadius: 8,
     height: 50,
     justifyContent: 'center',
@@ -948,17 +1009,15 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
   },
   stakeBtnText: {
     fontSize: 14,
-    color: isDark ? themeColors.buttonText : colors.white,
     fontFamily: fontFamilyMedium,
   },
   planHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: isDark ? themeColors.border : '#f0f0f5',
     marginBottom: 10,
   },
   planHeaderIcon: {
@@ -969,15 +1028,12 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
   planHeaderTitle: {
     fontSize: 18,
     fontFamily: fontFamilySemiBold,
-    color: themeColors.text,
   },
   planCard: {
     borderWidth: 1,
-    borderColor: isDark ? themeColors.border : '#eaecef',
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
-    backgroundColor: isDark ? themeColors.card : colors.white,
   },
   planRowTop: {
     flexDirection: 'row',
@@ -988,7 +1044,6 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
   planDuration: {
     fontSize: 15,
     fontFamily: fontFamilySemiBold,
-    color: isDark ? themeColors.text : '#1e2329',
   },
   planApr: {
     fontSize: 16,
@@ -1002,50 +1057,16 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
   },
   planLimits: {
     fontSize: 12,
-    color: isDark ? themeColors.secondaryText : '#848e9c',
     fontFamily: fontFamilyMedium,
   },
   planEstAprLabel: {
     fontSize: 11,
-    color: isDark ? themeColors.secondaryText : '#848e9c',
     fontFamily: fontFamilyMedium,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContent: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
-    paddingBottom: 40,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: isDark ? themeColors.border : '#F0F0F5',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontFamily: fontFamilySemiBold,
-    color: themeColors.text,
-  },
-  modalCloseText: {
-    fontSize: 24,
-    color: themeColors.text,
-  },
-  modalList: {
-    paddingHorizontal: 20,
-    marginTop: 10,
   },
   faqItemInner: {
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: isDark ? themeColors.border : '#F0F0F5',
+    paddingHorizontal: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   faqItemInnerLast: {
     borderBottomWidth: 0,
@@ -1059,7 +1080,6 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontFamily: fontFamilySemiBold,
-    color: themeColors.text,
   },
   faqArrow: {
     width: 14,
@@ -1071,7 +1091,6 @@ const getStyles = (themeColors: any, isDark: boolean) => StyleSheet.create({
   },
   faqAnswerText: {
     fontSize: 13,
-    color: isDark ? themeColors.secondaryText : '#666',
     lineHeight: 20,
     fontFamily: fontFamilyMedium,
   },
