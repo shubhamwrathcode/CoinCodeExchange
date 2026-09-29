@@ -30,7 +30,6 @@ import {
     THIRTEEN,
     TWELVE,
     TEN,
-    TWENTY,
     YELLOW,
     GREEN,
     RED,
@@ -48,7 +47,20 @@ import {
 import KeyBoardAware from '../../shared/components/KeyboardAware';
 import FastImage from 'react-native-fast-image';
 import LinearGradient from 'react-native-linear-gradient';
-import { Search, X, ChevronRight, Box, Clock, ArrowDownToLine, Star } from 'lucide-react-native';
+import {
+    Search,
+    X,
+    ChevronRight,
+    ChevronDown,
+    ChevronUp,
+    ArrowDownToLine,
+    ArrowUpToLine,
+    Star,
+    Share2,
+    RefreshCw,
+    Copy,
+    AlertTriangle,
+} from 'lucide-react-native';
 import { SvgXml } from 'react-native-svg';
 import MiniSparklineBase from '../../shared/components/MiniSparkline';
 import { SocketContext } from '../../SocketProvider';
@@ -78,13 +90,14 @@ import {
 } from '../../actions/walletActions';
 import { getNotificationList, getFavoriteArray, addToFavorites } from '../../actions/homeActions';
 import { copyText, shortenAddress, dateFormatter } from '../../helper/utility';
-import { BACK_ICON, activities_icon, copyIcon, historyIcon, upIcon, downIcon, INFO, back_ic, swapNetwork, externalLinkIcon } from '../../helper/ImageAssets';
+import { BACK_ICON, activities_icon, copyIcon, historyIcon, upIcon, downIcon, INFO, back_ic, externalLinkIcon } from '../../helper/ImageAssets';
 import { setLoading } from '../../slices/authSlice';
 // setWalletAddress removed: deposit address handled locally for web parity (address + memo)
 import { showError } from '../../helper/logger';
 import moment from 'moment';
 import { appOperation } from '../../appOperation';
 import ShimmerBone from '../../shared/components/ShimmerBone';
+import { BlurSheetBackground, blurSheetRbCustomStyles, blurSheetTheme } from './sheets/BlurSheetChrome';
 
 const SHEET_HEIGHT = Math.round(Dimensions.get('window').height * 0.72);
 
@@ -121,6 +134,38 @@ const BRAND_ACCENTS: Record<string, string> = {
     TON: '#0098EA',
 };
 const FALLBACK_ACCENTS = ['#0AA8C5', '#8247E5', '#26A17B', '#F7931A', '#E6007A', '#2775CA'];
+
+/** Native coin symbols tried (in order) for a network's icon; unknown chains try their own code. */
+const CHAIN_NATIVE_SYMBOLS: Record<string, string[]> = {
+    BSC: ['BNB'],
+    BEP20: ['BNB'],
+    BEP2: ['BNB'],
+    ETH: ['ETH'],
+    ERC20: ['ETH'],
+    ETHEREUM: ['ETH'],
+    TRX: ['TRX'],
+    TRC20: ['TRX'],
+    TRON: ['TRX'],
+    SOL: ['SOL'],
+    SPL: ['SOL'],
+    SOLANA: ['SOL'],
+    MATIC: ['POL', 'MATIC'],
+    POL: ['POL', 'MATIC'],
+    POLYGON: ['POL', 'MATIC'],
+    ARB: ['ARB'],
+    ARBITRUM: ['ARB'],
+    OP: ['OP'],
+    OPTIMISM: ['OP'],
+    AVAX: ['AVAX'],
+    AVAXC: ['AVAX'],
+    TON: ['TON'],
+    BTC: ['BTC'],
+    LTC: ['LTC'],
+    DOGE: ['DOGE'],
+    XRP: ['XRP'],
+    ADA: ['ADA'],
+    DOT: ['DOT'],
+};
 
 const accentForSymbol = (symbol: any): string => {
     const key = String(symbol || '').trim().toUpperCase();
@@ -744,6 +789,7 @@ const DepositCoin = () => {
     const [selectedNetwork, setSelectedNetwork] = useState('');
     const [depositAddress, setDepositAddress] = useState('');
     const [depositMemo, setDepositMemo] = useState('');
+    const [depositDetailsExpanded, setDepositDetailsExpanded] = useState(false);
     const [generatingDepositAddress, setGeneratingDepositAddress] = useState(false);
     const [resolvingDepositAddress, setResolvingDepositAddress] = useState(false);
     const [recentDepositHistory, setRecentDepositHistory] = useState<any[]>([]);
@@ -1101,6 +1147,45 @@ const DepositCoin = () => {
         [isDark]
     );
 
+    const sheetTheme = useMemo(
+        () => ({
+            ...blurSheetTheme(isDark),
+            accentBg: isDark ? 'rgba(10, 168, 197, 0.10)' : 'rgba(10, 168, 197, 0.08)',
+            accentBorder: isDark ? 'rgba(10, 168, 197, 0.35)' : 'rgba(10, 168, 197, 0.25)',
+        }),
+        [isDark]
+    );
+    const sheetStyles = useMemo(() => {
+        const buildSheetStyles = blurSheetRbCustomStyles as (opts: {
+            isDark: boolean;
+            height?: number;
+            borderRadius?: number;
+        }) => any;
+        return {
+            full: buildSheetStyles({ isDark, height: SHEET_HEIGHT, borderRadius: 24 }),
+            faq: buildSheetStyles({ isDark, height: SHEET_HEIGHT - 200, borderRadius: 24 }),
+        };
+    }, [isDark]);
+
+    const renderSheetHeader = (title: string, onClose: () => void, trailing?: React.ReactNode) => (
+        <View style={styles.modalHeader}>
+            <View style={styles.confirmedHeader}>
+                <AppText weight={BOLD} type={EIGHTEEN} style={{ color: sheetTheme.textColor, letterSpacing: -0.2 }}>
+                    {title}
+                </AppText>
+                {trailing}
+            </View>
+            <TouchableOpacity
+                onPress={onClose}
+                style={[styles.sheetCloseCircle, { backgroundColor: sheetTheme.closeCircleBg }]}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                activeOpacity={0.75}
+            >
+                <X color={sheetTheme.iconTint} size={14} strokeWidth={2.4} />
+            </TouchableOpacity>
+        </View>
+    );
+
     const renderCoinLogo = (item: any, size = 32) => (
         <View style={{ borderRadius: 999, overflow: 'hidden' }}>
             <DepositCoinIcon
@@ -1109,6 +1194,17 @@ const DepositCoin = () => {
             />
         </View>
     );
+
+    const chainIconUri = (chainKey: string): string | null => {
+        const code = String(chainKey || '').trim().toUpperCase();
+        const candidates = CHAIN_NATIVE_SYMBOLS[code] || [code];
+        for (const sym of candidates) {
+            const listed = allData.find((c: any) => String(c?.short_name || '').trim().toUpperCase() === sym);
+            const uri = buildDepositCoinIconUri(withMarketCoinIcon(listed || { short_name: sym }, marketIconBySymbol));
+            if (uri) return uri;
+        }
+        return null;
+    };
 
     useEffect(() => {
         if (depositActiveCoins && Array.isArray(depositActiveCoins) && depositActiveCoins.length > 0) {
@@ -1745,6 +1841,32 @@ const DepositCoin = () => {
         return selectedNetwork;
     }, [selectedCurrency, selectedNetwork]);
 
+    const depositSymbol = String(selectedCurrency?.short_name || '').toUpperCase();
+    const depositNetworkCode = String(selectedNetwork || '').toUpperCase();
+    const depositMemoText = depositMemo ? String(depositMemo).trim() : '';
+    const depositMinLimit = limitForChain(selectedCurrency?.min_deposit, selectedNetwork);
+    const depositMaxLimit = limitForChain(selectedCurrency?.max_deposit, selectedNetwork);
+
+    const openNetworkSheetForSelected = () => {
+        if (!selectedCurrency) return;
+        setCoinForNetworkSheet(selectedCurrency);
+        setTimeout(() => networkSheetRef.current?.open(), 0);
+    };
+
+    const shareDepositAddress = async () => {
+        if (!depositAddress) return;
+        const lines = [
+            `${depositSymbol} deposit address${depositNetworkCode ? ` (${depositNetworkCode})` : ''}:`,
+            depositAddress,
+        ];
+        if (depositMemoText) lines.push(`Memo (Tag): ${depositMemoText}`);
+        try {
+            await Share.share({ message: lines.join('\n') });
+        } catch {
+            /* user dismissed */
+        }
+    };
+
     return (
         <AppSafeAreaView style={{ flex: 1, backgroundColor: themeColors.background }}>
             <View style={styles.headerView}>
@@ -1948,215 +2070,228 @@ const DepositCoin = () => {
                         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.depositScrollContent}>
                             {resolvingDepositAddress && !depositAddress ? (
                                 <DepositAddressSkeleton />
-                            ) : depositAddress ? (
+                            ) : (
                                 <>
-                                    <View style={styles.depositQrCenter}>
-                                        <View style={[styles.depositQrCard, { borderColor: isDark ? themeColors.border : '#EEE' }]}>
-                                            <QRCode
-                                                value={depositAddress}
-                                                size={140}
-                                                backgroundColor="#FFFFFF"
-                                                color="#000000"
-                                                quietZone={4}
-                                            />
+                                    {/* QR / coin card */}
+                                    <View style={[styles.dqCard, styles.dqQrCard, { backgroundColor: ui.cardBg, borderColor: ui.softBorder }]}>
+                                        <View style={styles.dqQrCardLeft}>
+                                            {renderCoinLogo(selectedCurrency, 44)}
+                                            <AppText weight={BOLD} type={FIFTEEN} style={{ color: themeColors.text, marginTop: 12 }}>
+                                                {depositAddress ? 'Scan QR Code' : `Deposit ${depositSymbol || 'Crypto'}`}
+                                            </AppText>
+                                            <AppText type={TWELVE} style={{ color: themeColors.secondaryText, marginTop: 4, lineHeight: 16 }}>
+                                                {depositAddress
+                                                    ? `Scan this QR code with any wallet to deposit ${depositSymbol} to your address.`
+                                                    : `Generate a ${depositNetworkCode || ''} deposit address to receive ${depositSymbol || 'funds'}.`}
+                                            </AppText>
+                                            {depositAddress ? (
+                                                <TouchableOpacity
+                                                    style={[styles.dqShareBtn, { borderColor: ACCENT_CYAN }]}
+                                                    onPress={shareDepositAddress}
+                                                    activeOpacity={0.75}
+                                                >
+                                                    <Share2 color={ACCENT_CYAN} size={12} />
+                                                    <AppText type={TWELVE} weight={MEDIUM} style={{ color: ACCENT_CYAN, marginLeft: 6 }}>
+                                                        Share QR
+                                                    </AppText>
+                                                </TouchableOpacity>
+                                            ) : null}
                                         </View>
-                                        <AppText type={FOURTEEN} style={[styles.depositQrHint, { color: themeColors.secondaryText }]}>
-                                            Scan to Deposit
-                                        </AppText>
+                                        {depositAddress ? (
+                                            <View style={styles.dqQrFrame}>
+                                                <View style={[styles.dqCorner, styles.dqCornerTL, { borderColor: ACCENT_CYAN }]} />
+                                                <View style={[styles.dqCorner, styles.dqCornerTR, { borderColor: ACCENT_CYAN }]} />
+                                                <View style={[styles.dqCorner, styles.dqCornerBL, { borderColor: ACCENT_CYAN }]} />
+                                                <View style={[styles.dqCorner, styles.dqCornerBR, { borderColor: ACCENT_CYAN }]} />
+                                                <View style={styles.dqQrInner}>
+                                                    <QRCode
+                                                        value={depositAddress}
+                                                        size={104}
+                                                        backgroundColor="#FFFFFF"
+                                                        color="#000000"
+                                                        quietZone={4}
+                                                    />
+                                                </View>
+                                            </View>
+                                        ) : null}
                                     </View>
 
-                                    <View style={[styles.depositInfoCard, { borderColor: isDark ? themeColors.border : '#EEE' }]}>
-                                        <View style={styles.depositInfoRowHead}>
-                                            <AppText type={FOURTEEN} style={{ color: themeColors.secondaryText }}>
-                                                Network
-                                            </AppText>
-                                        </View>
-                                        <View style={styles.depositNetworkRow}>
-                                            <View style={{ flex: 1 }}>
-                                                <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: themeColors.text }}>
-                                                    {String(selectedNetwork || '').toUpperCase()}
+                                    {/* Network */}
+                                    <AppText weight={MEDIUM} type={FIFTEEN} style={[styles.dqSectionTitle, { color: themeColors.text }]}>
+                                        Network
+                                    </AppText>
+                                    <View style={[styles.dqCard, { backgroundColor: ui.cardBg, borderColor: ui.softBorder }]}>
+                                        <View style={styles.dqRow}>
+                                            <View style={styles.dqNetworkLogo}>
+                                                <DepositCoinIcon uri={chainIconUri(selectedNetwork)} size={36} />
+                                            </View>
+                                            <View style={{ flex: 1, marginLeft: 12 }}>
+                                                <AppText weight={SEMI_BOLD} type={FIFTEEN} style={{ color: themeColors.text }}>
+                                                    {depositNetworkCode || '—'}
                                                 </AppText>
-                                                <AppText type={TWELVE} style={{ color: themeColors.secondaryText, marginTop: 4 }}>
+                                                <AppText type={TWELVE} numberOfLines={1} style={{ color: themeColors.secondaryText, marginTop: 2 }}>
                                                     {depositNetworkDisplay || '—'}
                                                 </AppText>
                                             </View>
                                             <TouchableOpacity
-                                                onPress={() => {
-                                                    if (!selectedCurrency) return;
-                                                    setCoinForNetworkSheet(selectedCurrency);
-                                                    // Ensure state is set before opening
-                                                    setTimeout(() => {
-                                                        networkSheetRef.current?.open();
-                                                    }, 0);
-                                                }}
+                                                onPress={openNetworkSheetForSelected}
+                                                style={styles.dqRow}
                                                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                                activeOpacity={0.75}
                                             >
-                                                <FastImage
-                                                    source={swapNetwork}
-                                                    resizeMode="contain"
-                                                    style={{ width: 30, height: 30, bottom: 5 }}
-                                                />
+                                                <AppText type={THIRTEEN} weight={MEDIUM} style={{ color: ACCENT_CYAN, marginRight: 4 }}>
+                                                    Change
+                                                </AppText>
+                                                <RefreshCw color={ACCENT_CYAN} size={12} />
                                             </TouchableOpacity>
                                         </View>
                                     </View>
 
-                                    <View style={[styles.depositInfoCard, { borderColor: isDark ? themeColors.border : '#EEE' }]}>
-                                        <TouchableOpacity
-                                            disabled={true}
-                                            style={styles.depositAddressHeadRow}
-                                            onPress={() => moreDetailsSheetRef.current?.open()}
-                                            activeOpacity={0.7}
-                                        >
-                                            <AppText type={FOURTEEN} style={{ color: themeColors.secondaryText }}>
-                                                Deposit Address
-                                            </AppText>
-
-                                        </TouchableOpacity>
-                                        <View style={styles.depositAddressRow}>
-                                            <AppText
-                                                weight={MEDIUM}
-                                                type={FOURTEEN}
-                                                numberOfLines={2}
-                                                style={{ flex: 1, color: isDark ? colors.white : colors.buttonBg }}
-                                            >
+                                    {/* Deposit Address */}
+                                    <AppText weight={MEDIUM} type={FIFTEEN} style={[styles.dqSectionTitle, { color: themeColors.text }]}>
+                                        Deposit Address
+                                    </AppText>
+                                    {depositAddress ? (
+                                        <View style={[styles.dqCard, styles.dqRowCard, { backgroundColor: ui.cardBg, borderColor: ui.softBorder }]}>
+                                            <AppText type={TWELVE} weight={MEDIUM} style={{ color: themeColors.text, flex: 1, marginRight: 12, lineHeight: 18 }}>
                                                 {depositAddress}
                                             </AppText>
                                             <TouchableOpacity
                                                 onPress={() => copyText(depositAddress)}
-                                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                                                style={styles.depositCopyBtn}
+                                                style={[styles.dqCopyBtn, { backgroundColor: ui.subtleBg }]}
+                                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                                activeOpacity={0.75}
                                             >
-                                                <FastImage
-                                                    source={copyIcon}
-                                                    style={{ width: 15, height: 15 }}
-                                                    resizeMode="contain"
-                                                    tintColor={themeColors.secondaryText}
-                                                />
+                                                <Copy color={themeColors.secondaryText} size={14} />
                                             </TouchableOpacity>
                                         </View>
-                                    </View>
+                                    ) : (
+                                        <View style={[styles.dqCard, { backgroundColor: ui.cardBg, borderColor: ui.softBorder }]}>
+                                            <AppText type={TWELVE} style={{ color: themeColors.secondaryText, lineHeight: 17 }}>
+                                                No deposit address yet for {depositSymbol || 'this coin'}
+                                                {depositNetworkCode ? ` on ${depositNetworkCode}` : ''}.
+                                            </AppText>
+                                            <Button
+                                                children="Generate deposit address"
+                                                onPress={() => getDepositAddress(true, selectedNetwork, selectedCurrency)}
+                                                containerStyle={styles.dqGenerateBtn}
+                                                loading={generatingDepositAddress}
+                                            />
+                                        </View>
+                                    )}
 
-                                    <View style={[styles.depositInfoCard, { borderColor: isDark ? themeColors.border : '#EEE' }]}>
-                                        <View style={styles.depositAddressHeadRow}>
-                                            <AppText type={FOURTEEN} style={{ color: themeColors.secondaryText }}>
+                                    {/* Memo (only when the network returns one) */}
+                                    {depositAddress && depositMemoText ? (
+                                        <>
+                                            <AppText weight={MEDIUM} type={FIFTEEN} style={[styles.dqSectionTitle, { color: themeColors.text }]}>
                                                 Memo (Tag)
                                             </AppText>
-                                        </View>
-                                        <View style={styles.depositAddressRow}>
-                                            <AppText
-                                                weight={SEMI_BOLD}
-                                                type={FOURTEEN}
-                                                numberOfLines={1}
-                                                style={{
-                                                    flex: 1,
-                                                    color:
-                                                        depositMemo && String(depositMemo).trim()
-                                                            ? themeColors.text
-                                                            : themeColors.secondaryText,
-                                                }}
-                                            >
-                                                {depositMemo && String(depositMemo).trim() ? depositMemo : '—'}
-                                            </AppText>
-                                            <TouchableOpacity
-                                                onPress={() => {
-                                                    if (!depositMemo || !String(depositMemo).trim()) return;
-                                                    copyText(depositMemo);
-                                                }}
-                                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                                                style={styles.depositCopyBtn}
-                                                activeOpacity={depositMemo && String(depositMemo).trim() ? 0.7 : 1}
-                                            >
-                                                <FastImage
-                                                    source={copyIcon}
-                                                    style={{
-                                                        width: 15,
-                                                        height: 15,
-                                                        opacity: depositMemo && String(depositMemo).trim() ? 1 : 1.35,
-                                                        bottom: 5
-                                                    }}
-                                                    resizeMode="contain"
-                                                    tintColor={themeColors.secondaryText}
-                                                />
-                                            </TouchableOpacity>
-                                        </View>
-                                    </View>
+                                            <View style={[styles.dqCard, styles.dqRowCard, { backgroundColor: ui.cardBg, borderColor: ui.softBorder }]}>
+                                                <AppText type={TWELVE} weight={MEDIUM} style={{ color: themeColors.text, flex: 1, marginRight: 12 }}>
+                                                    {depositMemoText}
+                                                </AppText>
+                                                <TouchableOpacity
+                                                    onPress={() => copyText(depositMemoText)}
+                                                    style={[styles.dqCopyBtn, { backgroundColor: ui.subtleBg }]}
+                                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                                    activeOpacity={0.75}
+                                                >
+                                                    <Copy color={themeColors.secondaryText} size={14} />
+                                                </TouchableOpacity>
+                                            </View>
+                                        </>
+                                    ) : null}
 
-                                    <TouchableOpacity
-                                        onPress={() => moreDetailsSheetRef.current?.open()}
-                                        style={styles.depositMoreDetailsCenter}
-                                        activeOpacity={0.7}
-                                    >
-                                        <AppText type={SIXTEEN} style={{ color: themeColors.secondaryText }}>
-                                            More Details {'>'}
-                                        </AppText>
-                                    </TouchableOpacity>
-                                </>
-                            ) : (
-                                <View style={styles.depositEmptyWrap}>
-                                    <View style={[styles.depositInfoCard, { borderColor: isDark ? themeColors.border : '#EEE' }]}>
-                                        <View style={styles.depositEmptyCardTopRow}>
-                                            <View style={styles.depositEmptyCoinRow}>
-                                                {renderCoinLogo(selectedCurrency, 28)}
-                                                <View style={{ flex: 1 }}>
-                                                    <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: themeColors.text }}>
-                                                        {selectedCurrency?.short_name || '—'}
+                                    {depositAddress ? (
+                                        <>
+                                            {/* Important */}
+                                            <View style={[styles.dqCard, styles.dqWarningCard, { backgroundColor: ui.cardBg, borderColor: ui.softBorder }]}>
+                                                <View style={{ marginTop: 2 }}>
+                                                    <AlertTriangle color="#F3BA2F" size={16} />
+                                                </View>
+                                                <View style={{ marginLeft: 12, flex: 1 }}>
+                                                    <AppText weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text }}>
+                                                        Important
                                                     </AppText>
-                                                    <AppText type={TWELVE} style={{ color: themeColors.secondaryText, marginTop: 2 }}>
-                                                        {selectedCurrency?.name || '—'}
+                                                    <AppText type={TWELVE} style={{ color: themeColors.secondaryText, marginTop: 2, lineHeight: 16 }}>
+                                                        Send only {depositSymbol}
+                                                        {depositNetworkCode ? ` via the ${depositNetworkCode} network` : ''} to this deposit address.
+                                                        {depositMemoText ? ' Both the address and memo are required.' : ''} Sending any other coin or token may result in permanent loss.
                                                     </AppText>
                                                 </View>
                                             </View>
 
-                                        </View>
-
-                                        <View style={styles.depositEmptyDivider} />
-
-                                        <View style={styles.depositEmptyNetworkBlock}>
-                                            <View style={{}}>
-                                                <AppText type={FOURTEEN} style={{ color: themeColors.secondaryText }}>
-                                                    Network
-                                                </AppText>
-                                                <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: themeColors.text, marginTop: 6 }}>
-                                                    {String(selectedNetwork || '').toUpperCase() || '—'}
-                                                </AppText>
-                                                <AppText type={TWELVE} style={{ color: themeColors.secondaryText, marginTop: 2 }}>
-                                                    {depositNetworkDisplay || '—'}
-                                                </AppText>
-                                            </View>
-
+                                            {/* More Details */}
                                             <TouchableOpacity
-                                                onPress={() => {
-                                                    if (!selectedCurrency) return;
-                                                    setCoinForNetworkSheet(selectedCurrency);
-                                                    setTimeout(() => networkSheetRef.current?.open(), 0);
-                                                }}
-                                                style={{ right: 10 }}
-                                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                                style={[styles.dqCard, styles.dqRowCard, { backgroundColor: ui.cardBg, borderColor: ui.softBorder, marginTop: 8 }]}
+                                                onPress={() => setDepositDetailsExpanded((v) => !v)}
+                                                activeOpacity={0.75}
                                             >
-                                                <FastImage
-                                                    source={swapNetwork}
-                                                    resizeMode="contain"
-                                                    style={{ width: 26, height: 26 }}
-                                                />
+                                                <AppText weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text }}>
+                                                    More Details
+                                                </AppText>
+                                                {depositDetailsExpanded ? (
+                                                    <ChevronUp color={themeColors.secondaryText} size={16} />
+                                                ) : (
+                                                    <ChevronDown color={themeColors.secondaryText} size={16} />
+                                                )}
                                             </TouchableOpacity>
 
-                                        </View>
-                                    </View>
+                                            {depositDetailsExpanded ? (
+                                                <>
+                                                    <View style={[styles.dqCard, { backgroundColor: ui.cardBg, borderColor: ui.softBorder, padding: 0 }]}>
+                                                        {[
+                                                            { key: 'wallet', label: 'Deposit to', value: 'Spot Wallet' },
+                                                            {
+                                                                key: 'min',
+                                                                label: 'Minimum Deposit',
+                                                                value: depositMinLimit != null ? `${depositMinLimit} ${depositSymbol}` : `> 0 ${depositSymbol}`,
+                                                            },
+                                                            {
+                                                                key: 'max',
+                                                                label: 'Maximum Deposit',
+                                                                value: depositMaxLimit != null ? `${depositMaxLimit} ${depositSymbol}` : '—',
+                                                            },
+                                                        ].map((row, rowIdx, rows) => (
+                                                            <View
+                                                                key={row.key}
+                                                                style={[
+                                                                    styles.dqDetailRow,
+                                                                    {
+                                                                        borderBottomColor: ui.softBorder,
+                                                                        borderBottomWidth: rowIdx === rows.length - 1 ? 0 : 1,
+                                                                    },
+                                                                ]}
+                                                            >
+                                                                <AppText type={THIRTEEN} style={{ color: themeColors.secondaryText }}>
+                                                                    {row.label}
+                                                                </AppText>
+                                                                <AppText type={THIRTEEN} weight={MEDIUM} style={{ color: themeColors.text }}>
+                                                                    {row.value}
+                                                                </AppText>
+                                                            </View>
+                                                        ))}
+                                                    </View>
 
-                                    <AppText
-                                        weight={SEMI_BOLD}
-                                        type={FOURTEEN}
-                                        style={[styles.depositEmptyTitle, { color: themeColors.text, marginLeft: 5 }]}
-                                    >
-                                        Deposit Address
-                                    </AppText>
-                                    <Button
-                                        children="Generate deposit address"
-                                        onPress={() => getDepositAddress(true, selectedNetwork, selectedCurrency)}
-                                        containerStyle={styles.depositEmptyBtn}
-                                        loading={generatingDepositAddress}
-                                    />
-                                </View>
+                                                    <View style={[styles.dqCard, { backgroundColor: ui.cardBg, borderColor: ui.softBorder }]}>
+                                                        {[
+                                                            `Do not send assets via networks other than ${depositNetworkCode || 'the selected one'}`,
+                                                            'NFTs are not supported on this address',
+                                                            'Do not transact with sanctioned entities',
+                                                        ].map((text, tIdx) => (
+                                                            <View key={text} style={[styles.dqRow, tIdx > 0 && { marginTop: 14 }]}>
+                                                                <AlertTriangle color="#F3BA2F" size={14} />
+                                                                <AppText type={THIRTEEN} style={{ color: themeColors.secondaryText, marginLeft: 10, flex: 1 }}>
+                                                                    {text}
+                                                                </AppText>
+                                                            </View>
+                                                        ))}
+                                                    </View>
+                                                </>
+                                            ) : null}
+                                        </>
+                                    ) : null}
+                                </>
                             )}
 
                             {/* FAQ moved to header help icon (modal) */}
@@ -2164,14 +2299,14 @@ const DepositCoin = () => {
                             {!resolvingDepositAddress && announcements?.length > 0 && (
                                 <View style={styles.announcementsSection}>
                                     <View style={styles.announcementsHeader}>
-                                        <AppText weight={SEMI_BOLD} type={FIFTEEN} style={styles.sectionTitle}>
+                                        <AppText weight={MEDIUM} type={FIFTEEN} style={{ color: themeColors.text }}>
                                             Announcements
                                         </AppText>
                                         <TouchableOpacity
                                             onPress={() => {
                                             }}
                                         >
-                                            <AppText type={FOURTEEN} color={YELLOW}>
+                                            <AppText type={THIRTEEN} weight={MEDIUM} color={ACCENT_CYAN}>
                                                 More &gt;
                                             </AppText>
                                         </TouchableOpacity>
@@ -2184,7 +2319,7 @@ const DepositCoin = () => {
                                         {announcements?.map((item, index) => (
                                             <View key={index} style={[
                                                 styles.announcementItem,
-                                                { backgroundColor: themeColors.background, borderColor: isDark ? themeColors.border : '#EEE', borderWidth: 1 }
+                                                { backgroundColor: ui.cardBg, borderColor: ui.softBorder, borderWidth: 1.5 }
                                             ]}>
                                                 <AppText
                                                     weight={SEMI_BOLD}
@@ -2195,7 +2330,7 @@ const DepositCoin = () => {
                                                 </AppText>
                                                 <AppText
                                                     type={TEN}
-                                                    color={colors.textGray}
+                                                    color={themeColors.secondaryText}
                                                     style={{ marginTop: 5 }}
                                                 >
                                                     {moment(item?.updatedAt).format('DD-MM-YYYY hh:mm A')}
@@ -2219,22 +2354,13 @@ const DepositCoin = () => {
                 height={SHEET_HEIGHT}
                 closeOnDragDown
                 closeOnPressMask
-                customStyles={{
-                    container: {
-                        borderTopLeftRadius: 20,
-                        borderTopRightRadius: 20,
-                        backgroundColor: themeColors.background,
-                    },
-                    wrapper: { backgroundColor: 'rgba(0,0,0,0.6)' },
-                    draggableIcon: { backgroundColor: colors.textGray },
-                }}
+                customStyles={sheetStyles.full}
             >
+                <BlurSheetBackground isDark={isDark} tint="cyan" />
                 <View style={styles.networkSheetInner}>
                     <View style={styles.networkSheetTitle}>
-                        <AppText weight={SEMI_BOLD} type={TWENTY} style={{ color: themeColors.text }}>
-                            Choose Network
-                        </AppText>
-                        <AppText type={FOURTEEN} style={{ color: themeColors.secondaryText, marginTop: 4 }}>
+                        {renderSheetHeader('Choose Network', () => networkSheetRef.current?.close())}
+                        <AppText type={THIRTEEN} style={{ color: sheetTheme.subTextColor, marginTop: 4 }}>
                             Select a network to continue
                         </AppText>
                     </View>
@@ -2250,85 +2376,87 @@ const DepositCoin = () => {
                             const fullName =
                                 String(coinForNetworkSheet?._chain_full_name?.[chainKey] || '').trim() ||
                                 `${coinForNetworkSheet?.name || sym} · ${chainKey}`;
-                            const eta =
-                                String(coinForNetworkSheet?._chain_eta?.[chainKey] || '').trim() || '≈ 2 mins';
-                            const chainAccent = accentForSymbol(chainKey);
                             const infoItems = [
-                                { key: 'block', label: 'Block', value: '1 Block', Icon: Box },
                                 {
                                     key: 'min',
                                     label: 'Min. Deposit',
                                     value: minDep != null ? `${minDep} ${sym}` : `> 0 ${sym}`,
                                     Icon: ArrowDownToLine,
                                 },
-                                { key: 'eta', label: 'Est. Arrival', value: eta, Icon: Clock },
+                                {
+                                    key: 'max',
+                                    label: 'Max. Deposit',
+                                    value: maxDep != null ? `${maxDep} ${sym}` : '—',
+                                    Icon: ArrowUpToLine,
+                                },
                             ];
                             return (
                                 <TouchableOpacity
                                     key={`${chainKey}-${idx}`}
-                                    style={[styles.networkCard, { backgroundColor: ui.cardBg, borderColor: ui.softBorder }]}
+                                    style={[styles.networkCard, { backgroundColor: sheetTheme.cardBg, borderColor: sheetTheme.borderColor }]}
                                     onPress={() => handleNetworkChosenFromSheet(chainKey)}
                                     activeOpacity={0.75}
                                 >
-                                    <View style={[styles.networkCardTop, { borderBottomColor: ui.softBorder }]}>
-                                        <View style={[styles.networkLogo, { backgroundColor: chainAccent }]}>
-                                            <AppText weight={BOLD} type={FOURTEEN} style={{ color: '#FFFFFF' }}>
-                                                {chainKey.charAt(0).toUpperCase()}
-                                            </AppText>
+                                    <View style={[styles.networkCardTop, { borderBottomColor: sheetTheme.rowBorderColor }]}>
+                                        <View style={styles.networkLogo}>
+                                            <DepositCoinIcon uri={chainIconUri(chainKey)} size={32} />
                                         </View>
                                         <View style={{ marginLeft: 12, flex: 1 }}>
-                                            <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: themeColors.text }}>
+                                            <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: sheetTheme.textColor }}>
                                                 {chainKey}
                                             </AppText>
                                             <AppText
                                                 type={TWELVE}
                                                 numberOfLines={1}
-                                                style={{ color: themeColors.secondaryText, marginTop: 2 }}
+                                                style={{ color: sheetTheme.subTextColor, marginTop: 2 }}
                                             >
                                                 {fullName}
                                             </AppText>
                                         </View>
-                                        <View style={[styles.networkChevron, { backgroundColor: ui.subtleBg }]}>
-                                            <ChevronRight color={themeColors.secondaryText} size={16} />
+                                        <View style={[styles.networkChevron, { backgroundColor: sheetTheme.accentBg }]}>
+                                            <ChevronRight color={ACCENT_CYAN} size={16} />
                                         </View>
                                     </View>
 
                                     <View style={styles.networkCardBottom}>
-                                        {infoItems.map(({ key, label, value, Icon }) => (
-                                            <View key={key} style={styles.networkInfoItem}>
-                                                <View style={styles.networkInfoIcon}>
-                                                    <Icon color={ACCENT_CYAN} size={12} />
+                                        {infoItems.map(({ key, label, value, Icon }, infoIdx) => (
+                                            <React.Fragment key={key}>
+                                                {infoIdx > 0 ? (
+                                                    <View style={[styles.networkInfoDivider, { backgroundColor: sheetTheme.rowBorderColor }]} />
+                                                ) : null}
+                                                <View style={styles.networkInfoItem}>
+                                                    <View style={[styles.networkInfoIcon, { backgroundColor: sheetTheme.accentBg }]}>
+                                                        <Icon color={ACCENT_CYAN} size={14} />
+                                                    </View>
+                                                    <View style={{ marginLeft: 8, flex: 1 }}>
+                                                        <AppText type={ELEVEN} style={{ color: sheetTheme.subTextColor }}>
+                                                            {label}
+                                                        </AppText>
+                                                        <AppText
+                                                            weight={SEMI_BOLD}
+                                                            type={THIRTEEN}
+                                                            numberOfLines={1}
+                                                            adjustsFontSizeToFit
+                                                            minimumFontScale={0.8}
+                                                            style={{ color: sheetTheme.textColor, marginTop: 2 }}
+                                                        >
+                                                            {value}
+                                                        </AppText>
+                                                    </View>
                                                 </View>
-                                                <View style={{ marginLeft: 6, flexShrink: 1 }}>
-                                                    <AppText type={TEN} style={{ color: themeColors.secondaryText }}>
-                                                        {label}
-                                                    </AppText>
-                                                    <AppText
-                                                        weight={MEDIUM}
-                                                        type={TWELVE}
-                                                        numberOfLines={1}
-                                                        style={{ color: themeColors.text }}
-                                                    >
-                                                        {value}
-                                                    </AppText>
-                                                </View>
-                                            </View>
+                                            </React.Fragment>
                                         ))}
                                     </View>
-                                    {maxDep != null ? (
-                                        <AppText type={TEN} style={[styles.networkCardLine, { color: themeColors.secondaryText }]}>
-                                            Max. deposit: {maxDep} {sym}
-                                        </AppText>
-                                    ) : null}
                                 </TouchableOpacity>
                             );
                         })}
                     </ScrollView>
                     <View style={[styles.networkSheetNotice, {
-                        backgroundColor: isDark ? colors.themeElevationColor : '#fff5ea',
+                        backgroundColor: sheetTheme.accentBg,
+                        borderColor: sheetTheme.accentBorder,
                     }]}>
-                        <FastImage source={INFO} style={styles.networkSheetNoticeIcon} resizeMode="contain" tintColor={isDark ? colors.white : colors.textGray} />
-                        <AppText type={TWELVE} color={colors.textGray} style={{ flex: 1, lineHeight: 18 }}>
+                        <FastImage source={INFO} style={styles.networkSheetNoticeIcon} resizeMode="contain" tintColor={ACCENT_CYAN} />
+                        <AppText type={TWELVE} color={sheetTheme.subTextColor} style={{ flex: 1, lineHeight: 18 }}>
                             Ensure that the selected deposit network is the same as the network. Otherwise, you'll not be able to withdraw later. Want help to choose a network?
                         </AppText>
                     </View>
@@ -2340,30 +2468,11 @@ const DepositCoin = () => {
                 height={SHEET_HEIGHT - 200}
                 closeOnDragDown
                 closeOnPressMask
-                customStyles={{
-                    container: {
-                        borderTopLeftRadius: 20,
-                        borderTopRightRadius: 20,
-                        backgroundColor: themeColors.background,
-                    },
-                    wrapper: { backgroundColor: 'rgba(0,0,0,0.6)' },
-                    draggableIcon: { backgroundColor: colors.textGray },
-                }}
+                customStyles={sheetStyles.faq}
             >
-                <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20 }}>
-                    <View style={styles.modalHeader}>
-                        <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: themeColors.text }}>
-                            Deposit help
-                        </AppText>
-                        <TouchableOpacity
-                            onPress={() => selectCoinFaqSheetRef.current?.close()}
-                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                            <AppText type={TWENTY} style={{ color: themeColors.text }}>
-                                ×
-                            </AppText>
-                        </TouchableOpacity>
-                    </View>
+                <BlurSheetBackground isDark={isDark} tint="cyan" />
+                <View style={styles.sheetBody}>
+                    {renderSheetHeader('Deposit help', () => selectCoinFaqSheetRef.current?.close())}
                     <ScrollView
                         style={styles.modalList}
                         showsVerticalScrollIndicator={false}
@@ -2375,7 +2484,7 @@ const DepositCoin = () => {
                                 style={[
                                     styles.faqItemInner,
                                     index === faqData.length - 1 && styles.faqItemInnerLast,
-                                    { borderColor: colors.inputBorder },
+                                    { borderBottomColor: sheetTheme.rowBorderColor },
                                 ]}
                             >
                                 <TouchableOpacity
@@ -2388,7 +2497,9 @@ const DepositCoin = () => {
                                     <AppText
                                         type={THIRTEEN}
                                         weight={SEMI_BOLD}
-                                        style={[styles.faqQuestion, { color: themeColors.secondaryText }] as any}
+                                        style={[styles.faqQuestion, {
+                                            color: faqActiveIndex === index ? ACCENT_CYAN : sheetTheme.textColor,
+                                        }] as any}
                                     >
                                         {item.title}
                                     </AppText>
@@ -2396,7 +2507,7 @@ const DepositCoin = () => {
                                         source={faqActiveIndex === index ? upIcon : downIcon}
                                         resizeMode="contain"
                                         style={styles.faqArrow}
-                                        tintColor={themeColors.secondaryText}
+                                        tintColor={faqActiveIndex === index ? ACCENT_CYAN : sheetTheme.subTextColor}
                                     />
                                 </TouchableOpacity>
                                 {faqActiveIndex === index && (
@@ -2405,7 +2516,7 @@ const DepositCoin = () => {
                                             <AppText
                                                 key={lineIndex}
                                                 type={TWELVE}
-                                                style={{ color: themeColors.secondaryText, lineHeight: 18 }}
+                                                style={{ color: sheetTheme.subTextColor, lineHeight: 18 }}
                                             >
                                                 {line}
                                             </AppText>
@@ -2417,9 +2528,9 @@ const DepositCoin = () => {
                     </ScrollView>
 
                     {/* Bottom Note & Deposit Fiat Link */}
-                    <View style={{ borderTopWidth: 1, borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0', paddingTop: 14, marginTop: 10 }}>
+                    <View style={{ borderTopWidth: 1, borderTopColor: sheetTheme.rowBorderColor, paddingTop: 14, marginTop: 10 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
-                            <AppText type={TWELVE} style={{ color: themeColors.secondaryText }}>
+                            <AppText type={TWELVE} style={{ color: sheetTheme.subTextColor }}>
                                 Looking to deposit local currency (AED) instead?{' '}
                             </AppText>
                             <TouchableOpacity
@@ -2446,76 +2557,64 @@ const DepositCoin = () => {
                 height={SHEET_HEIGHT}
                 closeOnDragDown
                 closeOnPressMask
-                customStyles={{
-                    container: {
-                        borderTopLeftRadius: 20,
-                        borderTopRightRadius: 20,
-                        backgroundColor: themeColors.background,
-                    },
-                    wrapper: { backgroundColor: 'rgba(0,0,0,0.6)' },
-                    draggableIcon: { backgroundColor: colors.textGray },
-                }}
+                customStyles={sheetStyles.full}
             >
-                <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20 }}>
-                    <View style={styles.modalHeader}>
-                        <AppText weight={SEMI_BOLD} type={FIFTEEN} style={{ color: themeColors.text }}>
-                            More Info
-                        </AppText>
-                        <TouchableOpacity onPress={() => moreDetailsSheetRef.current?.close()}>
-                            <AppText type={TWENTY} style={{ color: themeColors.text }}>×</AppText>
-                        </TouchableOpacity>
-                    </View>
+                <BlurSheetBackground isDark={isDark} tint="cyan" />
+                <View style={styles.sheetBody}>
+                    {renderSheetHeader('More Info', () => moreDetailsSheetRef.current?.close())}
                     <View style={styles.detailsContainer}>
                         <View style={[styles.detailRow, {
-                            borderBottomColor: isDark ? colors.secondaryText : lightTheme.inputBorder
+                            borderBottomColor: sheetTheme.rowBorderColor
                         }]}>
-                            <AppText type={TWELVE} style={styles.modalLabel} color={themeColors.text}>
+                            <AppText type={TWELVE} style={styles.modalLabel} color={sheetTheme.subTextColor}>
                                 Minimum deposit
                             </AppText>
-                            <AppText type={TWELVE} weight={SEMI_BOLD} style={styles.modalValueText} color={themeColors.text}>
+                            <AppText type={TWELVE} weight={SEMI_BOLD} style={styles.modalValueText} color={sheetTheme.textColor}>
                                 {limitForChain(selectedCurrency?.min_deposit, selectedNetwork) ??
                                     '—'}{' '}
                                 {selectedCurrency?.short_name}
                             </AppText>
                         </View>
                         <View style={[styles.detailRow, {
-                            borderBottomColor: isDark ? colors.secondaryText : lightTheme.inputBorder
+                            borderBottomColor: sheetTheme.rowBorderColor
                         }]}>
-                            <AppText type={TWELVE} style={styles.modalLabel} color={themeColors.text}>
+                            <AppText type={TWELVE} style={styles.modalLabel} color={sheetTheme.subTextColor}>
                                 Maximum deposit
                             </AppText>
-                            <AppText type={TWELVE} weight={SEMI_BOLD} style={styles.modalValueText} color={themeColors.text}>
+                            <AppText type={TWELVE} weight={SEMI_BOLD} style={styles.modalValueText} color={sheetTheme.textColor}>
                                 {limitForChain(selectedCurrency?.max_deposit, selectedNetwork) ??
                                     '—'}{' '}
                                 {selectedCurrency?.short_name}
                             </AppText>
                         </View>
                         <View style={[styles.detailRow, {
-                            borderBottomColor: isDark ? colors.secondaryText : lightTheme.inputBorder
+                            borderBottomColor: sheetTheme.rowBorderColor
                         }]}>
-                            <AppText type={TWELVE} style={styles.modalLabel} color={themeColors.text}>
+                            <AppText type={TWELVE} style={styles.modalLabel} color={sheetTheme.subTextColor}>
                                 Wallet
                             </AppText>
-                            <AppText type={TWELVE} weight={SEMI_BOLD} style={styles.modalValueText} color={themeColors.text}>
+                            <AppText type={TWELVE} weight={SEMI_BOLD} style={styles.modalValueText} color={sheetTheme.textColor}>
                                 Spot Wallet
                             </AppText>
                         </View>
                         <View style={[styles.detailRow, {
-                            borderBottomColor: isDark ? colors.secondaryText : lightTheme.inputBorder
+                            borderBottomColor: sheetTheme.rowBorderColor
                         }]}>
-                            <AppText type={TWELVE} style={styles.modalLabel} color={themeColors.text}>
+                            <AppText type={TWELVE} style={styles.modalLabel} color={sheetTheme.subTextColor}>
                                 Credited (Trading enabled)
                             </AppText>
-                            <AppText type={TWELVE} weight={SEMI_BOLD} style={styles.modalValueText} color={themeColors.text}>
+                            <AppText type={TWELVE} weight={SEMI_BOLD} style={styles.modalValueText} color={sheetTheme.textColor}>
                                 After 2 network confirmations
                             </AppText>
                         </View>
-                        <AppText type={TEN} color={colors.textGray} style={styles.warningText}>
-                            • Do not send NFTs to this address{'\n'}• Do not transact with
-                            Sanctioned Entities{'\n'}• This is {selectedNetwork} deposit address
-                            type. Transferring to an unsupported network could result in loss of
-                            deposit.
-                        </AppText>
+                        <View style={[styles.sheetWarningBox, { backgroundColor: sheetTheme.accentBg, borderColor: sheetTheme.accentBorder }]}>
+                            <AppText type={ELEVEN} color={sheetTheme.subTextColor} style={styles.warningText}>
+                                • Do not send NFTs to this address{'\n'}• Do not transact with
+                                Sanctioned Entities{'\n'}• This is {selectedNetwork} deposit address
+                                type. Transferring to an unsupported network could result in loss of
+                                deposit.
+                            </AppText>
+                        </View>
                     </View>
                 </View>
             </RBSheet>
@@ -2527,112 +2626,98 @@ const DepositCoin = () => {
                 height={SHEET_HEIGHT}
                 closeOnDragDown
                 closeOnPressMask
-                customStyles={{
-                    container: {
-                        borderTopLeftRadius: 20,
-                        borderTopRightRadius: 20,
-                        backgroundColor: themeColors.background,
-                    },
-                    wrapper: { backgroundColor: 'rgba(0,0,0,0.6)' },
-                    draggableIcon: { backgroundColor: colors.textGray },
-                }}
+                customStyles={sheetStyles.full}
             >
-                <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20 }}>
-                    <View style={styles.modalHeader}>
-                        <AppText weight={SEMI_BOLD} type={SIXTEEN}>
-                            Deposit Details
-                        </AppText>
-                        <TouchableOpacity onPress={() => depositDetailsSheetRef.current?.close()}>
-                            <AppText type={TWENTY}>×</AppText>
-                        </TouchableOpacity>
-                    </View>
+                <BlurSheetBackground isDark={isDark} tint="cyan" />
+                <View style={styles.sheetBody}>
+                    {renderSheetHeader('Deposit Details', () => depositDetailsSheetRef.current?.close())}
                     <View style={styles.detailsContainer}>
                         <View style={[styles.detailRow, {
-                            borderBottomColor: isDark ? colors.secondaryText : lightTheme.inputBorder
+                            borderBottomColor: sheetTheme.rowBorderColor
                         }]}>
-                            <AppText type={FOURTEEN} color={themeColors.text} style={styles.modalLabel}>
+                            <AppText type={FOURTEEN} color={sheetTheme.subTextColor} style={styles.modalLabel}>
                                 Status
                             </AppText>
                             <AppText
                                 type={FOURTEEN}
                                 weight={SEMI_BOLD}
-                                color={modalData?.status === 'SUCCESS' ? GREEN : themeColors.text}
+                                color={modalData?.status === 'SUCCESS' ? GREEN : YELLOW}
                                 style={styles.modalValue}
                             >
                                 {modalData?.status === 'SUCCESS' ? 'Completed' : 'Pending'}
                             </AppText>
                         </View>
                         <View style={[styles.detailRow, {
-                            borderBottomColor: isDark ? colors.secondaryText : lightTheme.inputBorder
+                            borderBottomColor: sheetTheme.rowBorderColor
                         }]}>
-                            <AppText type={FOURTEEN} color={themeColors.text} style={styles.modalLabel}>
+                            <AppText type={FOURTEEN} color={sheetTheme.subTextColor} style={styles.modalLabel}>
                                 Date
                             </AppText>
                             <AppText
                                 type={FOURTEEN}
                                 weight={SEMI_BOLD}
-                                color={themeColors.text}
+                                color={sheetTheme.textColor}
                                 style={styles.modalValue}
                             >
                                 {moment(modalData?.updatedAt).format('DD-MM-YYYY hh:mm A')}
                             </AppText>
                         </View>
                         <View style={[styles.detailRow, {
-                            borderBottomColor: isDark ? colors.secondaryText : lightTheme.inputBorder
+                            borderBottomColor: sheetTheme.rowBorderColor
                         }]}>
-                            <AppText type={FOURTEEN} color={themeColors.text} style={styles.modalLabel}>
+                            <AppText type={FOURTEEN} color={sheetTheme.subTextColor} style={styles.modalLabel}>
                                 Coin
                             </AppText>
                             <AppText
                                 type={FOURTEEN}
                                 weight={SEMI_BOLD}
-                                color={themeColors.text}
+                                color={sheetTheme.textColor}
                                 style={styles.modalValue}
                             >
                                 {modalData?.short_name}
                             </AppText>
                         </View>
                         <View style={[styles.detailRow, {
-                            borderBottomColor: isDark ? colors.secondaryText : lightTheme.inputBorder
+                            borderBottomColor: sheetTheme.rowBorderColor
                         }]}>
-                            <AppText type={FOURTEEN} color={themeColors.text} style={styles.modalLabel}>
+                            <AppText type={FOURTEEN} color={sheetTheme.subTextColor} style={styles.modalLabel}>
                                 Deposit amount
                             </AppText>
                             <AppText
                                 type={FOURTEEN}
                                 weight={SEMI_BOLD}
-                                color={themeColors.text}
+                                color={sheetTheme.textColor}
                                 style={styles.modalValue}
                             >
                                 {modalData?.amount} {modalData?.short_name}
                             </AppText>
                         </View>
                         <View style={[styles.detailRow, {
-                            borderBottomColor: isDark ? colors.secondaryText : lightTheme.inputBorder
+                            borderBottomColor: sheetTheme.rowBorderColor
                         }]}>
-                            <AppText type={FOURTEEN} color={themeColors.text} style={styles.modalLabel}>
+                            <AppText type={FOURTEEN} color={sheetTheme.subTextColor} style={styles.modalLabel}>
                                 Network
                             </AppText>
                             <AppText
                                 type={FOURTEEN}
                                 weight={SEMI_BOLD}
-                                color={themeColors.text}
+                                color={sheetTheme.textColor}
                                 style={styles.modalValue}
                             >
                                 {modalData?.chain || 'Internal Transaction'}
                             </AppText>
                         </View>
                         <View style={[styles.detailRow, {
-                            borderBottomColor: isDark ? colors.secondaryText : lightTheme.inputBorder
+                            borderBottomColor: sheetTheme.rowBorderColor
                         }]}>
-                            <AppText type={FOURTEEN} color={themeColors.text} style={styles.modalLabel}>
+                            <AppText type={FOURTEEN} color={sheetTheme.subTextColor} style={styles.modalLabel}>
                                 From Address
                             </AppText>
                             <View style={[styles.addressRow, styles.modalValue]}>
                                 <AppText
                                     type={FOURTEEN}
                                     weight={SEMI_BOLD}
-                                    color={themeColors.text}
+                                    color={sheetTheme.textColor}
                                     style={{ flex: 1 }}
                                     numberOfLines={1}
                                 >
@@ -2647,23 +2732,23 @@ const DepositCoin = () => {
                                             source={copyIcon}
                                             style={styles.copyIcon}
                                             resizeMode="contain"
-                                            tintColor={colors.textGray}
+                                            tintColor={ACCENT_CYAN}
                                         />
                                     </TouchableOpacity>
                                 )}
                             </View>
                         </View>
                         <View style={[styles.detailRow, {
-                            borderBottomColor: isDark ? colors.secondaryText : lightTheme.inputBorder
+                            borderBottomColor: sheetTheme.rowBorderColor
                         }]}>
-                            <AppText type={FOURTEEN} color={themeColors.text} style={styles.modalLabel}>
+                            <AppText type={FOURTEEN} color={sheetTheme.subTextColor} style={styles.modalLabel}>
                                 Deposit Address
                             </AppText>
                             <View style={[styles.addressRow, styles.modalValue]}>
                                 <AppText
                                     type={FOURTEEN}
                                     weight={SEMI_BOLD}
-                                    color={themeColors.text}
+                                    color={sheetTheme.textColor}
                                     style={{ flex: 1 }}
                                     numberOfLines={1}
                                 >
@@ -2678,23 +2763,23 @@ const DepositCoin = () => {
                                             source={copyIcon}
                                             style={styles.copyIcon}
                                             resizeMode="contain"
-                                            tintColor={colors.textGray}
+                                            tintColor={ACCENT_CYAN}
                                         />
                                     </TouchableOpacity>
                                 )}
                             </View>
                         </View>
                         <View style={[styles.detailRow, {
-                            borderBottomColor: isDark ? colors.secondaryText : lightTheme.inputBorder
+                            borderBottomColor: sheetTheme.rowBorderColor
                         }]}>
-                            <AppText type={FOURTEEN} color={themeColors.text} style={styles.modalLabel}>
+                            <AppText type={FOURTEEN} color={sheetTheme.subTextColor} style={styles.modalLabel}>
                                 TxID
                             </AppText>
                             <View style={[styles.addressRow, styles.modalValue]}>
                                 <AppText
                                     type={FOURTEEN}
                                     weight={SEMI_BOLD}
-                                    color={themeColors.text}
+                                    color={sheetTheme.textColor}
                                     style={{ flex: 1 }}
                                     numberOfLines={1}
                                 >
@@ -2709,22 +2794,22 @@ const DepositCoin = () => {
                                             source={copyIcon}
                                             style={styles.copyIcon}
                                             resizeMode="contain"
-                                            tintColor={colors.textGray}
+                                            tintColor={ACCENT_CYAN}
                                         />
                                     </TouchableOpacity>
                                 )}
                             </View>
                         </View>
                         <View style={[styles.detailRow, {
-                            borderBottomColor: isDark ? colors.secondaryText : lightTheme.inputBorder
+                            borderBottomColor: sheetTheme.rowBorderColor
                         }]}>
-                            <AppText type={FOURTEEN} color={themeColors.text} style={styles.modalLabel}>
+                            <AppText type={FOURTEEN} color={sheetTheme.subTextColor} style={styles.modalLabel}>
                                 Deposit wallet
                             </AppText>
                             <AppText
                                 type={FOURTEEN}
                                 weight={SEMI_BOLD}
-                                color={themeColors.text}
+                                color={sheetTheme.textColor}
                                 style={styles.modalValue}
                             >
                                 {modalData?.description?.includes('bonus')
@@ -2743,95 +2828,63 @@ const DepositCoin = () => {
                 height={SHEET_HEIGHT}
                 closeOnDragDown
                 closeOnPressMask
-                customStyles={{
-                    container: {
-                        borderTopLeftRadius: 20,
-                        borderTopRightRadius: 20,
-                        backgroundColor: themeColors.background,
-                    },
-                    wrapper: { backgroundColor: 'rgba(0,0,0,0.6)' },
-                    draggableIcon: { backgroundColor: colors.textGray },
-                }}
+                customStyles={sheetStyles.full}
             >
-                <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20 }}>
-                    <View style={styles.modalHeader}>
-                        <View style={styles.confirmedHeader}>
-                            <AppText weight={SEMI_BOLD} type={SIXTEEN}>
-                                Deposit Processing
-                            </AppText>
-                            <AppText type={TWENTY} color={GREEN}>
+                <BlurSheetBackground isDark={isDark} tint="cyan" />
+                <View style={styles.sheetBody}>
+                    {renderSheetHeader(
+                        'Deposit Processing',
+                        () => depositConfirmedSheetRef.current?.close(),
+                        <View style={[styles.sheetStatusDot, { backgroundColor: sheetTheme.accentBg, borderColor: sheetTheme.accentBorder }]}>
+                            <AppText type={TWELVE} weight={BOLD} color={ACCENT_CYAN}>
                                 ✓
                             </AppText>
                         </View>
-                        <TouchableOpacity onPress={() => depositConfirmedSheetRef.current?.close()}>
-                            <AppText type={TWENTY}>×</AppText>
-                        </TouchableOpacity>
-                    </View>
+                    )}
                     <View style={styles.detailsContainer}>
-                        <View style={styles.stepContainer}>
-                            <AppText weight={SEMI_BOLD} type={FOURTEEN}>
-                                Deposit order submitted
-                            </AppText>
-                            <AppText type={TEN} color={colors.textGray}>
-                                {moment(modalData.createdAt).format('DD-MM-YYYY hh:mm A')}
-                            </AppText>
+                        <View style={[styles.sheetStepsCard, { backgroundColor: sheetTheme.cardBg, borderColor: sheetTheme.borderColor }]}>
+                            {[
+                                { key: 'submitted', title: 'Deposit order submitted', time: moment(modalData.createdAt).format('DD-MM-YYYY hh:mm A'), done: true },
+                                { key: 'processing', title: 'System processing', time: moment(modalData.createdAt).format('DD-MM-YYYY hh:mm A'), done: true },
+                                { key: 'completed', title: 'Deposit completed', time: '----', done: false },
+                            ].map((step, idx, arr) => (
+                                <View key={step.key} style={styles.sheetStepRow}>
+                                    <View style={styles.sheetStepRail}>
+                                        <View style={[styles.sheetStepDot, {
+                                            backgroundColor: step.done ? ACCENT_CYAN : 'transparent',
+                                            borderColor: step.done ? ACCENT_CYAN : sheetTheme.borderColor,
+                                        }]} />
+                                        {idx < arr.length - 1 ? (
+                                            <View style={[styles.sheetStepLine, {
+                                                backgroundColor: step.done ? sheetTheme.accentBorder : sheetTheme.rowBorderColor,
+                                            }]} />
+                                        ) : null}
+                                    </View>
+                                    <View style={{ flex: 1, paddingBottom: idx < arr.length - 1 ? 14 : 0 }}>
+                                        <AppText weight={SEMI_BOLD} type={FOURTEEN} color={step.done ? sheetTheme.textColor : sheetTheme.subTextColor}>
+                                            {step.title}
+                                        </AppText>
+                                        <AppText type={TEN} color={sheetTheme.subTextColor} style={{ marginTop: 2 }}>
+                                            {step.time}
+                                        </AppText>
+                                    </View>
+                                </View>
+                            ))}
                         </View>
-                        <View style={styles.stepContainer}>
-                            <AppText weight={SEMI_BOLD} type={FOURTEEN}>
-                                System processing
-                            </AppText>
-                            <AppText type={TEN} color={colors.textGray}>
-                                {moment(modalData.createdAt).format('DD-MM-YYYY hh:mm A')}
-                            </AppText>
-                        </View>
-                        <View style={styles.stepContainer}>
-                            <AppText weight={SEMI_BOLD} type={FOURTEEN}>
-                                Deposit completed
-                            </AppText>
-                            <AppText type={TEN} color={colors.textGray}>
-                                ----
-                            </AppText>
-                        </View>
-                        <View style={[styles.detailRow, {
-                            borderBottomColor: isDark ? colors.secondaryText : lightTheme.inputBorder
-                        }]}>
-                            <AppText type={FOURTEEN}>Status</AppText>
-                            <AppText type={FOURTEEN} weight={SEMI_BOLD} color={YELLOW}>
-                                Pending
-                            </AppText>
-                        </View>
-                        <View style={[styles.detailRow, {
-                            borderBottomColor: isDark ? colors.secondaryText : lightTheme.inputBorder
-                        }]}>
-                            <AppText type={FOURTEEN}>Coin</AppText>
-                            <AppText type={FOURTEEN} weight={SEMI_BOLD}>
-                                {modalData?.short_name}
-                            </AppText>
-                        </View>
-                        <View style={[styles.detailRow, {
-                            borderBottomColor: isDark ? colors.secondaryText : lightTheme.inputBorder
-                        }]}>
-                            <AppText type={FOURTEEN}>Deposited amount</AppText>
-                            <AppText type={FOURTEEN} weight={SEMI_BOLD}>
-                                {modalData?.amount}
-                            </AppText>
-                        </View>
-                        <View style={[styles.detailRow, {
-                            borderBottomColor: isDark ? colors.secondaryText : lightTheme.inputBorder
-                        }]}>
-                            <AppText type={FOURTEEN}>Network</AppText>
-                            <AppText type={FOURTEEN} weight={SEMI_BOLD}>
-                                {modalData?.chain}
-                            </AppText>
-                        </View>
-                        <View style={[styles.detailRow, {
-                            borderBottomColor: isDark ? colors.secondaryText : lightTheme.inputBorder
-                        }]}>
-                            <AppText type={FOURTEEN}>TxID</AppText>
-                            <AppText type={FOURTEEN} weight={SEMI_BOLD}>
-                                {modalData?.shortTxHash?.trim() || '----'}
-                            </AppText>
-                        </View>
+                        {[
+                            { key: 'status', label: 'Status', value: 'Pending', color: YELLOW },
+                            { key: 'coin', label: 'Coin', value: modalData?.short_name },
+                            { key: 'amount', label: 'Deposited amount', value: modalData?.amount },
+                            { key: 'network', label: 'Network', value: modalData?.chain },
+                            { key: 'txid', label: 'TxID', value: modalData?.shortTxHash?.trim() || '----' },
+                        ].map((row) => (
+                            <View key={row.key} style={[styles.detailRow, { borderBottomColor: sheetTheme.rowBorderColor }]}>
+                                <AppText type={FOURTEEN} color={sheetTheme.subTextColor}>{row.label}</AppText>
+                                <AppText type={FOURTEEN} weight={SEMI_BOLD} color={row.color || sheetTheme.textColor}>
+                                    {row.value}
+                                </AppText>
+                            </View>
+                        ))}
                     </View>
                 </View>
             </RBSheet>
@@ -2851,119 +2904,97 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     depositScrollContent: {
+        paddingTop: 10,
         paddingBottom: 110,
     },
-    depositQrCenter: {
-        alignItems: 'center',
-        marginTop: 10,
-        marginBottom: 10,
-    },
-    depositQrCard: {
-        backgroundColor: '#FFFFFF',
-        padding: 10,
-        borderRadius: 0,
-        // borderWidth: 1,
-    },
-    depositQrHint: {
-        marginTop: 10,
-    },
-    depositEmptyWrap: {
-        paddingTop: 6,
-        paddingBottom: 10,
-        alignItems: 'center',
-    },
-    depositEmptyTitle: {
-        alignSelf: 'flex-start',
-        marginBottom: 10,
-        marginTop: 10
-    },
-    depositEmptyBtn: {
-        width: '100%',
-        borderRadius: 24,
-        height: 44,
-        maxWidth: 320,
-        alignSelf: 'center',
-        marginTop: 10
-    },
-    depositEmptyCardTopRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 12,
-    },
-    depositEmptyCoinRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        flex: 1,
-        minWidth: 0,
-    },
-    depositEmptyCoinIcon: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-    },
-    depositEmptyCoinIconPlaceholder: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        backgroundColor: colors.textGray,
-        opacity: 0.25,
-    },
-    depositEmptyDivider: {
-        height: 1,
-        backgroundColor: lightTheme.input,
-        opacity: 0.5,
-        marginTop: 10,
-        marginBottom: 10,
-    },
-    depositEmptyNetworkBlock: {
-        width: '100%',
-        flexDirection: "row",
-        justifyContent: "space-between", alignItems: "center"
-    },
-    depositInfoCard: {
-        borderWidth: 1,
+    dqCard: {
         borderRadius: 12,
-        paddingHorizontal: 10,
-        paddingVertical: 5,
+        padding: 12,
         marginBottom: 8,
-        width: "100%",
-        marginTop: 8,
-        backgroundColor: 'transparent'
+        borderWidth: 1.5,
     },
-    depositInfoRowHead: {
-        marginBottom: 6,
-    },
-    depositNetworkRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 12,
-    },
-    depositAddressHeadRow: {
+    dqQrCard: {
+        borderRadius: 16,
+        padding: 16,
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 6,
+        marginBottom: 16,
     },
-    depositAddressRow: {
+    dqQrCardLeft: {
+        flex: 1,
+        paddingRight: 16,
+    },
+    dqShareBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        borderWidth: 1,
+        borderRadius: 20,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        alignSelf: 'flex-start',
+        marginTop: 16,
     },
-    depositCopyBtn: {
-        width: 30,
-        height: 30,
-        borderRadius: 15,
-        alignItems: 'center',
+    dqQrFrame: {
+        width: 140,
+        height: 140,
+        alignSelf: 'center',
         justifyContent: 'center',
-        bottom: 5
-    },
-    depositMoreDetailsCenter: {
         alignItems: 'center',
+    },
+    dqQrInner: {
+        borderRadius: 10,
+        overflow: 'hidden',
+        backgroundColor: '#FFFFFF',
+    },
+    dqCorner: {
+        position: 'absolute',
+        width: 22,
+        height: 22,
+    },
+    dqCornerTL: { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 12 },
+    dqCornerTR: { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 12 },
+    dqCornerBL: { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 12 },
+    dqCornerBR: { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 12 },
+    dqSectionTitle: {
         marginTop: 8,
-        marginBottom: 6,
+        marginBottom: 8,
+    },
+    dqRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    dqRowCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    dqNetworkLogo: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        overflow: 'hidden',
+    },
+    dqCopyBtn: {
+        width: 28,
+        height: 28,
+        borderRadius: 6,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    dqWarningCard: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginTop: 8,
+    },
+    dqDetailRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+    },
+    dqGenerateBtn: {
+        marginTop: 14,
     },
     depositBottomBar: {
         position: 'absolute',
@@ -2994,9 +3025,6 @@ const styles = StyleSheet.create({
     },
     selectedSection: {
         borderColor: YELLOW,
-    },
-    sectionTitle: {
-        marginBottom: 6,
     },
     selectButton: {
         flexDirection: 'row',
@@ -3140,9 +3168,9 @@ const styles = StyleSheet.create({
         maxHeight: 150,
     },
     announcementItem: {
-        padding: 10,
-        marginBottom: 10,
-        borderRadius: 8,
+        padding: 12,
+        marginBottom: 8,
+        borderRadius: 12,
     },
     recentDepositsSection: {
         marginTop: 20,
@@ -3353,12 +3381,60 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
     },
     warningText: {
-        marginTop: 10,
-        lineHeight: 16,
+        lineHeight: 17,
     },
-    stepContainer: {
-        paddingVertical: 10,
-        borderBottomWidth: 1,
+    sheetBody: {
+        flex: 1,
+        paddingHorizontal: 20,
+        paddingTop: 10,
+        paddingBottom: 20,
+    },
+    sheetCloseCircle: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    sheetStatusDot: {
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        borderWidth: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    sheetWarningBox: {
+        marginTop: 14,
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+    },
+    sheetStepsCard: {
+        borderWidth: 1,
+        borderRadius: 14,
+        padding: 14,
+        marginBottom: 6,
+    },
+    sheetStepRow: {
+        flexDirection: 'row',
+    },
+    sheetStepRail: {
+        width: 18,
+        alignItems: 'center',
+        marginRight: 10,
+    },
+    sheetStepDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        borderWidth: 1.5,
+        marginTop: 4,
+    },
+    sheetStepLine: {
+        width: 1.5,
+        flex: 1,
+        marginTop: 4,
     },
     headerView: {
         flexDirection: "row",
@@ -3584,6 +3660,7 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 16,
+        overflow: 'hidden',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -3596,20 +3673,22 @@ const styles = StyleSheet.create({
     },
     networkCardBottom: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        gap: 8,
     },
     networkInfoItem: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        flexShrink: 1,
+    },
+    networkInfoDivider: {
+        width: 1,
+        alignSelf: 'stretch',
+        marginHorizontal: 12,
     },
     networkInfoIcon: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: 'rgba(10, 168, 197, 0.1)',
+        width: 28,
+        height: 28,
+        borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -3619,14 +3698,12 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
         marginBottom: 8,
     },
-    networkCardLine: {
-        marginTop: 4,
-    },
     networkSheetNotice: {
         flexDirection: 'row',
         alignItems: 'flex-start',
         padding: 12,
-        borderRadius: 10,
+        borderRadius: 12,
+        borderWidth: 1,
         marginTop: 4,
         marginBottom: 20,
     },

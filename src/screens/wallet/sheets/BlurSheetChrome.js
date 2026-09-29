@@ -55,8 +55,31 @@ export function blurSheetRbCustomStyles({
  * Must be wrapped in an absoluteFill View (not a Fragment) so BlurView +
  * overlays fill the RBSheet — Fragments can collapse to 0 height.
  * Gradient alphas match TradingDataModal (subtle, not muddy green).
+ * `tint="cyan"` matches the cyan sheets (e.g. FuturesHistoryFilterSheet).
  */
-export function BlurSheetBackground({ isDark }) {
+const SHEET_GRADIENTS = {
+  emerald: {
+    diagonal: [
+      "rgba(16, 185, 129, 0.10)",
+      "rgba(6, 182, 212, 0.04)",
+      "rgba(16, 185, 129, 0.02)",
+      "rgba(16, 185, 129, 0.07)",
+    ],
+    sweep: ["transparent", "rgba(16, 185, 129, 0.04)", "transparent"],
+  },
+  cyan: {
+    diagonal: [
+      "rgba(10, 168, 197, 0.12)",
+      "rgba(16, 185, 129, 0.05)",
+      "rgba(10, 168, 197, 0.02)",
+      "rgba(10, 168, 197, 0.08)",
+    ],
+    sweep: ["transparent", "rgba(10, 168, 197, 0.04)", "transparent"],
+  },
+};
+
+export function BlurSheetBackground({ isDark, tint = "emerald" }) {
+  const gradient = SHEET_GRADIENTS[tint] || SHEET_GRADIENTS.emerald;
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none" collapsable={false}>
       <BlurView
@@ -78,18 +101,13 @@ export function BlurSheetBackground({ isDark }) {
       {isDark ? (
         <>
           <LinearGradient
-            colors={[
-              "rgba(16, 185, 129, 0.10)",
-              "rgba(6, 182, 212, 0.04)",
-              "rgba(16, 185, 129, 0.02)",
-              "rgba(16, 185, 129, 0.07)",
-            ]}
+            colors={gradient.diagonal}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
           />
           <LinearGradient
-            colors={["transparent", "rgba(16, 185, 129, 0.04)", "transparent"]}
+            colors={gradient.sweep}
             start={{ x: 0, y: 0.5 }}
             end={{ x: 1, y: 0.5 }}
             style={StyleSheet.absoluteFill}
