@@ -22,6 +22,7 @@ const MiniSparkline = memo(
     height = 40,
     chartId = "spark",
     fallbackPrice,
+    glow = false,
   }) => {
     const dataToUse = useMemo(() => {
       if (chartData?.length) return chartData;
@@ -61,10 +62,32 @@ const MiniSparkline = memo(
     return (
       <View style={{ width, height, overflow: "hidden", borderRadius: 12 }}>
         <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+          {glow ? (
+            <>
+              <Path
+                d={pathD}
+                stroke={strokeColor}
+                strokeOpacity={0.1}
+                strokeWidth={6}
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <Path
+                d={pathD}
+                stroke={strokeColor}
+                strokeOpacity={0.22}
+                strokeWidth={3.5}
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </>
+          ) : null}
           <Path
             d={pathD}
             stroke={strokeColor}
-            strokeWidth={2}
+            strokeWidth={glow ? 1.4 : 2}
             fill="none"
             strokeLinecap="round"
             strokeLinejoin="round"

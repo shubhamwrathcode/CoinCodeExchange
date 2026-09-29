@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
     View,
     StyleSheet,
@@ -42,24 +42,43 @@ import {
     MEDIUM,
     BOLD,
     EIGHTEEN,
+    NINE,
+    TWENTY_TWO,
 } from '../../shared';
 import KeyBoardAware from '../../shared/components/KeyboardAware';
 import FastImage from 'react-native-fast-image';
+import LinearGradient from 'react-native-linear-gradient';
+import { Search, X, ChevronRight, Box, Clock, ArrowDownToLine, Star } from 'lucide-react-native';
+import { SvgXml } from 'react-native-svg';
+import MiniSparklineBase from '../../shared/components/MiniSparkline';
+import { SocketContext } from '../../SocketProvider';
+
+const MiniSparkline = MiniSparklineBase as React.ComponentType<{
+    chartData?: number[];
+    isPositive: boolean;
+    width?: number;
+    height?: number;
+    chartId?: string;
+    fallbackPrice?: number;
+    glow?: boolean;
+}>;
 import QRCode from 'react-native-qrcode-svg';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 import NavigationService from '../../navigation/NavigationService';
 import { DEPOSIT_FIAT_SCREEN } from '../../navigation/routes';
 import { buildCoinImageUri } from '../../helper/coinIconUrl';
+import { buildMarketIconIndex, withMarketCoinIcon } from '../../helper/walletCoinIcon';
+import { BASE_URL, IMAGE_BASE_URL } from '../../helper/Constants';
 import { colors, darkTheme, lightTheme } from '../../theme/colors';
 import { useTheme } from '../../hooks/useTheme';
 import {
     getDepositActiveCoins,
     verifyDeposit,
 } from '../../actions/walletActions';
-import { getNotificationList } from '../../actions/homeActions';
+import { getNotificationList, getFavoriteArray, addToFavorites } from '../../actions/homeActions';
 import { copyText, shortenAddress, dateFormatter } from '../../helper/utility';
-import { BACK_ICON, searchIcon, copyIcon, printIcon, upIcon, downIcon, INFO, NO_NOTIFICATION_ICON, NO_NOTIFICATION_ICON_LIGHT, back_ic, binIcon, swapNetwork, externalLinkIcon } from '../../helper/ImageAssets';
+import { BACK_ICON, activities_icon, copyIcon, historyIcon, upIcon, downIcon, INFO, back_ic, swapNetwork, externalLinkIcon } from '../../helper/ImageAssets';
 import { setLoading } from '../../slices/authSlice';
 // setWalletAddress removed: deposit address handled locally for web parity (address + memo)
 import { showError } from '../../helper/logger';
@@ -70,8 +89,262 @@ import ShimmerBone from '../../shared/components/ShimmerBone';
 const SHEET_HEIGHT = Math.round(Dimensions.get('window').height * 0.72);
 
 /** Row height + gap under each coin row (compact select list). */
-const COIN_LIST_ROW_GAP = 6;
-const COIN_LIST_ROW_INNER = 52;
+const COIN_LIST_ROW_GAP = 0;
+const COIN_LIST_ROW_INNER = 56;
+
+const ACCENT_CYAN = colors.cyanTheme;
+
+/** Brand tint for coin / chain badges, recent chips and network logos. */
+const BRAND_ACCENTS: Record<string, string> = {
+    BTC: '#F7931A',
+    ETH: '#627EEA',
+    ERC20: '#627EEA',
+    USDT: '#26A17B',
+    USDC: '#2775CA',
+    BNB: '#F3BA2F',
+    BSC: '#F3BA2F',
+    BEP20: '#F3BA2F',
+    TRX: '#FF0013',
+    TRC20: '#FF0013',
+    SOL: '#9945FF',
+    DOGE: '#C2A633',
+    ADA: '#0033AD',
+    MATIC: '#8247E5',
+    POL: '#8247E5',
+    POLYGON: '#8247E5',
+    DOT: '#E6007A',
+    LTC: '#345D9D',
+    SHIB: '#E42C21',
+    AVAX: '#E84142',
+    ARB: '#28A0F0',
+    OP: '#FF0420',
+    TON: '#0098EA',
+};
+const FALLBACK_ACCENTS = ['#0AA8C5', '#8247E5', '#26A17B', '#F7931A', '#E6007A', '#2775CA'];
+
+const accentForSymbol = (symbol: any): string => {
+    const key = String(symbol || '').trim().toUpperCase();
+    if (BRAND_ACCENTS[key]) return BRAND_ACCENTS[key];
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+    return FALLBACK_ACCENTS[hash % FALLBACK_ACCENTS.length];
+};
+
+const hexToRgba = (hex: string, alpha: number): string => {
+    let h = String(hex || '').replace('#', '');
+    if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+    const n = parseInt(h, 16);
+    if (Number.isNaN(n)) return `rgba(10, 168, 197, ${alpha})`;
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+};
+
+const MARKET_QUOTE = 'USDT';
+
+const formatUsdPrice = (value: any): string => {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return '—';
+    if (n >= 1) {
+        return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    const decimals = Math.min(10, Math.max(4, -Math.floor(Math.log10(n)) + 1));
+    return `$${n.toFixed(decimals).replace(/0+$/, '').replace(/\.$/, '')}`;
+};
+
+/**
+ * Same field priority and host mapping as AGCE `buildCoinImageUri`: `icon_path` first,
+ * `public/` + `static/` keys on the S3 media host, other relative paths on the API host.
+ */
+const buildDepositCoinIconUri = (coin: any): string | null => {
+    if (!coin) return null;
+    const raw =
+        typeof coin === 'string'
+            ? coin
+            : coin.icon_path || coin.iconPath || coin.icon_url || coin.iconUri || coin.icon || coin.image || coin.iconUrl;
+    if (raw == null) return null;
+    const p = String(raw).trim();
+    if (!p || p === 'null' || p === 'undefined') return null;
+    if (p.startsWith('http://') || p.startsWith('https://')) return p;
+    if (p.startsWith('//')) return `https:${p}`;
+    if (p.startsWith('data:')) return p;
+    const rel = p.replace(/^\/+/, '').replace(/\\/g, '/');
+    if (!rel) return null;
+    if (rel.startsWith('public/') || rel.startsWith('static/')) {
+        const s3Base = String(IMAGE_BASE_URL || '').replace(/\/+$/, '');
+        const key = rel.startsWith('static/') ? `public/${rel}` : rel;
+        return `${s3Base}/${key}`;
+    }
+    const base = String(BASE_URL || '').replace(/\/+$/, '');
+    return `${base}/${rel}`;
+};
+
+const svgXmlCache = new Map<string, string | null>();
+const rasterUrlCache = new Set<string>();
+const failedUrlCache = new Set<string>();
+
+const RASTER_REGEX = /\.(png|jpe?g|webp|gif|bmp)($|\?)/i;
+const SVG_REGEX = /\.svg($|\?)/i;
+const SVG_ROOT_REGEX = /^\s*(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*<svg[\s>]/i;
+
+/** `.svg` and extensionless URLs (Fireblocks CDN ids) are probed; known raster extensions go straight to FastImage. */
+const shouldProbeAsSvg = (uri: string): boolean => {
+    if (!uri) return false;
+    if (SVG_REGEX.test(uri)) return true;
+    if (RASTER_REGEX.test(uri)) return false;
+    return true;
+};
+
+const checkAndFetchSvg = async (uri: string): Promise<string | null> => {
+    if (svgXmlCache.has(uri)) return svgXmlCache.get(uri) || null;
+    if (rasterUrlCache.has(uri) || failedUrlCache.has(uri)) return null;
+    try {
+        const res = await fetch(uri);
+        if (!res.ok) {
+            svgXmlCache.set(uri, null);
+            return null;
+        }
+        const contentType = (res.headers.get('content-type') || '').toLowerCase();
+
+        // Binary raster bodies can contain a stray `<svg`, so trust the header first.
+        if (/image\/(png|jpe?g|webp|gif|bmp|avif)/.test(contentType)) {
+            rasterUrlCache.add(uri);
+            svgXmlCache.set(uri, null);
+            return null;
+        }
+
+        const text = await res.text();
+        const looksSvg =
+            contentType.includes('svg') ||
+            ((contentType.includes('xml') || !contentType.startsWith('image/')) && SVG_ROOT_REGEX.test(text));
+
+        if (looksSvg) {
+            const clean = text
+                .replace(/^\uFEFF/, '')
+                .replace(/<\?xml[^>]*\?>/gi, '')
+                .replace(/<!DOCTYPE[^>]*>/gi, '')
+                .trim();
+            svgXmlCache.set(uri, clean);
+            return clean;
+        }
+
+        rasterUrlCache.add(uri);
+        svgXmlCache.set(uri, null);
+        return null;
+    } catch {
+        svgXmlCache.set(uri, null);
+        return null;
+    }
+};
+
+const DepositCoinIcon = React.memo(({ uri, size = 32 }: { uri: string | null; size?: number }) => {
+    const probeSvg = Boolean(uri && shouldProbeAsSvg(uri));
+    const isDirectRaster = Boolean(uri && !probeSvg);
+
+    const [svgXml, setSvgXml] = useState<string | null>(() => {
+        if (!uri || isDirectRaster) return null;
+        return svgXmlCache.get(uri) || null;
+    });
+    const [hasError, setHasError] = useState(false);
+    const [probeDone, setProbeDone] = useState<boolean>(() => {
+        if (!uri || isDirectRaster) return true;
+        return svgXmlCache.has(uri) || rasterUrlCache.has(uri);
+    });
+
+    useEffect(() => {
+        let active = true;
+
+        if (!uri) {
+            setSvgXml(null);
+            setHasError(false);
+            setProbeDone(true);
+            return;
+        }
+
+        // SVG CDNs without an extension fail in FastImage first; allow a fresh probe.
+        if (probeSvg) {
+            failedUrlCache.delete(uri);
+            if (svgXmlCache.get(uri) === null && !rasterUrlCache.has(uri)) {
+                svgXmlCache.delete(uri);
+            }
+            setHasError(false);
+        }
+
+        if (failedUrlCache.has(uri)) {
+            setHasError(true);
+            setProbeDone(true);
+            return;
+        }
+
+        if (isDirectRaster) {
+            setSvgXml(null);
+            setHasError(false);
+            setProbeDone(true);
+            return;
+        }
+
+        if (svgXmlCache.has(uri)) {
+            setSvgXml(svgXmlCache.get(uri) || null);
+            setProbeDone(true);
+            return;
+        }
+
+        if (rasterUrlCache.has(uri)) {
+            setSvgXml(null);
+            setProbeDone(true);
+            return;
+        }
+
+        setProbeDone(false);
+        // A stalled probe must not pin the placeholder; FastImage takes over and SVG swaps in if it arrives later.
+        const probeTimeout = setTimeout(() => {
+            if (active) setProbeDone(true);
+        }, 4000);
+        checkAndFetchSvg(uri).then((clean) => {
+            clearTimeout(probeTimeout);
+            if (!active) return;
+            setSvgXml(clean);
+            setProbeDone(true);
+        });
+
+        return () => {
+            active = false;
+            clearTimeout(probeTimeout);
+        };
+    }, [uri, isDirectRaster, probeSvg]);
+
+    const dim = { width: size, height: size, borderRadius: size / 2 };
+
+    if (!uri || hasError || (probeSvg && !probeDone)) {
+        return <FastImage source={activities_icon} style={dim} resizeMode="cover" />;
+    }
+
+    if (svgXml) {
+        return (
+            <View style={[dim, styles.coinSvgWrap]}>
+                <SvgXml
+                    xml={svgXml}
+                    width="100%"
+                    height="100%"
+                    onError={() => {
+                        failedUrlCache.add(uri);
+                        setHasError(true);
+                    }}
+                />
+            </View>
+        );
+    }
+
+    return (
+        <FastImage
+            source={{ uri }}
+            style={dim}
+            resizeMode="cover"
+            onError={() => {
+                failedUrlCache.add(uri);
+                setHasError(true);
+            }}
+        />
+    );
+});
 
 const LETTER_KEYS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 /** Figma index rail: # then A–Z */
@@ -332,12 +605,20 @@ const mapDepositHistoryRow = (r: any, i: number) => {
 
 const DepositCoinSelectListSkeleton = () => (
     <View style={styles.selectCoinPhase}>
-        <View style={[styles.selectCoinSearchWrap, { borderWidth: 0 }]}>
-            <ShimmerBone width="100%" height={40} borderRadius={10} />
+        <View style={styles.searchSection}>
+            <ShimmerBone width="100%" height={48} borderRadius={24} />
         </View>
         <View style={styles.selectCoinListRow}>
             <View style={[styles.sectionListFlex, { paddingTop: 4 }]}>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
+                <View style={[styles.sectionHeaderRow, { marginBottom: 10 }]}>
+                    <ShimmerBone width={70} height={16} borderRadius={4} />
+                    <ShimmerBone width={50} height={12} borderRadius={4} />
+                </View>
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
+                    <ShimmerBone width={120} height={50} borderRadius={12} />
+                    <ShimmerBone width={120} height={50} borderRadius={12} />
+                </View>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
                     <View
                         key={i}
                         style={{
@@ -347,11 +628,14 @@ const DepositCoinSelectListSkeleton = () => (
                             minHeight: COIN_LIST_ROW_INNER,
                         }}
                     >
-                        <ShimmerBone width={28} height={28} borderRadius={14} />
+                        <ShimmerBone width={36} height={36} borderRadius={18} />
                         <View style={{ marginLeft: 10, flex: 1 }}>
-                            <ShimmerBone width={88} height={14} borderRadius={4} style={{ marginBottom: 6 }} />
-                            <ShimmerBone width="55%" height={11} borderRadius={4} />
+                            <ShimmerBone width={72} height={14} borderRadius={4} style={{ marginBottom: 6 }} />
+                            <ShimmerBone width={36} height={11} borderRadius={4} />
                         </View>
+                        <ShimmerBone width={72} height={18} borderRadius={6} style={{ marginRight: 16 }} />
+                        <ShimmerBone width={70} height={14} borderRadius={4} style={{ marginRight: 10 }} />
+                        <ShimmerBone width={16} height={16} borderRadius={8} />
                     </View>
                 ))}
             </View>
@@ -446,6 +730,12 @@ const DepositCoin = () => {
     const notificationList = useAppSelector((state) => state.home.notificationList);
 
     const depositHistoryRedux = useAppSelector((state) => state.wallet.depositHistory);
+    const coinPairs = useAppSelector((state) => state.home.coinPairs);
+    const coinData = useAppSelector((state) => state.home.coinData);
+    const marketIconBySymbol = useMemo(() => buildMarketIconIndex(coinData), [coinData]);
+    const hotPairsChart = useAppSelector((state) => state.home.hotPairsChart);
+    const favoriteArray = useAppSelector((state) => state.home.favoriteArray);
+    const { subscribeToMarket, unsubscribeFromMarket } = (useContext(SocketContext) || {}) as any;
 
     const [availableCurrency, setAvailableCurrency] = useState<any[]>([]);
     const [allData, setAllData] = useState<any[]>([]);
@@ -560,7 +850,56 @@ const DepositCoin = () => {
     useEffect(() => {
         handleNotifications();
         fetchDepositHistory();
+        dispatch(getFavoriteArray());
     }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            subscribeToMarket?.('depositCoin');
+            return () => {
+                unsubscribeFromMarket?.('depositCoin');
+            };
+        }, [subscribeToMarket, unsubscribeFromMarket])
+    );
+
+    /** Live USDT pair per coin symbol → price, 24h change, sparkline, favourite pair id. */
+    const marketBySymbol = useMemo(() => {
+        const map = new Map<string, { pairId: string | null; price: number; change: number; chart: number[] }>();
+        const charts: Record<string, number[]> = (hotPairsChart as any) || {};
+        (Array.isArray(coinPairs) ? coinPairs : []).forEach((p: any) => {
+            const base = String(p?.base_currency || '').toUpperCase();
+            const quote = String(p?.quote_currency || '').toUpperCase();
+            if (!base || quote !== MARKET_QUOTE) return;
+            map.set(base, {
+                pairId: p?._id ? String(p._id) : null,
+                price: Number(p?.last_price ?? p?.buy_price ?? p?.price) || 0,
+                change: Number(p?.change_percentage ?? p?.changePercentage ?? p?.change) || 0,
+                chart: Array.isArray(charts[base]) ? charts[base] : [],
+            });
+        });
+        if (!map.has(MARKET_QUOTE)) {
+            map.set(MARKET_QUOTE, { pairId: null, price: 1, change: 0, chart: charts[MARKET_QUOTE] || [] });
+        }
+        return map;
+    }, [coinPairs, hotPairsChart]);
+
+    const favoriteSet = useMemo(
+        () => new Set((Array.isArray(favoriteArray) ? favoriteArray : []).map((id: any) => String(id))),
+        [favoriteArray]
+    );
+
+    const handleToggleFavorite = useCallback(
+        (pairId: string | null) => {
+            if (!pairId) return;
+            dispatch(addToFavorites({ pair_id: pairId }));
+        },
+        [dispatch]
+    );
+
+    const listExtraData = useMemo(
+        () => ({ isDark, marketBySymbol, favoriteSet, marketIconBySymbol }),
+        [isDark, marketBySymbol, favoriteSet, marketIconBySymbol]
+    );
 
     useEffect(() => {
         return () => {
@@ -741,6 +1080,35 @@ const DepositCoin = () => {
             /* ignore */
         }
     }, []);
+
+    const removeRecentDepositCoin = useCallback(async (shortName: string) => {
+        const next = recentShortNames.filter((s) => String(s) !== String(shortName));
+        setRecentShortNames(next);
+        try {
+            await AsyncStorage.setItem(DEPOSIT_RECENT_SHORT_NAMES_KEY, JSON.stringify(next));
+        } catch {
+            /* ignore */
+        }
+    }, [recentShortNames]);
+
+    const ui = useMemo(
+        () => ({
+            cardBg: isDark ? 'rgba(255, 255, 255, 0.03)' : '#F8F9FA',
+            border: isDark ? 'rgba(255, 255, 255, 0.1)' : '#ECECEC',
+            softBorder: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F0F0F0',
+            subtleBg: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F3F5',
+        }),
+        [isDark]
+    );
+
+    const renderCoinLogo = (item: any, size = 32) => (
+        <View style={{ borderRadius: 999, overflow: 'hidden' }}>
+            <DepositCoinIcon
+                uri={buildDepositCoinIconUri(withMarketCoinIcon(item, marketIconBySymbol))}
+                size={size}
+            />
+        </View>
+    );
 
     useEffect(() => {
         if (depositActiveCoins && Array.isArray(depositActiveCoins) && depositActiveCoins.length > 0) {
@@ -980,41 +1348,83 @@ const DepositCoin = () => {
                 !Array.isArray(item.deposit_status) &&
                 networkKeysFromChain(item.chain).length > 0 &&
                 getActiveNetworkKeys(item).length === 0);
-        const coinIconUri = buildCoinImageUri(item);
+        const symbol = String(item?.short_name || '').toUpperCase();
+        const market = marketBySymbol.get(symbol);
+        const isUp = (market?.change ?? 0) >= 0;
+        const isFavorite = !!market?.pairId && favoriteSet.has(market.pairId);
         return (
             <TouchableOpacity
                 style={[
                     styles.coinItem,
                     styles.coinFlatListRow,
+                    { borderBottomColor: ui.border },
                     disabled && styles.coinItemDisabled,
                 ]}
                 onPress={() => openNetworkSheetForCoin(item)}
                 activeOpacity={disabled ? 1 : 0.7}
             >
-                {coinIconUri ? (
-                    <FastImage
-                        source={{ uri: coinIconUri }}
-                        style={styles.coinIcon}
-                        resizeMode="cover"
-                    />
-                ) : (
-                    <View style={[styles.coinIcon, { backgroundColor: colors.textGray, opacity: 0.25 }]} />
-                )}
-                <View style={styles.coinInfo}>
-                    <AppText weight={SEMI_BOLD} type={FIFTEEN} style={{ color: themeColors.text }}>
-                        {item?.short_name || item?.name}
-                    </AppText>
-                    {item?.short_name && item?.name ? (
-                        <AppText type={THIRTEEN} color={colors.textGray}>
-                            {item.name}
+                <View style={styles.coinLeft}>
+                    {renderCoinLogo(item, 36)}
+                    <View style={styles.coinInfo}>
+                        <AppText
+                            weight={SEMI_BOLD}
+                            type={FOURTEEN}
+                            numberOfLines={1}
+                            style={{ color: themeColors.text }}
+                        >
+                            {item?.name || item?.short_name}
                         </AppText>
-                    ) : null}
+                        {suspended ? (
+                            <AppText type={TEN} color={RED} weight={SEMI_BOLD} style={{ marginTop: 2 }}>
+                                {symbol ? `${symbol} · ` : ''}Suspended
+                            </AppText>
+                        ) : (
+                            <AppText
+                                type={ELEVEN}
+                                numberOfLines={1}
+                                style={{ color: themeColors.secondaryText, marginTop: 2 }}
+                            >
+                                {symbol}
+                            </AppText>
+                        )}
+                    </View>
                 </View>
-                {suspended && (
-                    <AppText type={TEN} color={RED} weight={SEMI_BOLD}>
-                        Suspended
+
+                <View style={styles.coinSpark}>
+                    <MiniSparkline
+                        chartData={market?.chart}
+                        isPositive={isUp}
+                        width={84}
+                        height={30}
+                        chartId={`deposit-spark-${symbol}`}
+                        fallbackPrice={market?.price || 100}
+                        glow
+                    />
+                </View>
+
+                <View style={styles.coinRight}>
+                    <AppText
+                        weight={SEMI_BOLD}
+                        type={FOURTEEN}
+                        numberOfLines={1}
+                        style={{ color: themeColors.text, flexShrink: 1, textAlign: 'right' }}
+                    >
+                        {formatUsdPrice(market?.price)}
                     </AppText>
-                )}
+                    <TouchableOpacity
+                        onPress={() => handleToggleFavorite(market?.pairId ?? null)}
+                        disabled={!market?.pairId}
+                        hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+                        style={[styles.starBtn, !market?.pairId && { opacity: 0.35 }]}
+                    >
+                        <Star
+                            color={isFavorite ? colors.starColor : themeColors.secondaryText}
+                            fill={isFavorite ? colors.starColor : 'transparent'}
+                            size={16}
+                            strokeWidth={1.6}
+                        />
+                    </TouchableOpacity>
+                </View>
             </TouchableOpacity>
         );
     };
@@ -1200,6 +1610,13 @@ const DepositCoin = () => {
             ? 'Select Coins'
             : `Deposit ${selectedCurrency?.short_name || ''}`;
 
+    const headerSubtitle =
+        depositFlowPhase === 'selectCoin'
+            ? 'Choose from your favourite coins'
+            : selectedNetwork
+                ? `Only send ${selectedCurrency?.short_name || 'funds'} via ${String(selectedNetwork).toUpperCase()} network`
+                : 'Send funds to your deposit address';
+
     const renderDepositSectionHeader = useCallback(
         (info: any) => (
             <View
@@ -1208,34 +1625,32 @@ const DepositCoin = () => {
                     { backgroundColor: themeColors.background },
                 ]}
             >
-                <AppText weight={SEMI_BOLD} type={THIRTEEN} style={{ color: themeColors.text }}>
+                <AppText weight={SEMI_BOLD} type={TWELVE} style={{ color: ACCENT_CYAN }}>
                     {String(info?.section?.title ?? '')}
                 </AppText>
             </View>
         ),
-        [themeColors.background, themeColors.text]
+        [themeColors.background]
     );
 
     const renderSelectCoinListHeader = () => {
         if (String(searchPair || '').trim()) return null;
         return (
-            <View>
+            <View style={{ paddingBottom: 4 }}>
                 {recentDepositCoinsForList.length > 0 && (
                     <View style={styles.depositHistoryChipsSection}>
-                        <View style={styles.depositHistoryChipsTitleRow}>
+                        <View style={styles.sectionHeaderRow}>
                             <AppText
                                 weight={SEMI_BOLD}
-                                type={THIRTEEN}
+                                type={SIXTEEN}
                                 style={{ color: themeColors.text }}
                             >
-                                History
+                                Recent
                             </AppText>
                             <TouchableOpacity onPress={clearRecentDepositCoins} hitSlop={12}>
-                                <FastImage
-                                    source={binIcon}
-                                    style={styles.depositHistoryClearIcon}
-                                    resizeMode="contain"
-                                />
+                                <AppText weight={MEDIUM} type={TWELVE} style={{ color: ACCENT_CYAN }}>
+                                    Clear All
+                                </AppText>
                             </TouchableOpacity>
                         </View>
                         <ScrollView
@@ -1245,43 +1660,52 @@ const DepositCoin = () => {
                             keyboardShouldPersistTaps="handled"
                         >
                             {recentDepositCoinsForList.map((item: any) => {
-                                const chipIconUri = buildCoinImageUri(item);
+                                const accent = accentForSymbol(item?.short_name);
                                 return (
                                     <TouchableOpacity
                                         key={String(item._id)}
                                         style={[
                                             styles.depositRecentChip,
                                             {
-                                                backgroundColor: isDark
-                                                    ? themeColors.border
-                                                    : '#F0F0F0',
-                                                borderColor: isDark ? themeColors.border : '#EEE',
+                                                backgroundColor: ui.cardBg,
+                                                borderColor: hexToRgba(accent, 0.4),
                                             },
                                         ]}
                                         onPress={() => openNetworkSheetForCoin(item)}
                                         activeOpacity={0.7}
                                     >
-                                        {chipIconUri ? (
-                                            <FastImage
-                                                source={{ uri: chipIconUri }}
-                                                style={styles.depositRecentChipIcon}
-                                                resizeMode="cover"
-                                            />
-                                        ) : (
-                                            <View
-                                                style={[
-                                                    styles.depositRecentChipIcon,
-                                                    { backgroundColor: colors.textGray, opacity: 0.25 },
-                                                ]}
-                                            />
-                                        )}
-                                        <AppText
-                                            type={THIRTEEN}
-                                            weight={SEMI_BOLD}
-                                            style={{ color: themeColors.text }}
+                                        <LinearGradient
+                                            colors={[hexToRgba(accent, 0.15), hexToRgba(accent, 0)]}
+                                            start={{ x: 0, y: 0.5 }}
+                                            end={{ x: 1, y: 0.5 }}
+                                            style={StyleSheet.absoluteFill}
+                                        />
+                                        {renderCoinLogo(item, 32)}
+                                        <View style={styles.recentTextWrapper}>
+                                            <AppText
+                                                type={FOURTEEN}
+                                                weight={SEMI_BOLD}
+                                                style={{ color: themeColors.text }}
+                                            >
+                                                {item.short_name}
+                                            </AppText>
+                                            {item?.name ? (
+                                                <AppText
+                                                    type={TEN}
+                                                    numberOfLines={1}
+                                                    style={{ color: themeColors.secondaryText, maxWidth: 90 }}
+                                                >
+                                                    {item.name}
+                                                </AppText>
+                                            ) : null}
+                                        </View>
+                                        <TouchableOpacity
+                                            onPress={() => removeRecentDepositCoin(item.short_name)}
+                                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                            style={styles.recentRemoveBtn}
                                         >
-                                            {item.short_name}
-                                        </AppText>
+                                            <X color={themeColors.secondaryText} size={14} />
+                                        </TouchableOpacity>
                                     </TouchableOpacity>
                                 );
                             })}
@@ -1290,13 +1714,15 @@ const DepositCoin = () => {
                 )}
                 {trendingDepositCoins.length > 0 && (
                     <View style={styles.trendingBlock}>
-                        <AppText
-                            weight={SEMI_BOLD}
-                            type={THIRTEEN}
-                            style={[styles.trendingTitle, { color: themeColors.text }]}
-                        >
-                            Trending Coins
-                        </AppText>
+                        <View style={styles.sectionHeaderRow}>
+                            <AppText
+                                weight={SEMI_BOLD}
+                                type={SIXTEEN}
+                                style={{ color: themeColors.text }}
+                            >
+                                Trending Coins
+                            </AppText>
+                        </View>
                         {trendingDepositCoins.map((item: any) => (
                             <View key={String(item._id)}>{renderCoinListItem({ item })}</View>
                         ))}
@@ -1322,77 +1748,54 @@ const DepositCoin = () => {
     return (
         <AppSafeAreaView style={{ flex: 1, backgroundColor: themeColors.background }}>
             <View style={styles.headerView}>
-                <TouchableOpacity onPress={handleHeaderBack}>
+                <TouchableOpacity
+                    onPress={handleHeaderBack}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
                     <FastImage
                         source={back_ic}
                         resizeMode="contain"
                         style={{ width: 35, height: 35 }}
                     />
                 </TouchableOpacity>
-                <AppText
-                    color={themeColors.text}
-                    weight={SEMI_BOLD}
-                    type={EIGHTEEN}
-                >
+                <View style={styles.headerRight}>
+                    <TouchableOpacity
+                        onPress={() => {
+                            setFaqActiveIndex(null);
+                            selectCoinFaqSheetRef.current?.open();
+                        }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        style={styles.headerIconBtn}
+                    >
+                        <FastImage
+                            source={INFO}
+                            resizeMode="contain"
+                            style={{ width: 18, height: 18 }}
+                            tintColor={themeColors.text}
+                        />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={() => NavigationService.navigate('Wallet_History')}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        style={styles.headerIconBtn}
+                    >
+                        <FastImage
+                            source={historyIcon}
+                            resizeMode="contain"
+                            style={{ width: 22, height: 22 }}
+                            tintColor={themeColors.text}
+                        />
+                    </TouchableOpacity>
+                </View>
+            </View>
+
+            <View style={styles.titleSection}>
+                <AppText weight={SEMI_BOLD} type={TWENTY_TWO} style={{ color: themeColors.text }}>
                     {headerTitle}
                 </AppText>
-                {depositFlowPhase === 'selectCoin' ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                        <TouchableOpacity
-                            onPress={() => {
-                                setFaqActiveIndex(null);
-                                selectCoinFaqSheetRef.current?.open();
-                            }}
-                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                            <FastImage
-                                source={INFO}
-                                resizeMode="contain"
-                                style={{ width: 18, height: 18 }}
-                                tintColor={themeColors.text}
-                            />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={() => NavigationService.navigate('Wallet_History')}
-                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                            <FastImage
-                                source={printIcon}
-                                resizeMode="contain"
-                                style={{ width: 20, height: 17 }}
-                                tintColor={themeColors.text}
-                            />
-                        </TouchableOpacity>
-                    </View>
-                ) : (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                        <TouchableOpacity
-                            onPress={() => {
-                                setFaqActiveIndex(null);
-                                selectCoinFaqSheetRef.current?.open();
-                            }}
-                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                            <FastImage
-                                source={INFO}
-                                resizeMode="contain"
-                                style={{ width: 18, height: 18 }}
-                                tintColor={themeColors.text}
-                            />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={() => NavigationService.navigate('Wallet_History')}
-                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                            <FastImage
-                                source={printIcon}
-                                resizeMode="contain"
-                                style={{ width: 20, height: 17 }}
-                                tintColor={themeColors.text}
-                            />
-                        </TouchableOpacity>
-                    </View>
-                )}
+                <AppText type={THIRTEEN} style={{ color: themeColors.secondaryText, marginTop: 4 }}>
+                    {headerSubtitle}
+                </AppText>
             </View>
 
             {depositFlowPhase === 'selectCoin' ? (
@@ -1400,27 +1803,36 @@ const DepositCoin = () => {
                     <DepositCoinSelectListSkeleton />
                 ) : (
                     <View style={styles.selectCoinPhase}>
-                        <View style={[styles.selectCoinSearchWrap, { backgroundColor: isDark ? darkTheme.darkThemeInputColor : lightTheme.input }]}>
-                            <FastImage
-                                source={searchIcon}
-                                style={styles.selectCoinSearchIcon}
-                                resizeMode="contain"
-                                tintColor={themeColors.secondaryText}
-                            />
-                            <TextInput
+                        <View style={styles.searchSection}>
+                            <View
                                 style={[
-                                    styles.selectCoinSearchInput,
-                                    {
-                                        backgroundColor: 'transparent',
-                                        color: themeColors.text,
-                                    },
+                                    styles.searchInputWrapper,
+                                    { backgroundColor: ui.cardBg, borderColor: ui.border },
                                 ]}
-                                placeholder="Search Coins"
-                                placeholderTextColor={themeColors.secondaryText}
-                                cursorColor={isDark ? colors.white : colors.black}
-                                value={searchPair}
-                                onChangeText={setSearchPair}
-                            />
+                            >
+                                <Search
+                                    color={themeColors.secondaryText}
+                                    size={18}
+                                    style={styles.searchInputIcon}
+                                />
+                                <TextInput
+                                    style={[styles.selectCoinSearchInput, { color: themeColors.text }]}
+                                    placeholder="Search coins"
+                                    placeholderTextColor={themeColors.secondaryText}
+                                    cursorColor={isDark ? colors.white : colors.black}
+                                    value={searchPair}
+                                    onChangeText={setSearchPair}
+                                />
+                                {searchPair ? (
+                                    <TouchableOpacity
+                                        onPress={() => setSearchPair('')}
+                                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                        style={styles.searchClearBtn}
+                                    >
+                                        <X color={themeColors.secondaryText} size={16} />
+                                    </TouchableOpacity>
+                                ) : null}
+                            </View>
                         </View>
                         <View style={styles.selectCoinListRow}>
                             <SectionList
@@ -1448,7 +1860,7 @@ const DepositCoin = () => {
                                 removeClippedSubviews={Platform.OS === 'android'}
                                 viewabilityConfig={viewabilityConfig}
                                 onViewableItemsChanged={onViewableItemsChanged}
-                                extraData={isDark}
+                                extraData={listExtraData}
                                 ListEmptyComponent={
                                     mainListCoins.length === 0 &&
                                         trendingDepositCoins.length === 0 ? (
@@ -1499,14 +1911,14 @@ const DepositCoin = () => {
                                             {RAIL_KEYS.map((label) => {
                                                 const isHighlighted = highlightedRailLetter === label;
                                                 const mutedColor = themeColors.secondaryText;
-                                                const selectedColor = themeColors.text;
+                                                const selectedColor = ACCENT_CYAN;
                                                 return (
                                                     <View
                                                         key={label}
                                                         style={styles.alphabetIndexLetterCell}
                                                     >
                                                         <AppText
-                                                            type={EIGHT}
+                                                            type={NINE}
                                                             style={{
                                                                 ...styles.alphabetIndexLetter,
                                                                 color: isHighlighted
@@ -1684,15 +2096,7 @@ const DepositCoin = () => {
                                     <View style={[styles.depositInfoCard, { borderColor: isDark ? themeColors.border : '#EEE' }]}>
                                         <View style={styles.depositEmptyCardTopRow}>
                                             <View style={styles.depositEmptyCoinRow}>
-                                                {buildCoinImageUri(selectedCurrency) ? (
-                                                    <FastImage
-                                                        source={{ uri: buildCoinImageUri(selectedCurrency)! }}
-                                                        style={styles.depositEmptyCoinIcon}
-                                                        resizeMode="cover"
-                                                    />
-                                                ) : (
-                                                    <View style={styles.depositEmptyCoinIconPlaceholder} />
-                                                )}
+                                                {renderCoinLogo(selectedCurrency, 28)}
                                                 <View style={{ flex: 1 }}>
                                                     <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: themeColors.text }}>
                                                         {selectedCurrency?.short_name || '—'}
@@ -1826,16 +2230,14 @@ const DepositCoin = () => {
                 }}
             >
                 <View style={styles.networkSheetInner}>
-                    <AppText
-                        weight={SEMI_BOLD}
-                        type={EIGHTEEN}
-                        style={{
-                            ...styles.networkSheetTitle,
-                            color: themeColors.text,
-                        }}
-                    >
-                        Choose Network
-                    </AppText>
+                    <View style={styles.networkSheetTitle}>
+                        <AppText weight={SEMI_BOLD} type={TWENTY} style={{ color: themeColors.text }}>
+                            Choose Network
+                        </AppText>
+                        <AppText type={FOURTEEN} style={{ color: themeColors.secondaryText, marginTop: 4 }}>
+                            Select a network to continue
+                        </AppText>
+                    </View>
                     <ScrollView
                         style={styles.networkSheetScroll}
                         showsVerticalScrollIndicator={false}
@@ -1844,49 +2246,80 @@ const DepositCoin = () => {
                         {getActiveNetworkKeys(coinForNetworkSheet).map((chainKey: string, idx: number) => {
                             const minDep = limitForChain(coinForNetworkSheet?.min_deposit, chainKey);
                             const maxDep = limitForChain(coinForNetworkSheet?.max_deposit, chainKey);
-                            const hasRange = minDep != null || maxDep != null;
+                            const sym = coinForNetworkSheet?.short_name || '';
+                            const fullName =
+                                String(coinForNetworkSheet?._chain_full_name?.[chainKey] || '').trim() ||
+                                `${coinForNetworkSheet?.name || sym} · ${chainKey}`;
+                            const eta =
+                                String(coinForNetworkSheet?._chain_eta?.[chainKey] || '').trim() || '≈ 2 mins';
+                            const chainAccent = accentForSymbol(chainKey);
+                            const infoItems = [
+                                { key: 'block', label: 'Block', value: '1 Block', Icon: Box },
+                                {
+                                    key: 'min',
+                                    label: 'Min. Deposit',
+                                    value: minDep != null ? `${minDep} ${sym}` : `> 0 ${sym}`,
+                                    Icon: ArrowDownToLine,
+                                },
+                                { key: 'eta', label: 'Est. Arrival', value: eta, Icon: Clock },
+                            ];
                             return (
                                 <TouchableOpacity
                                     key={`${chainKey}-${idx}`}
-                                    style={[styles.networkCard, { borderColor: isDark ? themeColors.border : '#EEE' }]}
+                                    style={[styles.networkCard, { backgroundColor: ui.cardBg, borderColor: ui.softBorder }]}
                                     onPress={() => handleNetworkChosenFromSheet(chainKey)}
                                     activeOpacity={0.75}
                                 >
-                                    <View style={styles.networkCardTitleRow}>
-                                        <AppText
-                                            weight={SEMI_BOLD}
-                                            type={EIGHTEEN}
-                                            style={{ color: themeColors.text }}
-                                        >
-                                            {chainKey}
-                                        </AppText>
-                                        <AppText
-                                            type={FOURTEEN}
-                                            color={colors.textGray}
-                                            style={{ flex: 1, marginLeft: 8 }}
-                                        >
-                                            {coinForNetworkSheet?.name || coinForNetworkSheet?.short_name} ·{' '}
-                                            {chainKey}
-                                        </AppText>
+                                    <View style={[styles.networkCardTop, { borderBottomColor: ui.softBorder }]}>
+                                        <View style={[styles.networkLogo, { backgroundColor: chainAccent }]}>
+                                            <AppText weight={BOLD} type={FOURTEEN} style={{ color: '#FFFFFF' }}>
+                                                {chainKey.charAt(0).toUpperCase()}
+                                            </AppText>
+                                        </View>
+                                        <View style={{ marginLeft: 12, flex: 1 }}>
+                                            <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: themeColors.text }}>
+                                                {chainKey}
+                                            </AppText>
+                                            <AppText
+                                                type={TWELVE}
+                                                numberOfLines={1}
+                                                style={{ color: themeColors.secondaryText, marginTop: 2 }}
+                                            >
+                                                {fullName}
+                                            </AppText>
+                                        </View>
+                                        <View style={[styles.networkChevron, { backgroundColor: ui.subtleBg }]}>
+                                            <ChevronRight color={themeColors.secondaryText} size={16} />
+                                        </View>
                                     </View>
-                                    <AppText type={TWELVE} color={colors.textGray} style={styles.networkCardLine}>
-                                        1 block confirmation/s
-                                    </AppText>
-                                    <AppText type={TWELVE} color={colors.textGray} style={styles.networkCardLine}>
-                                        {hasRange ? (
-                                            <>
-                                                Min. / max deposit: {minDep ?? '—'} - {maxDep ?? '—'}{' '}
-                                                {coinForNetworkSheet?.short_name}
-                                            </>
-                                        ) : (
-                                            <>
-                                                Min. deposit &gt;0 {coinForNetworkSheet?.short_name}
-                                            </>
-                                        )}
-                                    </AppText>
-                                    <AppText type={TWELVE} color={colors.textGray} style={styles.networkCardLine}>
-                                        Est. arrival ≈ 2 mins
-                                    </AppText>
+
+                                    <View style={styles.networkCardBottom}>
+                                        {infoItems.map(({ key, label, value, Icon }) => (
+                                            <View key={key} style={styles.networkInfoItem}>
+                                                <View style={styles.networkInfoIcon}>
+                                                    <Icon color={ACCENT_CYAN} size={12} />
+                                                </View>
+                                                <View style={{ marginLeft: 6, flexShrink: 1 }}>
+                                                    <AppText type={TEN} style={{ color: themeColors.secondaryText }}>
+                                                        {label}
+                                                    </AppText>
+                                                    <AppText
+                                                        weight={MEDIUM}
+                                                        type={TWELVE}
+                                                        numberOfLines={1}
+                                                        style={{ color: themeColors.text }}
+                                                    >
+                                                        {value}
+                                                    </AppText>
+                                                </View>
+                                            </View>
+                                        ))}
+                                    </View>
+                                    {maxDep != null ? (
+                                        <AppText type={TEN} style={[styles.networkCardLine, { color: themeColors.secondaryText }]}>
+                                            Max. deposit: {maxDep} {sym}
+                                        </AppText>
+                                    ) : null}
                                 </TouchableOpacity>
                             );
                         })}
@@ -2828,9 +3261,50 @@ const styles = StyleSheet.create({
     coinItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 6,
+        paddingVertical: 12,
         paddingHorizontal: 2,
         gap: 8,
+        borderBottomWidth: 1,
+    },
+    coinLeft: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        minWidth: 0,
+    },
+    coinSpark: {
+        width: 84,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    coinRight: {
+        width: 100,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+    },
+    starBtn: {
+        marginLeft: 10,
+    },
+    coinSvgWrap: {
+        overflow: 'hidden',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#000',
+    },
+    rowChevron: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    suspendedPill: {
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 999,
+        backgroundColor: 'rgba(224, 57, 52, 0.12)',
     },
     coinIcon: {
         width: 38,
@@ -2892,12 +3366,59 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginTop: 8,
         paddingHorizontal: 16,
-        paddingBottom: 4,
+        paddingVertical: 4,
+    },
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    headerIconBtn: {
+        padding: 4,
+        marginLeft: 12,
+    },
+    titleSection: {
+        paddingHorizontal: 16,
+        marginTop: 6,
+        marginBottom: 12,
     },
     selectCoinPhase: {
         flex: 1,
 
         paddingHorizontal: 16,
+    },
+    searchSection: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    searchInputWrapper: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        height: 48,
+        borderRadius: 24,
+        borderWidth: 1,
+    },
+    searchInputIcon: {
+        marginLeft: 14,
+        marginRight: 8,
+    },
+    searchClearBtn: {
+        paddingHorizontal: 14,
+    },
+    sectionHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+    },
+    recentTextWrapper: {
+        marginLeft: 8,
+        marginRight: 4,
+        justifyContent: 'center',
+    },
+    recentRemoveBtn: {
+        padding: 4,
     },
     selectCoinListRow: {
         flex: 1,
@@ -2928,8 +3449,9 @@ const styles = StyleSheet.create({
     },
     selectCoinSearchInput: {
         flex: 1,
-        paddingVertical: 8,
-        fontSize: 15,
+        height: '100%',
+        paddingVertical: 0,
+        fontSize: 14,
     },
     sectionListContent: {
         paddingTop: 2,
@@ -2939,11 +3461,11 @@ const styles = StyleSheet.create({
         paddingRight: 22,
     },
     depositSectionHeader: {
-        paddingTop: 8,
+        paddingTop: 14,
         paddingBottom: 2,
     },
     depositHistoryChipsSection: {
-        marginBottom: 12,
+        marginBottom: 20,
     },
     depositHistoryChipsTitleRow: {
         flexDirection: 'row',
@@ -2958,17 +3480,17 @@ const styles = StyleSheet.create({
     depositRecentChipsScroll: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
+        gap: 12,
         paddingRight: 8,
     },
     depositRecentChip: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 16,
-        gap: 6,
+        padding: 8,
+        paddingRight: 4,
+        borderRadius: 12,
         borderWidth: 1,
+        overflow: 'hidden',
     },
     depositRecentChipIcon: {
         width: 24,
@@ -2976,7 +3498,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
     },
     trendingBlock: {
-        marginBottom: 2,
+        marginBottom: 6,
     },
     trendingTitle: {
         marginBottom: 6,
@@ -3000,10 +3522,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     alphabetBubbleLight: {
-        backgroundColor: 'rgba(0,0,0,0.38)',
+        backgroundColor: 'rgba(10, 168, 197, 0.85)',
     },
     alphabetBubbleDark: {
-        backgroundColor: 'rgba(255,255,255,0.12)',
+        backgroundColor: 'rgba(10, 168, 197, 0.35)',
     },
     alphabetBubbleText: {
         color: '#FFFFFF',
@@ -3028,7 +3550,7 @@ const styles = StyleSheet.create({
         minHeight: 0,
     },
     alphabetIndexLetter: {
-        lineHeight: 10,
+        lineHeight: 11,
         fontWeight: '600',
     },
     coinItemDisabled: {
@@ -3040,16 +3562,56 @@ const styles = StyleSheet.create({
         paddingTop: 8,
     },
     networkSheetTitle: {
-        marginBottom: 12,
+        marginBottom: 16,
     },
     networkSheetScroll: {
-        maxHeight: SHEET_HEIGHT - 168,
+        maxHeight: SHEET_HEIGHT - 190,
     },
     networkCard: {
         borderWidth: 1,
-        borderRadius: 12,
-        padding: 14,
+        borderRadius: 16,
+        padding: 12,
         marginBottom: 10,
+    },
+    networkCardTop: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderBottomWidth: 1,
+        paddingBottom: 12,
+        marginBottom: 12,
+    },
+    networkLogo: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    networkChevron: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    networkCardBottom: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: 8,
+    },
+    networkInfoItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexShrink: 1,
+    },
+    networkInfoIcon: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: 'rgba(10, 168, 197, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     networkCardTitleRow: {
         flexDirection: 'row',
