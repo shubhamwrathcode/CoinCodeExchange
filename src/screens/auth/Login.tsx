@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { isValidPhoneNumber } from "libphonenumber-js";
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
+import Recaptcha from "react-native-recaptcha-that-works";
+import type { RecaptchaRef } from "react-native-recaptcha-that-works";
 import { prepareGoogleSignIn } from "../../helper/googleSignIn";
 import {
   FORGOT_PASSWORD_SCREEN,
@@ -65,6 +67,7 @@ import NavigationService from "../../navigation/NavigationService";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/fonts";
 import { appOperation } from "../../appOperation";
+import { CAPTCHA_BASE_URL, CAPTCHA_SITE_KEY } from "../../helper/Constants";
 
 const Login = (): JSX.Element => {
   const dispatch = useAppDispatch();
@@ -91,6 +94,15 @@ const Login = (): JSX.Element => {
     useState(false);
   const [emailSuggestListVisible, setEmailSuggestListVisible] = useState(false);
   const emailSuggestBlurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recaptchaRef = useRef<RecaptchaRef>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  /** After Login press: CAPTCHA modal runs, then login API. No on-screen CAPTCHA field. */
+  const pendingLoginAfterCaptcha = useRef(false);
+
+  const resetLoginCaptcha = () => {
+    setCaptchaToken(null);
+    pendingLoginAfterCaptcha.current = false;
+  };
 
   const clearEmailSuggestBlurTimer = () => {
     if (emailSuggestBlurTimer.current) {
@@ -115,6 +127,7 @@ const Login = (): JSX.Element => {
     setPasswordError(false);
     setShowPassField(false);
     setEmailSuggestListVisible(false);
+    resetLoginCaptcha();
   }, [index]);
 
   useEffect(() => {
@@ -235,7 +248,14 @@ const Login = (): JSX.Element => {
     }
     setPasswordError(false);
     Keyboard.dismiss();
-    onLogin();
+
+    if (CAPTCHA_SITE_KEY && !captchaToken) {
+      pendingLoginAfterCaptcha.current = true;
+      recaptchaRef.current?.open();
+      return;
+    }
+
+    void onLogin();
   };
 
   const getNormalizedLoginId = () => {
@@ -245,18 +265,21 @@ const Login = (): JSX.Element => {
     return String(signUpId || "").replace(/\D/g, "").replace(/^0+/, "") || "";
   };
 
-  const onLogin = async () => {
+  const onLogin = async (captchaOverride?: string | null) => {
+    const token = captchaOverride ?? captchaToken ?? "";
     const normalizedId = getNormalizedLoginId();
     const result = (await dispatch(
       login({
         email_or_phone: normalizedId,
         password,
-        token: "",
+        token,
       })
     )) as LoginThunkResult;
     setPasswordError(false);
     setIdentifierError(false);
     if (!result?.success) {
+      // reCAPTCHA tokens are single-use; the next attempt needs a fresh one.
+      resetLoginCaptcha();
       if (result.highlightPasswordField) setPasswordError(true);
       if (result.highlightIdentifierField) setIdentifierError(true);
       if (result?.message) {
@@ -345,6 +368,7 @@ const Login = (): JSX.Element => {
   const changeInput = (val: any) => {
     setSignUpId(val);
     setShowPassField(false);
+    setCaptchaToken(null);
     if (identifierError) setIdentifierError(false);
     if (index === 0) {
       const raw = String(val || "").trim();
@@ -524,6 +548,7 @@ const Login = (): JSX.Element => {
           onChange={(i: number) => {
             setIndex(i);
             setShowPassField(false);
+            resetLoginCaptcha();
           }}
           containerStyle={{}}
         />
@@ -640,6 +665,7 @@ const Login = (): JSX.Element => {
                 onChangeText={(text) => {
                   if (passwordError) setPasswordError(false);
                   setPassword(text);
+                  if (captchaToken) resetLoginCaptcha();
                 }}
                 autoCapitalize="none"
                 secureTextEntry={isPasswordVisible}
@@ -682,6 +708,38 @@ const Login = (): JSX.Element => {
               </View>
             </>
           )}
+
+          {/* CAPTCHA is never shown as a form field — opens only after Login press. */}
+          {CAPTCHA_SITE_KEY ? (
+            <Recaptcha
+              ref={recaptchaRef}
+              siteKey={CAPTCHA_SITE_KEY}
+              baseUrl={CAPTCHA_BASE_URL}
+              size="normal"
+              theme={isDark ? "dark" : "light"}
+              onVerify={(token) => {
+                setCaptchaToken(token);
+                const shouldLogin = pendingLoginAfterCaptcha.current;
+                pendingLoginAfterCaptcha.current = false;
+                if (shouldLogin) {
+                  void onLogin(token);
+                }
+              }}
+              onExpire={() => {
+                setCaptchaToken(null);
+              }}
+              onError={() => {
+                resetLoginCaptcha();
+                showError("CAPTCHA failed. Please try again.");
+              }}
+              onClose={() => {
+                // Library calls onClose before onVerify on success — defer cancel so verify can still login.
+                setTimeout(() => {
+                  pendingLoginAfterCaptcha.current = false;
+                }, 0);
+              }}
+            />
+          ) : null}
 
           {/* Divider */}
           <View style={styles.dividerContainer}>

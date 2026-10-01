@@ -54,6 +54,15 @@ export const IMAGE_BASE_URL = 'https://agcx-data-storage-s3-uae.s3.me-central-1.
 // export const PASSKEY_RP_ID = 'agce.wrathcode.com';
 export const PASSKEY_RP_ID = 'arabglobal.ae';
 
+/**
+ * Google reCAPTCHA v2 site key — same as web `REACT_APP_CAPTCHA_SITE_KEY`.
+ * Must be the Web key (not Android/iOS platform keys).
+ */
+export const CAPTCHA_SITE_KEY =
+  '6LfS8MotAAAAADju8xGE-UwMnBTBGAOnRWcffU-u';
+/** Domain registered in reCAPTCHA console (matches web / passkey RP). */
+export const CAPTCHA_BASE_URL = 'https://arabglobal.ae';
+
 
 export const placeHolderText = {
   userName: 'Phone Number',

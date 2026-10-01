@@ -473,6 +473,8 @@ export const AssetsIcon = require('../../assets/images/AssetsIcon.png');
 export const defaultTrade = require('../../assets/images/defaultTrade.png');
 export const RectangleGreen = require('../../assets/images/RectangleGreen.png');
 export const RectangleRed = require('../../assets/images/RectangleRed.png');
+export const barcodeFrame=require('../../assets/images/barcodeFrame.png')
+
 
 
 

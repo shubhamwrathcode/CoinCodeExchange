@@ -28,6 +28,8 @@ import AddWithdrawalAddressVerification from "../components/WithdrawAddress/AddW
 import WithdrawAddressBookModal from "../components/WithdrawAddress/WithdrawAddressBookModal";
 import { canonicalWithdrawalChainForValidateAddress, CHAIN_FULL_NAMES, formatFundAvailableFromRow, formatWithdrawAmountDisplay, getActiveWithdrawChainKeys, networkKeysFromChain, parseNum, totalSpendableFromFundRow, valueForChain, WITHDRAW_NETWORK_LABELS } from "../../../helper/walletChainHelpers";
 import { useTheme } from "../../../hooks/useTheme";
+import { BlurSheetBackground, blurSheetTheme } from "../sheets/BlurSheetChrome";
+import { X } from "lucide-react-native";
 import { useAppSelector } from "../../../store/hooks";
 import { getInteralWalletHistory, getUserMainWallet, getWithdrawActiveCoins, verifyWithdraw, withdrawCoin } from "../../../actions/walletActions";
 import { getWithdrawalPasskeyCredential } from "../../../actions/accountActions";
@@ -133,6 +135,7 @@ const WithdrawForm = () => {
   const dispatch = useDispatch();
   const route = useRoute();
   const { colors: themeColors, isDark } = useTheme();
+  const sheetTheme = useMemo(() => blurSheetTheme(isDark), [isDark]);
   const scrollViewRef = useRef(null);
   const routeCoin = route?.params?.data;
   const userData = useAppSelector((state) => state.auth.userData);
@@ -4089,29 +4092,43 @@ const WithdrawForm = () => {
         animationType="fade"
         statusBarTranslucent
       >
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", padding: 20 }}>
+        <View style={{ flex: 1, backgroundColor: isDark ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0.35)", justifyContent: "center", alignItems: "center", padding: 20 }}>
           <View style={{
-            backgroundColor: themeColors.background,
             width: "100%",
-            borderRadius: 10,
-            padding: 10,
+            borderRadius: 24,
+            borderWidth: 1,
+            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+            overflow: "hidden",
+            paddingTop: 20,
+            paddingBottom: 24,
+            paddingHorizontal: 16,
             alignItems: "center",
             position: "relative",
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 10 },
-            shadowOpacity: 0.1,
-            shadowRadius: 20,
-            elevation: 10,
           }}>
+            <BlurSheetBackground isDark={isDark} tint="cyan" />
+
             {/* Close Button */}
             <TouchableOpacity
               onPress={() => {
                 setShowKycModal(false);
                 NavigationService.goBack();
               }}
-              style={{ position: "absolute", right: 20, top: 20, zIndex: 10 }}
+              style={{
+                position: "absolute",
+                right: 16,
+                top: 16,
+                zIndex: 10,
+                width: 30,
+                height: 30,
+                borderRadius: 15,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: sheetTheme.closeCircleBg,
+              }}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              activeOpacity={0.75}
             >
-              <AppText type={TWENTY} style={{ color: themeColors.text }}>✕</AppText>
+              <X color={sheetTheme.iconTint} size={14} strokeWidth={2.4} />
             </TouchableOpacity>
 
             {/* Illustration */}
@@ -4121,11 +4138,11 @@ const WithdrawForm = () => {
               resizeMode="contain"
             />
 
-            <AppText type={FIFTEEN} weight={BOLD} style={{ color: themeColors.text, textAlign: "center", marginBottom: 12 }}>
+            <AppText type={EIGHTEEN} weight={BOLD} style={{ color: sheetTheme.textColor, textAlign: "center", marginBottom: 12, letterSpacing: -0.2 }}>
               Identity verification required
             </AppText>
 
-            <AppText type={FOURTEEN} color={themeColors.secondaryText} style={{ textAlign: "center", lineHeight: 22, marginBottom: 32, paddingHorizontal: 10 }}>
+            <AppText type={FOURTEEN} color={sheetTheme.subTextColor} style={{ textAlign: "center", lineHeight: 22, marginBottom: 32, paddingHorizontal: 10 }}>
               To withdraw crypto you must complete identity verification (KYC). Use the button below to open Identification in your profile. When your KYC status is verified, you can complete your withdrawal here.
             </AppText>
 
@@ -4134,16 +4151,17 @@ const WithdrawForm = () => {
                 setShowKycModal(false);
                 NavigationService.navigate(KYC_STATUS_SCREEN);
               }}
+              activeOpacity={0.85}
               style={{
-                backgroundColor: isDark ? colors.white : "#F3F4F6",
-                height: 56,
-                borderRadius: 28,
+                backgroundColor: colors.cyanTheme,
+                height: 52,
+                borderRadius: 26,
                 justifyContent: "center",
                 alignItems: "center",
-                width: "90%"
+                width: "100%"
               }}
             >
-              <AppText weight={SEMI_BOLD} type={FOURTEEN} style={{ color: isDark ? colors.black : colors.white }}>Verify now</AppText>
+              <AppText weight={BOLD} type={FIFTEEN} color="#000000">Verify now</AppText>
             </TouchableOpacity>
           </View>
         </View>

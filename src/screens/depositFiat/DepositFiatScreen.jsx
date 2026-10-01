@@ -34,14 +34,14 @@ import {
   closeIcon,
 } from "../../helper/ImageAssets";
 import RBSheet from "react-native-raw-bottom-sheet";
-import AnimatedBottomSheet from "../../common/AnimatedBottomSheet/AnimatedBottomSheet";
+import { X } from "lucide-react-native";
+import { BlurSheetBackground, blurSheetRbCustomStyles, blurSheetTheme } from "../wallet/sheets/BlurSheetChrome";
 import {
   AppSafeAreaView,
   AppText,
   BOLD,
   SEMI_BOLD,
   MEDIUM,
-  TWENTY,
   TWENTY_FOUR,
   EIGHTEEN,
   SIXTEEN,
@@ -54,6 +54,7 @@ import {
 } from "../../shared";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const KYC_SHEET_HEIGHT = 380;
 
 const FIAT_FAQ_DATA = [
   {
@@ -79,7 +80,7 @@ const FIAT_FAQ_DATA = [
 ];
 
 // Web SVG Icon Components with exact web paths & styling
-const SecurityShieldIcon = ({ size = 20, color = "#D1AA67" }) => (
+const SecurityShieldIcon = ({ size = 20, color = colors.cyan }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path
       d="M9 12L11 14L15 10M20.618 5.984C17.4561 6.15192 14.3567 5.05861 12 2.944C9.64327 5.05861 6.5439 6.15192 3.382 5.984C3.12754 6.96911 2.99918 7.98255 3 9C3 14.591 6.824 19.29 12 20.622C17.176 19.29 21 14.592 21 9C21 7.958 20.867 6.948 20.618 5.984Z"
@@ -91,13 +92,13 @@ const SecurityShieldIcon = ({ size = 20, color = "#D1AA67" }) => (
   </Svg>
 );
 
-const InstantBoltIcon = ({ size = 20, color = "#D1AA67" }) => (
+const InstantBoltIcon = ({ size = 20, color = colors.cyan }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path d="M13 10V3L4 14H11V21L20 10H13V10" fill={color} />
   </Svg>
 );
 
-const GlobalGlobeIcon = ({ size = 20, color = "#D1AA67" }) => (
+const GlobalGlobeIcon = ({ size = 20, color = colors.cyan }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path
       d="M21 12C21 16.9672 16.9672 21 12 21M21 12C21 7.03276 16.9672 3 12 3M21 12H3M12 21C7.03276 21 3 16.9672 3 12M12 21C13.657 21 15 16.97 15 12C15 7.03 13.657 3 12 3M12 21C10.343 21 9 16.97 9 12C9 7.03 10.343 3 12 3M3 12C3 7.03276 7.03276 3 12 3"
@@ -109,7 +110,7 @@ const GlobalGlobeIcon = ({ size = 20, color = "#D1AA67" }) => (
   </Svg>
 );
 
-const BankPillarsIcon = ({ size = 24, color = "#D1AA67" }) => (
+const BankPillarsIcon = ({ size = 24, color = colors.cyan }) => (
   <Svg width={size} height={size} viewBox="0 0 29 29" fill="none">
     <Path
       d="M8.55078 14.5527V17.5527M12.5508 14.5527V17.5527M16.5508 14.5527V17.5527M3.55078 21.5527H21.5508M3.55078 10.5527H21.5508M3.55078 7.55273L12.5508 3.55273L21.5508 7.55273M4.55078 10.5527H20.5508V21.5527H4.55078V10.5527Z"
@@ -121,7 +122,7 @@ const BankPillarsIcon = ({ size = 24, color = "#D1AA67" }) => (
   </Svg>
 );
 
-const TransferBuildingIcon = ({ size = 20, color = "#D1AA67" }) => (
+const TransferBuildingIcon = ({ size = 20, color = colors.cyan }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path
       d="M19 21V5C19 3.89617 18.1038 3 17 3H7C5.89617 3 5 3.89617 5 5V21M19 21H21M19 21H14M5 21H3M5 21H10M9 7H10M9 11H10M14 7H15M14 11H15M10 21V16C10 15.4481 10.4481 15 11 15H13C13.5519 15 14 15.4481 14 16V21M10 21H14"
@@ -142,7 +143,7 @@ const UaeFlagIcon = ({ width = 24, height = 16 }) => (
   </Svg>
 );
 
-const CopyIcon = ({ size = 15, color = "#D1AA67" }) => (
+const CopyIcon = ({ size = 15, color = colors.cyan }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path
       fillRule="evenodd"
@@ -244,6 +245,27 @@ const DepositFiatScreen = () => {
   // Bottom Sheet Refs
   const kycModalRef = useRef(null);
   const fiatFaqSheetRef = useRef(null);
+  const sheetTheme = useMemo(() => blurSheetTheme(isDark), [isDark]);
+  const faqSheetStyles = useMemo(
+    () =>
+      blurSheetRbCustomStyles({
+        isDark,
+        height: Math.round(Dimensions.get("window").height * 0.72) - 200,
+        borderRadius: 24,
+      }),
+    [isDark]
+  );
+  const kycSheetStyles = useMemo(
+    () => blurSheetRbCustomStyles({ isDark, height: KYC_SHEET_HEIGHT, borderRadius: 24 }),
+    [isDark]
+  );
+  const sheetAccent = useMemo(
+    () => ({
+      bg: isDark ? "rgba(10, 168, 197, 0.10)" : "rgba(10, 168, 197, 0.08)",
+      border: isDark ? "rgba(10, 168, 197, 0.35)" : "rgba(10, 168, 197, 0.25)",
+    }),
+    [isDark]
+  );
 
   const isKycVerified = useMemo(() => isKycVerifiedCheck(userData), [userData]);
 
@@ -343,8 +365,8 @@ const DepositFiatScreen = () => {
 
   // Color tokens
   const bgColor = themeColors.background;
-  const cardBg = isDark ? "rgba(255,255,255,0.05)" : "#FFFFFF";
-  const borderColor = isDark ? "rgba(255,255,255,0.08)" : "#E5E7EB";
+  const cardBg = isDark ? colors.lightBlackLatest : "#F9FAFB";
+  const borderColor = isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.06)";
   const textColor = isDark ? "#FFFFFF" : "#111827";
   const subTextColor = isDark ? "rgba(255,255,255,0.55)" : "#6B7280";
   const badgeBg = isDark ? "rgba(255,255,255,0.08)" : "#EDF2F7";
@@ -358,7 +380,7 @@ const DepositFiatScreen = () => {
     : (isDark ? "rgba(34, 197, 94, 0.18)" : "#DCFCE7");
 
   const activeBadgeText = statusChip.pending
-    ? (isDark ? "#D1AA67" : "#D97706")
+    ? (isDark ? colors.cyan : "#D97706")
     : (isDark ? "#22C55E" : "#15803D");
 
   const activeBadgeBorder = statusChip.pending
@@ -454,7 +476,7 @@ const DepositFiatScreen = () => {
           <View style={styles.featureList}>
             <View style={styles.featureRow}>
               <View style={styles.featureIconBadge}>
-                <SecurityShieldIcon size={15} color="#D1AA67" />
+                <SecurityShieldIcon size={15} color={colors.cyan} />
               </View>
               <View style={styles.featureTextWrap}>
                 <AppText type={THIRTEEN} weight={BOLD} style={styles.featureTitle} color={textColor}>
@@ -468,7 +490,7 @@ const DepositFiatScreen = () => {
 
             <View style={styles.featureRow}>
               <View style={styles.featureIconBadge}>
-                <InstantBoltIcon size={15} color="#D1AA67" />
+                <InstantBoltIcon size={15} color={colors.cyan} />
               </View>
               <View style={styles.featureTextWrap}>
                 <AppText type={THIRTEEN} weight={BOLD} style={styles.featureTitle} color={textColor}>
@@ -482,7 +504,7 @@ const DepositFiatScreen = () => {
 
             <View style={styles.featureRow}>
               <View style={styles.featureIconBadge}>
-                <GlobalGlobeIcon size={15} color="#D1AA67" />
+                <GlobalGlobeIcon size={15} color={colors.cyan} />
               </View>
               <View style={styles.featureTextWrap}>
                 <AppText type={THIRTEEN} weight={BOLD} style={styles.featureTitle} color={textColor}>
@@ -584,7 +606,7 @@ const DepositFiatScreen = () => {
                     {copiedField === "account_no" ? (
                       <CopiedCheckIcon size={14} color="#10B981" />
                     ) : (
-                      <CopyIcon size={14} color={isDark ? "#D1AA67" : "#B45309"} />
+                      <CopyIcon size={14} color={isDark ? colors.cyan : "#B45309"} />
                     )}
                   </TouchableOpacity>
                 ) : null}
@@ -619,7 +641,7 @@ const DepositFiatScreen = () => {
                     {copiedField === "iban" ? (
                       <CopiedCheckIcon size={14} color="#10B981" />
                     ) : (
-                      <CopyIcon size={14} color={isDark ? "#D1AA67" : "#B45309"} />
+                      <CopyIcon size={14} color={isDark ? colors.cyan : "#B45309"} />
                     )}
                   </TouchableOpacity>
                 ) : null}
@@ -696,7 +718,7 @@ const DepositFiatScreen = () => {
             <AppText type={THIRTEEN} weight={SEMI_BOLD} style={[styles.fieldLabel, { marginTop: 16 }]} color={subTextColor}>
               Payment Method
             </AppText>
-            <View style={[styles.methodCard, { backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", borderColor }]}>
+            <View style={[styles.methodCard, { backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#FFFFFF", borderColor }]}>
               <View style={styles.methodHeader}>
                 <View style={styles.methodTitleRow}>
                   <AppText type={FIFTEEN} weight={BOLD} color={textColor}>
@@ -741,19 +763,29 @@ const DepositFiatScreen = () => {
       </ScrollView>
 
       {/* KYC Required Modal (Exact web parity) */}
-      <AnimatedBottomSheet
+      {/* @ts-ignore */}
+      <RBSheet
+        customModalProps={{ statusBarTranslucent: true }}
         ref={kycModalRef}
-        sheetHeight={340}
-        isDark={isDark}
+        height={KYC_SHEET_HEIGHT}
+        closeOnDragDown
+        closeOnPressMask
+        customStyles={kycSheetStyles}
       >
+        <BlurSheetBackground isDark={isDark} tint="cyan" />
         <View style={styles.kycModalInner}>
-          <View style={styles.kycModalIconBadge}>
-            <SecurityShieldIcon size={32} color="#D1AA67" />
+          <View
+            style={[
+              styles.kycModalIconBadge,
+              { backgroundColor: sheetAccent.bg, borderColor: sheetAccent.border },
+            ]}
+          >
+            <SecurityShieldIcon size={32} color={colors.cyanTheme} />
           </View>
-          <AppText type={EIGHTEEN} weight={BOLD} style={styles.kycModalTitle} color={textColor}>
+          <AppText type={EIGHTEEN} weight={BOLD} style={styles.kycModalTitle} color={sheetTheme.textColor}>
             {kycReason === "incomplete" ? "KYC details incomplete" : "Identity verification required"}
           </AppText>
-          <AppText type={THIRTEEN} style={styles.kycModalDesc} color={subTextColor}>
+          <AppText type={THIRTEEN} style={styles.kycModalDesc} color={sheetTheme.subTextColor}>
             {kycReason === "incomplete"
               ? "Your verified profile is missing details the bank needs (name, date of birth, document number, nationality, or expiry). Open KYC to update your documents — creating another virtual account will not fix this."
               : "Complete KYC before creating a virtual IBAN. After verification you can deposit AED via bank transfer."}
@@ -772,7 +804,7 @@ const DepositFiatScreen = () => {
             </AppText>
           </TouchableOpacity>
         </View>
-      </AnimatedBottomSheet>
+      </RBSheet>
 
       {/* Fiat Deposit Help / FAQ Bottom Sheet (Exact UI parity with DepositCoin.tsx) */}
       {/* @ts-ignore */}
@@ -782,28 +814,21 @@ const DepositFiatScreen = () => {
         height={Math.round(Dimensions.get("window").height * 0.72) - 200}
         closeOnDragDown
         closeOnPressMask
-        customStyles={{
-          container: {
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            backgroundColor: themeColors.background,
-          },
-          wrapper: { backgroundColor: "rgba(0,0,0,0.6)" },
-          draggableIcon: { backgroundColor: colors.textGray },
-        }}
+        customStyles={faqSheetStyles}
       >
-        <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20 }}>
+        <BlurSheetBackground isDark={isDark} tint="cyan" />
+        <View style={styles.sheetBody}>
           <View style={styles.modalHeader}>
-            <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: themeColors.text }}>
+            <AppText weight={BOLD} type={EIGHTEEN} style={{ color: sheetTheme.textColor, letterSpacing: -0.2 }}>
               Deposit Fiat Help
             </AppText>
             <TouchableOpacity
               onPress={() => fiatFaqSheetRef.current?.close()}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={[styles.sheetCloseCircle, { backgroundColor: sheetTheme.closeCircleBg }]}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              activeOpacity={0.75}
             >
-              <AppText type={TWENTY} style={{ color: themeColors.text }}>
-                ×
-              </AppText>
+              <X color={sheetTheme.iconTint} size={14} strokeWidth={2.4} />
             </TouchableOpacity>
           </View>
 
@@ -818,7 +843,7 @@ const DepositFiatScreen = () => {
                 style={[
                   styles.faqItemInner,
                   index === FIAT_FAQ_DATA.length - 1 && styles.faqItemInnerLast,
-                  { borderColor: colors.inputBorder },
+                  { borderBottomColor: sheetTheme.rowBorderColor },
                 ]}
               >
                 <TouchableOpacity
@@ -831,7 +856,10 @@ const DepositFiatScreen = () => {
                   <AppText
                     type={THIRTEEN}
                     weight={SEMI_BOLD}
-                    style={[styles.faqQuestion, { color: themeColors.secondaryText }]}
+                    style={[
+                      styles.faqQuestion,
+                      { color: faqActiveIndex === index ? colors.cyanTheme : sheetTheme.textColor },
+                    ]}
                   >
                     {item.title}
                   </AppText>
@@ -839,7 +867,7 @@ const DepositFiatScreen = () => {
                     source={faqActiveIndex === index ? upIcon : downIcon}
                     resizeMode="contain"
                     style={styles.faqArrow}
-                    tintColor={themeColors.secondaryText}
+                    tintColor={faqActiveIndex === index ? colors.cyanTheme : sheetTheme.subTextColor}
                   />
                 </TouchableOpacity>
                 {faqActiveIndex === index && (
@@ -848,7 +876,7 @@ const DepositFiatScreen = () => {
                       <AppText
                         key={lineIndex}
                         type={TWELVE}
-                        style={{ color: themeColors.secondaryText, lineHeight: 18 }}
+                        style={{ color: sheetTheme.subTextColor, lineHeight: 18 }}
                       >
                         {line}
                       </AppText>
@@ -860,9 +888,9 @@ const DepositFiatScreen = () => {
           </ScrollView>
 
           {/* Bottom Note & Deposit Crypto Link */}
-          <View style={{ borderTopWidth: 1, borderTopColor: isDark ? "rgba(255,255,255,0.08)" : "#E2E8F0", paddingTop: 14, marginTop: 10 }}>
+          <View style={{ borderTopWidth: 1, borderTopColor: sheetTheme.rowBorderColor, paddingTop: 14, marginTop: 10 }}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "flex-start", flexWrap: "wrap" }}>
-              <AppText type={TWELVE} style={{ color: themeColors.secondaryText }}>
+              <AppText type={TWELVE} style={{ color: sheetTheme.subTextColor }}>
                 Looking to deposit crypto assets instead?{" "}
               </AppText>
               <TouchableOpacity
@@ -919,7 +947,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   gatewayPill: {
-    backgroundColor: "rgba(212,175,55,0.15)",
+    backgroundColor: "rgba(10, 168, 197, 0.15)",
     paddingVertical: 3,
     paddingHorizontal: 8,
     borderRadius: 4,
@@ -949,9 +977,9 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 8,
-    backgroundColor: "rgba(209, 170, 103, 0.12)",
+    backgroundColor: "rgba(10, 168, 197, 0.12)",
     borderWidth: 1,
-    borderColor: "rgba(209, 170, 103, 0.25)",
+    borderColor: "rgba(10, 168, 197, 0.25)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1107,7 +1135,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   recommendedBadge: {
-    backgroundColor: "rgba(212,175,55,0.15)",
+    backgroundColor: "rgba(10, 168, 197, 0.15)",
     paddingVertical: 2,
     paddingHorizontal: 6,
     borderRadius: 4,
@@ -1178,9 +1206,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: "rgba(209, 170, 103, 0.15)",
     borderWidth: 1,
-    borderColor: "rgba(209, 170, 103, 0.3)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
@@ -1232,6 +1258,19 @@ const styles = StyleSheet.create({
   faqAnswer: {
     marginTop: 10,
     paddingTop: 10,
+  },
+  sheetBody: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
+  },
+  sheetCloseCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 

@@ -16,6 +16,7 @@ import {
     RefreshControl,
     Share,
     Linking,
+    Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RBSheet from 'react-native-raw-bottom-sheet';
@@ -61,7 +62,6 @@ import {
     Copy,
     AlertTriangle,
 } from 'lucide-react-native';
-import { SvgXml } from 'react-native-svg';
 import MiniSparklineBase from '../../shared/components/MiniSparkline';
 import { SocketContext } from '../../SocketProvider';
 
@@ -81,7 +81,7 @@ import NavigationService from '../../navigation/NavigationService';
 import { DEPOSIT_FIAT_SCREEN } from '../../navigation/routes';
 import { buildCoinImageUri } from '../../helper/coinIconUrl';
 import { buildMarketIconIndex, withMarketCoinIcon } from '../../helper/walletCoinIcon';
-import { BASE_URL, IMAGE_BASE_URL } from '../../helper/Constants';
+import DepositCoinIcon, { buildDepositCoinIconUri } from './DepositCoinIcon';
 import { colors, darkTheme, lightTheme } from '../../theme/colors';
 import { useTheme } from '../../hooks/useTheme';
 import {
@@ -90,7 +90,7 @@ import {
 } from '../../actions/walletActions';
 import { getNotificationList, getFavoriteArray, addToFavorites } from '../../actions/homeActions';
 import { copyText, shortenAddress, dateFormatter } from '../../helper/utility';
-import { BACK_ICON, activities_icon, copyIcon, historyIcon, upIcon, downIcon, INFO, back_ic, externalLinkIcon } from '../../helper/ImageAssets';
+import { BACK_ICON, copyIcon, historyIcon, upIcon, downIcon, INFO, back_ic, externalLinkIcon, barcodeFrame } from '../../helper/ImageAssets';
 import { setLoading } from '../../slices/authSlice';
 // setWalletAddress removed: deposit address handled locally for web parity (address + memo)
 import { showError } from '../../helper/logger';
@@ -194,202 +194,6 @@ const formatUsdPrice = (value: any): string => {
     const decimals = Math.min(10, Math.max(4, -Math.floor(Math.log10(n)) + 1));
     return `$${n.toFixed(decimals).replace(/0+$/, '').replace(/\.$/, '')}`;
 };
-
-/**
- * Same field priority and host mapping as AGCE `buildCoinImageUri`: `icon_path` first,
- * `public/` + `static/` keys on the S3 media host, other relative paths on the API host.
- */
-const buildDepositCoinIconUri = (coin: any): string | null => {
-    if (!coin) return null;
-    const raw =
-        typeof coin === 'string'
-            ? coin
-            : coin.icon_path || coin.iconPath || coin.icon_url || coin.iconUri || coin.icon || coin.image || coin.iconUrl;
-    if (raw == null) return null;
-    const p = String(raw).trim();
-    if (!p || p === 'null' || p === 'undefined') return null;
-    if (p.startsWith('http://') || p.startsWith('https://')) return p;
-    if (p.startsWith('//')) return `https:${p}`;
-    if (p.startsWith('data:')) return p;
-    const rel = p.replace(/^\/+/, '').replace(/\\/g, '/');
-    if (!rel) return null;
-    if (rel.startsWith('public/') || rel.startsWith('static/')) {
-        const s3Base = String(IMAGE_BASE_URL || '').replace(/\/+$/, '');
-        const key = rel.startsWith('static/') ? `public/${rel}` : rel;
-        return `${s3Base}/${key}`;
-    }
-    const base = String(BASE_URL || '').replace(/\/+$/, '');
-    return `${base}/${rel}`;
-};
-
-const svgXmlCache = new Map<string, string | null>();
-const rasterUrlCache = new Set<string>();
-const failedUrlCache = new Set<string>();
-
-const RASTER_REGEX = /\.(png|jpe?g|webp|gif|bmp)($|\?)/i;
-const SVG_REGEX = /\.svg($|\?)/i;
-const SVG_ROOT_REGEX = /^\s*(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*<svg[\s>]/i;
-
-/** `.svg` and extensionless URLs (Fireblocks CDN ids) are probed; known raster extensions go straight to FastImage. */
-const shouldProbeAsSvg = (uri: string): boolean => {
-    if (!uri) return false;
-    if (SVG_REGEX.test(uri)) return true;
-    if (RASTER_REGEX.test(uri)) return false;
-    return true;
-};
-
-const checkAndFetchSvg = async (uri: string): Promise<string | null> => {
-    if (svgXmlCache.has(uri)) return svgXmlCache.get(uri) || null;
-    if (rasterUrlCache.has(uri) || failedUrlCache.has(uri)) return null;
-    try {
-        const res = await fetch(uri);
-        if (!res.ok) {
-            svgXmlCache.set(uri, null);
-            return null;
-        }
-        const contentType = (res.headers.get('content-type') || '').toLowerCase();
-
-        // Binary raster bodies can contain a stray `<svg`, so trust the header first.
-        if (/image\/(png|jpe?g|webp|gif|bmp|avif)/.test(contentType)) {
-            rasterUrlCache.add(uri);
-            svgXmlCache.set(uri, null);
-            return null;
-        }
-
-        const text = await res.text();
-        const looksSvg =
-            contentType.includes('svg') ||
-            ((contentType.includes('xml') || !contentType.startsWith('image/')) && SVG_ROOT_REGEX.test(text));
-
-        if (looksSvg) {
-            const clean = text
-                .replace(/^\uFEFF/, '')
-                .replace(/<\?xml[^>]*\?>/gi, '')
-                .replace(/<!DOCTYPE[^>]*>/gi, '')
-                .trim();
-            svgXmlCache.set(uri, clean);
-            return clean;
-        }
-
-        rasterUrlCache.add(uri);
-        svgXmlCache.set(uri, null);
-        return null;
-    } catch {
-        svgXmlCache.set(uri, null);
-        return null;
-    }
-};
-
-const DepositCoinIcon = React.memo(({ uri, size = 32 }: { uri: string | null; size?: number }) => {
-    const probeSvg = Boolean(uri && shouldProbeAsSvg(uri));
-    const isDirectRaster = Boolean(uri && !probeSvg);
-
-    const [svgXml, setSvgXml] = useState<string | null>(() => {
-        if (!uri || isDirectRaster) return null;
-        return svgXmlCache.get(uri) || null;
-    });
-    const [hasError, setHasError] = useState(false);
-    const [probeDone, setProbeDone] = useState<boolean>(() => {
-        if (!uri || isDirectRaster) return true;
-        return svgXmlCache.has(uri) || rasterUrlCache.has(uri);
-    });
-
-    useEffect(() => {
-        let active = true;
-
-        if (!uri) {
-            setSvgXml(null);
-            setHasError(false);
-            setProbeDone(true);
-            return;
-        }
-
-        // SVG CDNs without an extension fail in FastImage first; allow a fresh probe.
-        if (probeSvg) {
-            failedUrlCache.delete(uri);
-            if (svgXmlCache.get(uri) === null && !rasterUrlCache.has(uri)) {
-                svgXmlCache.delete(uri);
-            }
-            setHasError(false);
-        }
-
-        if (failedUrlCache.has(uri)) {
-            setHasError(true);
-            setProbeDone(true);
-            return;
-        }
-
-        if (isDirectRaster) {
-            setSvgXml(null);
-            setHasError(false);
-            setProbeDone(true);
-            return;
-        }
-
-        if (svgXmlCache.has(uri)) {
-            setSvgXml(svgXmlCache.get(uri) || null);
-            setProbeDone(true);
-            return;
-        }
-
-        if (rasterUrlCache.has(uri)) {
-            setSvgXml(null);
-            setProbeDone(true);
-            return;
-        }
-
-        setProbeDone(false);
-        // A stalled probe must not pin the placeholder; FastImage takes over and SVG swaps in if it arrives later.
-        const probeTimeout = setTimeout(() => {
-            if (active) setProbeDone(true);
-        }, 4000);
-        checkAndFetchSvg(uri).then((clean) => {
-            clearTimeout(probeTimeout);
-            if (!active) return;
-            setSvgXml(clean);
-            setProbeDone(true);
-        });
-
-        return () => {
-            active = false;
-            clearTimeout(probeTimeout);
-        };
-    }, [uri, isDirectRaster, probeSvg]);
-
-    const dim = { width: size, height: size, borderRadius: size / 2 };
-
-    if (!uri || hasError || (probeSvg && !probeDone)) {
-        return <FastImage source={activities_icon} style={dim} resizeMode="cover" />;
-    }
-
-    if (svgXml) {
-        return (
-            <View style={[dim, styles.coinSvgWrap]}>
-                <SvgXml
-                    xml={svgXml}
-                    width="100%"
-                    height="100%"
-                    onError={() => {
-                        failedUrlCache.add(uri);
-                        setHasError(true);
-                    }}
-                />
-            </View>
-        );
-    }
-
-    return (
-        <FastImage
-            source={{ uri }}
-            style={dim}
-            resizeMode="cover"
-            onError={() => {
-                failedUrlCache.add(uri);
-                setHasError(true);
-            }}
-        />
-    );
-});
 
 const LETTER_KEYS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 /** Figma index rail: # then A–Z */
@@ -1967,7 +1771,7 @@ const DepositCoin = () => {
                                 renderItem={renderCoinListItem}
                                 renderSectionHeader={renderDepositSectionHeader}
                                 stickySectionHeadersEnabled={false}
-                                ListHeaderComponent={renderSelectCoinListHeader}
+                                ListHeaderComponent={renderSelectCoinListHeader()}
                                 showsVerticalScrollIndicator={false}
                                 style={styles.sectionListFlex}
                                 contentContainerStyle={[
@@ -2075,7 +1879,13 @@ const DepositCoin = () => {
                                     {/* QR / coin card */}
                                     <View style={[styles.dqCard, styles.dqQrCard, { backgroundColor: ui.cardBg, borderColor: ui.softBorder }]}>
                                         <View style={styles.dqQrCardLeft}>
-                                            {renderCoinLogo(selectedCurrency, 44)}
+                                            {selectedNetwork && chainIconUri(selectedNetwork) ? (
+                                                <View style={{ borderRadius: 999, overflow: 'hidden' }}>
+                                                    <DepositCoinIcon uri={chainIconUri(selectedNetwork)} size={44} />
+                                                </View>
+                                            ) : (
+                                                renderCoinLogo(selectedCurrency, 44)
+                                            )}
                                             <AppText weight={BOLD} type={FIFTEEN} style={{ color: themeColors.text, marginTop: 12 }}>
                                                 {depositAddress ? 'Scan QR Code' : `Deposit ${depositSymbol || 'Crypto'}`}
                                             </AppText>
@@ -2099,10 +1909,7 @@ const DepositCoin = () => {
                                         </View>
                                         {depositAddress ? (
                                             <View style={styles.dqQrFrame}>
-                                                <View style={[styles.dqCorner, styles.dqCornerTL, { borderColor: ACCENT_CYAN }]} />
-                                                <View style={[styles.dqCorner, styles.dqCornerTR, { borderColor: ACCENT_CYAN }]} />
-                                                <View style={[styles.dqCorner, styles.dqCornerBL, { borderColor: ACCENT_CYAN }]} />
-                                                <View style={[styles.dqCorner, styles.dqCornerBR, { borderColor: ACCENT_CYAN }]} />
+                                                <Image source={barcodeFrame} style={styles.dqQrFrameImage} resizeMode="stretch" />
                                                 <View style={styles.dqQrInner}>
                                                     <QRCode
                                                         value={depositAddress}
@@ -2946,15 +2753,11 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         backgroundColor: '#FFFFFF',
     },
-    dqCorner: {
-        position: 'absolute',
-        width: 22,
-        height: 22,
+    dqQrFrameImage: {
+        ...StyleSheet.absoluteFillObject,
+        width: '100%',
+        height: '100%',
     },
-    dqCornerTL: { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 12 },
-    dqCornerTR: { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 12 },
-    dqCornerBL: { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 12 },
-    dqCornerBR: { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 12 },
     dqSectionTitle: {
         marginTop: 8,
         marginBottom: 8,
@@ -3314,12 +3117,6 @@ const styles = StyleSheet.create({
     },
     starBtn: {
         marginLeft: 10,
-    },
-    coinSvgWrap: {
-        overflow: 'hidden',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#000',
     },
     rowChevron: {
         width: 24,
