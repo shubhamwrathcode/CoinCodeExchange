@@ -78,6 +78,38 @@ export function withMarketCoinIcon(item, marketIconBySymbol) {
   };
 }
 
+/** Native coin(s) whose icon represents a withdrawal/deposit chain code. */
+export const CHAIN_NATIVE_SYMBOLS = {
+  BSC: ["BNB"],
+  BEP20: ["BNB"],
+  BEP2: ["BNB"],
+  ETH: ["ETH"],
+  ERC20: ["ETH"],
+  ETHEREUM: ["ETH"],
+  TRX: ["TRX"],
+  TRC20: ["TRX"],
+  TRON: ["TRX"],
+  SOL: ["SOL"],
+  SPL: ["SOL"],
+  SOLANA: ["SOL"],
+  MATIC: ["POL", "MATIC"],
+  POL: ["POL", "MATIC"],
+  POLYGON: ["POL", "MATIC"],
+  ARB: ["ARB"],
+  ARBITRUM: ["ARB"],
+  OP: ["OP"],
+  OPTIMISM: ["OP"],
+  AVAX: ["AVAX"],
+  AVAXC: ["AVAX"],
+  TON: ["TON"],
+  BTC: ["BTC"],
+  LTC: ["LTC"],
+  DOGE: ["DOGE"],
+  XRP: ["XRP"],
+  ADA: ["ADA"],
+  DOT: ["DOT"],
+};
+
 export function enrichWalletRowsWithMarketIcons(rows, coinData) {
   const index = buildMarketIconIndex(coinData);
   if (!Array.isArray(rows)) return [];

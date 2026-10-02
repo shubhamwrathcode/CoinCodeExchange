@@ -23,7 +23,7 @@ const WithdrawalHistory = () => {
   const interalWalletHistory = useAppSelector((state) => state.wallet.interalWalletHistory);
   const withdrawActiveCoins = useAppSelector((state) => state.wallet.withdrawActiveCoins);
 
-  const [activeTab, setActiveTab] = useState("address"); // "address" | "agce"
+  const [activeTab] = useState("address"); // "address" | "agce"
   const [loading, setLoading] = useState(false);
 
   const withdrawCoinsList = useMemo(() => (Array.isArray(withdrawActiveCoins) ? withdrawActiveCoins : []), [withdrawActiveCoins]);
@@ -112,8 +112,8 @@ const WithdrawalHistory = () => {
       >
         <View style={styles.dateStatusRow}>
           <AppText weight={BOLD} type={FIFTEEN} style={{ color: themeColors.text }}>{date}</AppText>
-          <View style={[styles.statusBadge, { backgroundColor: tone === 'success' ? (isDark ? 'rgba(5, 196, 107, 0.15)' : '#E9F9F1') : tone === 'pending' ? (isDark ? 'rgba(255, 195, 18, 0.15)' : '#FFF9E6') : (isDark ? 'rgba(255, 63, 52, 0.15)' : '#FEECEC') }]}>
-            <AppText type={TWELVE} weight={BOLD} style={{ color: tone === 'success' ? '#05C46B' : tone === 'pending' ? '#FFC312' : '#FF3F34' }}>{status}</AppText>
+          <View style={[styles.statusBadge, { backgroundColor: tone === 'success' ? (isDark ? 'rgba(5, 196, 107, 0.15)' : '#E9F9F1') : tone === 'pending' ? (isDark ? 'rgba(10, 168, 197, 0.15)' : '#E6F7FA') : (isDark ? 'rgba(255, 63, 52, 0.15)' : '#FEECEC') }]}>
+            <AppText type={TWELVE} weight={BOLD} style={{ color: tone === 'success' ? '#05C46B' : tone === 'pending' ? colors.cyanTheme : '#FF3F34' }}>{status}</AppText>
           </View>
         </View>
 
@@ -173,38 +173,11 @@ const WithdrawalHistory = () => {
     <AppSafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]}>
       <Toolbar isSecond title={"Withdrawal History"} style={{ width: "68%", backgroundColor: "transparent" }} />
 
-      <View style={[styles.tabsContainer, { borderBottomColor: isDark ? themeColors.border : "#E5E7EB" }]}>
-        <TouchableOpacity
-          onPress={() => setActiveTab("address")}
-          style={[styles.tabPill]}
-        >
-          <AppText
-            weight={activeTab === "address" ? BOLD : MEDIUM}
-            type={SIXTEEN}
-            style={{ color: activeTab === "address" ? themeColors.text : themeColors.secondaryText }}
-          >
-            Address
-          </AppText>
-          {activeTab === "address" && <View style={[styles.activeIndicator, { backgroundColor: themeColors.text }]} />}
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setActiveTab("agce")}
-          style={[styles.tabPill]}
-        >
-          <AppText
-            weight={activeTab === "agce" ? BOLD : MEDIUM}
-            type={SIXTEEN}
-            style={{ color: activeTab === "agce" ? themeColors.text : themeColors.secondaryText }}
-          >
-            Coincode user
-          </AppText>
-          {activeTab === "agce" && <View style={[styles.activeIndicator, { backgroundColor: themeColors.text }]} />}
-        </TouchableOpacity>
-      </View>
+    
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.buttonBg} />
+          <ActivityIndicator size="large" color={colors.cyanTheme} />
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>

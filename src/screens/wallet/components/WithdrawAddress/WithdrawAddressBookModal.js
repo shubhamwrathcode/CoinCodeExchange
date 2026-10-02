@@ -12,7 +12,7 @@ import {
 import FastImage from 'react-native-fast-image';
 import { AppSafeAreaView, AppText, BOLD, FOURTEEN, MEDIUM, SEMI_BOLD, SIXTEEN, TEN, TWELVE } from '../../../../common';
 import { buildCoinImageUri } from '../../../../helper/coinIconUrl';
-import { back_ic, add, Refresh, REMOVE, moreOption } from '../../../../helper/ImageAssets';
+import { back_ic, add, Refresh, REMOVE, moreOption, NO_NOTIFICATION_ICON, NO_NOTIFICATION_ICON_LIGHT } from '../../../../helper/ImageAssets';
 import { useTheme } from '../../../../hooks/useTheme';
 import { colors } from '../../../../theme/colors';
 
@@ -39,6 +39,18 @@ export default function WithdrawAddressBookModal({
   const [activeTab, setActiveTab] = useState('saved'); // 'saved' or 'recent'
   const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
   const [shouldRender, setShouldRender] = useState(visible);
+
+  const ui = useMemo(
+    () => ({
+      cardBg: isDark ? "rgba(255, 255, 255, 0.03)" : "#F8F9FA",
+      cardBorder: isDark ? "rgba(255, 255, 255, 0.08)" : "#ECECEC",
+      divider: isDark ? "rgba(255, 255, 255, 0.1)" : "#E5E7EB",
+      accentBg: isDark ? "rgba(10, 168, 197, 0.10)" : "rgba(10, 168, 197, 0.08)",
+      accentBorder: isDark ? "rgba(10, 168, 197, 0.35)" : "rgba(10, 168, 197, 0.25)",
+      neutralBadgeBg: isDark ? "rgba(255, 255, 255, 0.08)" : "#F1F3F5",
+    }),
+    [isDark]
+  );
 
   useEffect(() => {
     if (visible) {
@@ -93,8 +105,8 @@ export default function WithdrawAddressBookModal({
         style={[
           styles.card,
           {
-            backgroundColor: 'transparent',
-            borderColor: isDark ? "#2A2E39" : "#E5E7EB",
+            backgroundColor: ui.cardBg,
+            borderColor: ui.cardBorder,
           }
         ]}
       >
@@ -111,15 +123,15 @@ export default function WithdrawAddressBookModal({
                 <View style={[
                   styles.statusBadge,
                   {
-                    backgroundColor: isApproved ? (isDark ? "#1B3224" : "#E1F2E8") :
-                      isPending ? (isDark ? "#332B1B" : "#FFF8E6") :
-                        isRejected ? (isDark ? "#3D1A1A" : "#FEE2E2") :
-                          (isDark ? "#2A2E39" : "#F3F4F6")
+                    backgroundColor: isApproved ? (isDark ? "rgba(38, 161, 123, 0.15)" : "#E1F2E8") :
+                      isPending ? ui.accentBg :
+                        isRejected ? (isDark ? "rgba(220, 38, 38, 0.15)" : "#FEE2E2") :
+                          ui.neutralBadgeBg
                   }
                 ]}>
                   <AppText weight={SEMI_BOLD} type={TEN} style={{
-                    color: isApproved ? "#228B22" :
-                      isPending ? "#D97706" :
+                    color: isApproved ? "#26A17B" :
+                      isPending ? colors.cyanTheme :
                         isRejected ? "#DC2626" :
                           themeColors.secondaryText
                   }}>
@@ -150,9 +162,9 @@ export default function WithdrawAddressBookModal({
               e.stopPropagation && e.stopPropagation();
               onResumeSatoshi && onResumeSatoshi(item);
             }}
-            style={[styles.resumeBtn, { backgroundColor: isDark ? "#1E222D" : "#F9FAFB", borderColor: isDark ? "#2A2E39" : "#E5E7EB" }]}
+            style={[styles.resumeBtn, { backgroundColor: ui.accentBg, borderColor: ui.accentBorder }]}
           >
-            <AppText type={TEN} weight={SEMI_BOLD} style={{ color: themeColors.text }}>Show deposit QR & amount</AppText>
+            <AppText type={TEN} weight={SEMI_BOLD} style={{ color: colors.cyanTheme }}>Show deposit QR & amount</AppText>
           </TouchableOpacity>
         )}
 
@@ -162,9 +174,9 @@ export default function WithdrawAddressBookModal({
               e.stopPropagation && e.stopPropagation();
               onResumeMetaMask && onResumeMetaMask(item);
             }}
-            style={[styles.resumeBtn, { backgroundColor: isDark ? "#1E222D" : "#F9FAFB", borderColor: isDark ? "#2A2E39" : "#E5E7EB" }]}
+            style={[styles.resumeBtn, { backgroundColor: ui.accentBg, borderColor: ui.accentBorder }]}
           >
-            <AppText type={TEN} weight={SEMI_BOLD} style={{ color: themeColors.text }}>Sign with MetaMask to complete</AppText>
+            <AppText type={TEN} weight={SEMI_BOLD} style={{ color: colors.cyanTheme }}>Sign with MetaMask to complete</AppText>
           </TouchableOpacity>
         )}
       </TouchableOpacity>
@@ -185,7 +197,7 @@ export default function WithdrawAddressBookModal({
     >
       <AppSafeAreaView style={{ flex: 1 }}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: isDark ? "#2A2E39" : "#E5E7EB" }]}>
+        <View style={[styles.header, { borderBottomColor: ui.divider }]}>
           <TouchableOpacity onPress={onClose} style={{ width: 40 }}>
             <FastImage source={back_ic} resizeMode='contain' style={{ width: 35, height: 35 }} />
           </TouchableOpacity>
@@ -202,7 +214,7 @@ export default function WithdrawAddressBookModal({
         </View>
 
         {/* Tabs */}
-        <View style={styles.tabsContainer}>
+        <View style={[styles.tabsContainer, { borderBottomColor: ui.divider }]}>
           {[
             { key: 'saved', label: 'My Address' },
             { key: 'recent', label: 'Recent' }
@@ -212,7 +224,7 @@ export default function WithdrawAddressBookModal({
               onPress={() => setActiveTab(tab.key)}
               style={[
                 styles.tab,
-                activeTab === tab.key && { borderBottomColor: themeColors.text, borderBottomWidth: 2 }
+                activeTab === tab.key && { borderBottomColor: colors.cyanTheme, borderBottomWidth: 2 }
               ]}
             >
               <AppText
@@ -234,7 +246,8 @@ export default function WithdrawAddressBookModal({
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={themeColors.text}
+              tintColor={colors.cyanTheme}
+              colors={[colors.cyanTheme]}
             />
           }
         >
@@ -243,6 +256,9 @@ export default function WithdrawAddressBookModal({
               addressBookList.map(item => renderAddressCard(item, false))
             ) : (
               <View style={styles.emptyContainer}>
+                <FastImage source={isDark?NO_NOTIFICATION_ICON_LIGHT: NO_NOTIFICATION_ICON}
+                 resizeMode='contain'
+                style={{width:80,height:80}}/>
                 <AppText style={{ color: themeColors.secondaryText }}>No saved addresses found.</AppText>
               </View>
             )
@@ -251,6 +267,9 @@ export default function WithdrawAddressBookModal({
               withdrawalAddressHistory.map(item => renderAddressCard(item, true))
             ) : (
               <View style={styles.emptyContainer}>
+                 <FastImage source={isDark?NO_NOTIFICATION_ICON_LIGHT: NO_NOTIFICATION_ICON}
+                 resizeMode='contain'
+                style={{width:80,height:80}}/>
                 <AppText style={{ color: themeColors.secondaryText }}>No recent addresses found.</AppText>
               </View>
             )
@@ -288,6 +307,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 16,
     marginTop: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   tab: {
     paddingVertical: 12,

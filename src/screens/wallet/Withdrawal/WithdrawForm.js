@@ -16,7 +16,8 @@ import {
 } from "react-native";
 import RBSheet from "react-native-raw-bottom-sheet";
 import FastImage from "react-native-fast-image";
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { forwardRef, useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch } from "react-redux";
 import { useFocusEffect, useRoute } from "@react-navigation/native";
 import moment from "moment";
@@ -28,15 +29,17 @@ import AddWithdrawalAddressVerification from "../components/WithdrawAddress/AddW
 import WithdrawAddressBookModal from "../components/WithdrawAddress/WithdrawAddressBookModal";
 import { canonicalWithdrawalChainForValidateAddress, CHAIN_FULL_NAMES, formatFundAvailableFromRow, formatWithdrawAmountDisplay, getActiveWithdrawChainKeys, networkKeysFromChain, parseNum, totalSpendableFromFundRow, valueForChain, WITHDRAW_NETWORK_LABELS } from "../../../helper/walletChainHelpers";
 import { useTheme } from "../../../hooks/useTheme";
-import { BlurSheetBackground, blurSheetTheme } from "../sheets/BlurSheetChrome";
-import { X } from "lucide-react-native";
+import { BlurSheetBackground, blurSheetRbCustomStyles, blurSheetTheme } from "../sheets/BlurSheetChrome";
+import { ArrowDown, Briefcase, ChevronDown, Info, RefreshCw, ShieldCheck, X } from "lucide-react-native";
 import { useAppSelector } from "../../../store/hooks";
 import { getInteralWalletHistory, getUserMainWallet, getWithdrawActiveCoins, verifyWithdraw, withdrawCoin } from "../../../actions/walletActions";
 import { getWithdrawalPasskeyCredential } from "../../../actions/accountActions";
 import { SpinnerSecond } from "../../../shared/components/SpinnerSecond";
 import { getEmailDomainSuggestions } from "../../../helper/emailDomainSuggest";
 import { buildCoinImageUri } from "../../../helper/coinIconUrl";
-import { account_restrictions, account_restrictions_light, ARROW_REVERSE, back_ic, bitcoinIcon, checkIc, down_arrow, downIcon, editIcon, email_vector, EMAIL_VERIFY, GOOGLE_VERIFY, INFO, LOCKED, PASSKEY_VERIFY, PHONE_VERIFY, printIcon, Refresh, REMOVE, right_ic, searchIcon, SECURITY_SHEIELD, upIcon, user_withdarwal } from "../../../helper/ImageAssets";
+import { buildMarketIconIndex, CHAIN_NATIVE_SYMBOLS, withMarketCoinIcon } from "../../../helper/walletCoinIcon";
+import DepositCoinIcon, { buildDepositCoinIconUri } from "../DepositCoinIcon";
+import { account_restrictions, account_restrictions_light, ARROW_REVERSE, back_ic, bitcoinIcon, checkIc, downIcon, editIcon, email_vector, EMAIL_VERIFY, GOOGLE_VERIFY, historyIcon, INFO, LOCKED, PASSKEY_VERIFY, PHONE_VERIFY, Refresh, REMOVE, right_ic, searchIcon, SECURITY_SHEIELD, upIcon, user_withdarwal } from "../../../helper/ImageAssets";
 import { showError, showSuccess } from "../../../helper/logger";
 import { getNotificationList } from "../../../actions/homeActions";
 import { appOperation } from "../../../appOperation";
@@ -131,11 +134,145 @@ function sanitizeWithdrawAmountRaw(raw) {
   return v;
 }
 
+const ADDRESS_CONFIRMATION_STEPS = ["owner", "other_identity", "wallet_type", "proof_select", "exchange"];
+
+const SHEET_MAX_HEIGHT = Math.round(Dimensions.get("window").height * 0.85);
+const SHEET_DRAG_HANDLE_HEIGHT = 25;
+
+/** RBSheet that sizes itself to its content; caps at SHEET_MAX_HEIGHT (or above the iOS keyboard) and scrolls beyond that. */
+const AutoHeightSheet = forwardRef(function AutoHeightSheet(
+  {
+    isDark,
+    buildSheetStyles,
+    sheetStyles,
+    header,
+    footer,
+    children,
+    contentContainerStyle,
+    estimatedHeight = 320,
+    ScrollComponent = ScrollView,
+    scrollProps,
+    closeOnDragDown = true,
+    hideDragHandle = false,
+    ...sheetProps
+  },
+  ref
+) {
+  const insets = useSafeAreaInsets();
+  const [contentHeight, setContentHeight] = useState(0);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [footerHeight, setFooterHeight] = useState(0);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    if (Platform.OS !== "ios") return undefined;
+    const showSub = Keyboard.addListener("keyboardWillShow", (e) => setKeyboardHeight(e?.endCoordinates?.height || 0));
+    const hideSub = Keyboard.addListener("keyboardWillHide", () => setKeyboardHeight(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const handleHeight = closeOnDragDown && !hideDragHandle ? SHEET_DRAG_HANDLE_HEIGHT : 0;
+  const maxHeight = keyboardHeight > 0
+    ? Math.min(SHEET_MAX_HEIGHT, Dimensions.get("window").height - keyboardHeight - insets.top - 12)
+    : SHEET_MAX_HEIGHT;
+  const naturalHeight = contentHeight > 0
+    ? contentHeight + headerHeight + footerHeight + handleHeight + insets.bottom
+    : estimatedHeight;
+  const height = Math.round(Math.min(naturalHeight, maxHeight));
+  const scrollEnabled = naturalHeight > maxHeight;
+
+  const storeHeight = (setter) => (h) => {
+    const next = Math.ceil(h);
+    setter((prev) => (prev === next ? prev : next));
+  };
+
+  return (
+    <RBSheet
+      ref={ref}
+      customModalProps={{ statusBarTranslucent: true }}
+      height={height}
+      closeOnDragDown={closeOnDragDown}
+      customStyles={buildSheetStyles({
+        ...sheetStyles,
+        height,
+        draggableIcon: hideDragHandle ? { display: "none" } : undefined,
+      })}
+      {...sheetProps}
+    >
+      <BlurSheetBackground isDark={isDark} tint="cyan" />
+      {header ? (
+        <View onLayout={(e) => storeHeight(setHeaderHeight)(e.nativeEvent.layout.height)}>{header}</View>
+      ) : null}
+      <ScrollComponent
+        bounces={false}
+        scrollEnabled={scrollEnabled}
+        showsVerticalScrollIndicator={scrollEnabled}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={contentContainerStyle}
+        {...scrollProps}
+        style={[{ flexGrow: 0 }, scrollProps?.style]}
+        onContentSizeChange={(w, h) => storeHeight(setContentHeight)(h)}
+      >
+        {children}
+      </ScrollComponent>
+      {footer ? (
+        <View onLayout={(e) => storeHeight(setFooterHeight)(e.nativeEvent.layout.height)}>{footer}</View>
+      ) : null}
+    </RBSheet>
+  );
+});
+
 const WithdrawForm = () => {
   const dispatch = useDispatch();
   const route = useRoute();
   const { colors: themeColors, isDark } = useTheme();
-  const sheetTheme = useMemo(() => blurSheetTheme(isDark), [isDark]);
+  const sheetTheme = useMemo(
+    () => ({
+      ...blurSheetTheme(isDark),
+      accentBg: isDark ? "rgba(10, 168, 197, 0.10)" : "rgba(10, 168, 197, 0.08)",
+      accentBorder: isDark ? "rgba(10, 168, 197, 0.35)" : "rgba(10, 168, 197, 0.25)",
+    }),
+    [isDark]
+  );
+  const formUi = useMemo(
+    () => ({
+      cardBg: isDark ? "rgba(255, 255, 255, 0.03)" : "#F8F9FA",
+      cardBorder: isDark ? "rgba(255, 255, 255, 0.08)" : "#ECECEC",
+      inputBg: isDark ? "rgba(255, 255, 255, 0.05)" : "#FFFFFF",
+      inputBorder: isDark ? "rgba(255, 255, 255, 0.05)" : "#E8E8E8",
+      divider: isDark ? "rgba(255, 255, 255, 0.1)" : "#E5E7EB",
+      iconCircleBg: isDark ? "rgba(255, 255, 255, 0.08)" : "#F1F3F5",
+      safeBg: "rgba(38, 161, 123, 0.05)",
+      safeBorder: "rgba(38, 161, 123, 0.2)",
+      safeIconBg: "rgba(38, 161, 123, 0.1)",
+      safeIcon: "#26A17B",
+    }),
+    [isDark]
+  );
+  const networkSheetUi = useMemo(
+    () => ({
+      noticeBg: isDark ? "rgba(139, 92, 246, 0.10)" : "rgba(139, 92, 246, 0.06)",
+      noticeBorder: isDark ? "rgba(139, 92, 246, 0.35)" : "rgba(139, 92, 246, 0.25)",
+      noticeIconBg: isDark ? "rgba(139, 92, 246, 0.20)" : "rgba(139, 92, 246, 0.12)",
+      noticeIcon: isDark ? "#C4B5FD" : "#7C3AED",
+      etaDot: "#22C55E",
+    }),
+    [isDark]
+  );
+  const buildSheetStyles = useCallback(
+    ({ container, draggableIcon, ...opts } = {}) => {
+      const base = blurSheetRbCustomStyles({ isDark, borderRadius: 24, ...opts });
+      return {
+        ...base,
+        container: { ...base.container, ...container },
+        draggableIcon: { ...base.draggableIcon, ...draggableIcon },
+      };
+    },
+    [isDark]
+  );
   const scrollViewRef = useRef(null);
   const routeCoin = route?.params?.data;
   const userData = useAppSelector((state) => state.auth.userData);
@@ -157,6 +294,19 @@ const WithdrawForm = () => {
     () => (Array.isArray(withdrawActiveCoins) ? withdrawActiveCoins : []),
     [withdrawActiveCoins]
   );
+
+  const coinData = useAppSelector((state) => state.home.coinData);
+  const marketIconBySymbol = useMemo(() => buildMarketIconIndex(coinData), [coinData]);
+  const chainIconUri = useCallback((chainKey) => {
+    const code = String(chainKey || "").trim().toUpperCase();
+    const candidates = CHAIN_NATIVE_SYMBOLS[code] || [code];
+    for (const sym of candidates) {
+      const listed = withdrawCoinsList.find((c) => String(c?.short_name || "").trim().toUpperCase() === sym);
+      const uri = buildDepositCoinIconUri(withMarketCoinIcon(listed || { short_name: sym }, marketIconBySymbol));
+      if (uri) return uri;
+    }
+    return null;
+  }, [withdrawCoinsList, marketIconBySymbol]);
 
 
 
@@ -236,7 +386,6 @@ const WithdrawForm = () => {
   const [agceRecipientPhoneLocal, setAgceRecipientPhoneLocal] = useState("");
   const [agcePhoneCountry, setAgcePhoneCountry] = useState(() => AGCE_PHONE_COUNTRIES[0]);
   const [agceRecipientId, setAgceRecipientId] = useState("");
-  const [confirmSheetHeight, setConfirmSheetHeight] = useState(320);
   const [agceCountrySheetHeight, setAgceCountrySheetHeight] = useState(450);
   const [agceTouched, setAgceTouched] = useState({ email: false, phone: false });
 
@@ -674,11 +823,11 @@ const WithdrawForm = () => {
       const routeNetwork = route?.params?.network;
       const routeAddress = route?.params?.address;
 
-      if (routeWithdrawTo) {
-        setWithdrawToTab(routeWithdrawTo);
-      } else {
-        setWithdrawToTab("address");
-      }
+      // if (routeWithdrawTo) {
+      //   setWithdrawToTab(routeWithdrawTo);
+      // } else {
+      setWithdrawToTab("address");
+      // }
       if (routeAgceRecipientTab) {
         setAgceRecipientTab(routeAgceRecipientTab);
       }
@@ -1937,102 +2086,103 @@ const WithdrawForm = () => {
 
 
   const withdrawNetworkSheetOnly = (
-    <RBSheet customModalProps={{ statusBarTranslucent: true }}
+    <AutoHeightSheet
       ref={networkSheetRef}
-      height={SHEET_HEIGHT}
-      closeOnDragDown
+      isDark={isDark}
+      buildSheetStyles={buildSheetStyles}
+      estimatedHeight={420}
       closeOnPressMask
-      customStyles={{
-        container: {
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          backgroundColor: themeColors.background,
-        },
-        wrapper: { backgroundColor: "rgba(0,0,0,0.6)" },
-        draggableIcon: { backgroundColor: colors.textGray },
-      }}
+      header={
+        <View style={styles.selectNetworkHeader}>
+          <AppText weight={BOLD} type={TWENTY} style={{ color: sheetTheme.textColor }}>
+            Select Network
+          </AppText>
+          <TouchableOpacity
+            onPress={() => networkSheetRef.current?.close()}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            activeOpacity={0.75}
+          >
+            <X color={sheetTheme.iconTint} size={22} strokeWidth={2.2} />
+          </TouchableOpacity>
+        </View>
+      }
+      contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8 }}
     >
-      <View style={styles.networkSheetInner}>
-        <AppText weight={SEMI_BOLD} type={SIXTEEN} style={[styles.networkSheetTitle, { color: themeColors.text }]}>
-          Choose Network
-        </AppText>
-        <ScrollView style={styles.networkSheetScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <View style={[styles.selectNetworkNotice, { backgroundColor: networkSheetUi.noticeBg, borderColor: networkSheetUi.noticeBorder }]}>
+            <View style={[styles.selectNetworkNoticeIcon, { backgroundColor: networkSheetUi.noticeIconBg }]}>
+              <Info color={networkSheetUi.noticeIcon} size={12} />
+            </View>
+            <AppText type={TWELVE} color={sheetTheme.subTextColor} style={{ flex: 1, lineHeight: 18 }}>
+            Only supported networks on the Coincode platform are shown. If you provide an address from an unsupported network, your withdrawal request may be rejected.
+            </AppText>
+          </View>
+
           {sheetWithdrawChains.map((chainKey, idx) => {
             const src = selectedCurrency;
             const minW = valueForChain(src, "min_withdrawal", chainKey);
-            const maxW = valueForChain(src, "max_withdrawal", chainKey);
-            const feeW = valueForChain(src, "withdrawal_fee", chainKey);
             const fullName = String(
               src?.chain_full_names?.[chainKey] || src?._chain_full_name?.[chainKey] || ""
             ).trim();
+            const isSelected = String(network || "").toUpperCase() === String(chainKey).toUpperCase();
             return (
               <TouchableOpacity
                 key={`${chainKey}-${idx}`}
-                style={{
-                  borderBottomColor: isDark ? "#2A2E39" : "#EEE",
-                  borderBottomWidth: 1,
-                  paddingHorizontal: 15,
-                  paddingVertical: 15,
-                }}
+                style={[
+                  styles.selectNetworkCard,
+                  {
+                    backgroundColor: isSelected ? sheetTheme.accentBg : sheetTheme.cardBg,
+                    borderColor: isSelected ? sheetTheme.accentBorder : sheetTheme.rowBorderColor,
+                  },
+                ]}
                 onPress={() => handleNetworkChosenFromSheet(chainKey)}
                 activeOpacity={0.75}
               >
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <View style={{ flex: 1 }}>
-                    <AppText weight={SEMI_BOLD} type={FIFTEEN} style={{ color: themeColors.text }}>
-                      {chainKey}
-                    </AppText>
-                    <AppText type={ELEVEN} color={colors.textGray} style={{ marginTop: 4 }}>
-                      {fullName || chainKey}
-                    </AppText>
-                  </View>
+                <View style={{ borderRadius: 999, overflow: "hidden" }}>
+                  <DepositCoinIcon uri={chainIconUri(chainKey)} size={40} />
+                </View>
 
-                  <View style={{ alignItems: "flex-end" }}>
-                    <AppText weight={MEDIUM} type={THIRTEEN} style={{ color: themeColors.text }}>
-                      {minW ?? "0"} - {maxW ?? "0"} {src?.short_name}
-                    </AppText>
-                    <AppText type={TWELVE} color={colors.textGray} style={{ marginTop: 4 }}>
-                      ≈ 2 mins
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: sheetTheme.textColor }}>
+                    {chainKey}
+                  </AppText>
+                  <AppText type={TWELVE} color={sheetTheme.subTextColor} style={{ marginTop: 2 }} numberOfLines={2}>
+                    {fullName || chainKey}
+                  </AppText>
+                </View>
+
+                <View style={{ alignItems: "flex-end", marginLeft: 8 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <View style={[styles.selectNetworkDot, { backgroundColor: networkSheetUi.etaDot }]} />
+                    <AppText weight={MEDIUM} type={TWELVE} style={{ color: sheetTheme.textColor }}>
+                      ~ 2 min
                     </AppText>
                   </View>
+                  <AppText type={ELEVEN} color={sheetTheme.subTextColor} style={{ marginTop: 6 }}>
+                    Min Withdrawal: {minW ?? "0"} {src?.short_name}
+                  </AppText>
                 </View>
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
-        <View style={[styles.networkSheetNotice, { backgroundColor: isDark ? "#2A2418" : "#fff5ea" }]}>
-          <FastImage source={INFO} style={styles.networkSheetNoticeIcon} resizeMode="contain" />
-          <AppText type={TEN} color={colors.textGray} style={{ flex: 1, lineHeight: 16 }}>
-            The withdrawal address must support the network you pick. Wrong network can lead to permanent loss if the destination cannot recover funds.
-          </AppText>
-        </View>
-      </View>
-    </RBSheet>
+    </AutoHeightSheet>
   );
 
 
 
   const withdrawAgceCountrySheetOnly = (
-    <RBSheet customModalProps={{ statusBarTranslucent: true }}
+    <AutoHeightSheet
       ref={agceCountrySheetRef}
-      height={AGCE_COUNTRY_SHEET_HEIGHT}
-      closeOnDragDown
+      isDark={isDark}
+      buildSheetStyles={buildSheetStyles}
+      estimatedHeight={AGCE_COUNTRY_SHEET_HEIGHT}
       closeOnPressMask
-      customStyles={{
-        container: {
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          backgroundColor: themeColors.background,
-        },
-        wrapper: { backgroundColor: "rgba(0,0,0,0.6)" },
-        draggableIcon: { backgroundColor: colors.textGray },
-      }}
-    >
-      <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 6, paddingBottom: 16 }}>
-        <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: themeColors.text, marginBottom: 14 }}>
+      header={
+        <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: sheetTheme.textColor, paddingHorizontal: 20, paddingTop: 6, paddingBottom: 14 }}>
           Select country
         </AppText>
-        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10 }}>
+      }
+      contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 10 }}
+    >
           {AGCE_PHONE_COUNTRIES.map((c, idx) => {
             const selected = agcePhoneCountry.code === c.code;
             return (
@@ -2045,7 +2195,7 @@ const WithdrawForm = () => {
                   paddingVertical: 13,
                   paddingHorizontal: 4,
                   borderBottomWidth: idx < AGCE_PHONE_COUNTRIES.length - 1 ? StyleSheet.hairlineWidth : 0,
-                  borderBottomColor: isDark ? themeColors.border : "#00000018",
+                  borderBottomColor: sheetTheme.rowBorderColor,
                 }}
                 onPress={() => {
                   setAgcePhoneCountry(c);
@@ -2055,10 +2205,10 @@ const WithdrawForm = () => {
               >
                 <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
                   <AppText style={{ fontSize: 18, marginRight: 12, lineHeight: 22 }}>{c.flag}</AppText>
-                  <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text, width: 50 }}>
+                  <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: sheetTheme.textColor, width: 50 }}>
                     {c.code}
                   </AppText>
-                  <AppText type={FOURTEEN} style={{ color: themeColors.secondaryText, flex: 1, marginLeft: 6 }}>
+                  <AppText type={FOURTEEN} style={{ color: sheetTheme.subTextColor, flex: 1, marginLeft: 6 }}>
                     {c.label}
                   </AppText>
                 </View>
@@ -2069,31 +2219,22 @@ const WithdrawForm = () => {
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
-      </View>
-    </RBSheet>
+    </AutoHeightSheet>
   );
   const saveAddrBeneficiaryCountrySheetOnly = (
-    <RBSheet customModalProps={{ statusBarTranslucent: true }}
+    <AutoHeightSheet
       ref={saveAddrCountrySheetRef}
-      height={AGCE_COUNTRY_SHEET_HEIGHT}
-      closeOnDragDown
+      isDark={isDark}
+      buildSheetStyles={buildSheetStyles}
+      estimatedHeight={SHEET_MAX_HEIGHT}
       closeOnPressMask
-      customStyles={{
-        container: {
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          backgroundColor: themeColors.background,
-        },
-        wrapper: { backgroundColor: "rgba(0,0,0,0.6)" },
-        draggableIcon: { backgroundColor: colors.textGray },
-      }}
-    >
-      <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 6, paddingBottom: 16 }}>
-        <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: themeColors.text, marginBottom: 14 }}>
+      header={
+        <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: sheetTheme.textColor, paddingHorizontal: 20, paddingTop: 6, paddingBottom: 14 }}>
           Select country
         </AppText>
-        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10 }}>
+      }
+      contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 10 }}
+    >
           {countriesList.map((c, idx) => {
             const countryName = c.label.split("(")[0].trim();
             const selected = saveAddrBenCountry === countryName;
@@ -2107,7 +2248,7 @@ const WithdrawForm = () => {
                   paddingVertical: 13,
                   paddingHorizontal: 4,
                   borderBottomWidth: idx < countriesList.length - 1 ? StyleSheet.hairlineWidth : 0,
-                  borderBottomColor: isDark ? themeColors.border : "#00000018",
+                  borderBottomColor: sheetTheme.rowBorderColor,
                 }}
                 onPress={() => {
                   setSaveAddrBenCountry(countryName);
@@ -2117,7 +2258,7 @@ const WithdrawForm = () => {
               >
                 <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
                   <AppText style={{ fontSize: 18, marginRight: 12, lineHeight: 22 }}>{c.flag}</AppText>
-                  <AppText type={FOURTEEN} style={{ color: themeColors.text, flex: 1 }}>
+                  <AppText type={FOURTEEN} style={{ color: sheetTheme.textColor, flex: 1 }}>
                     {countryName}
                   </AppText>
                 </View>
@@ -2128,77 +2269,52 @@ const WithdrawForm = () => {
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
-      </View>
-    </RBSheet>
+    </AutoHeightSheet>
   );
 
   const withdrawLimitInfoSheetOnly = (
-    <RBSheet customModalProps={{ statusBarTranslucent: true }}
+    <AutoHeightSheet
       ref={withdrawLimitInfoSheetRef}
-      height={210}
-      closeOnDragDown
+      isDark={isDark}
+      buildSheetStyles={buildSheetStyles}
+      estimatedHeight={160}
       closeOnPressMask
-      customStyles={{
-        container: {
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          backgroundColor: themeColors.background,
-        },
-        wrapper: { backgroundColor: "rgba(0,0,0,0.6)" },
-        draggableIcon: { backgroundColor: colors.textGray },
-      }}
     >
       <Pressable
-        style={{ paddingHorizontal: 20, paddingBottom: 28, paddingTop: 4 }}
+        style={{ paddingHorizontal: 20, paddingBottom: 16, paddingTop: 4 }}
         onPress={() => withdrawLimitInfoSheetRef.current?.close()}
       >
-        <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: themeColors.text, marginBottom: 10 }}>
+        <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: sheetTheme.textColor, marginBottom: 10 }}>
           24h withdrawal limit
         </AppText>
-        <AppText type={TWELVE} style={{ color: themeColors.secondaryText, lineHeight: 18 }}>
+        <AppText type={TWELVE} style={{ color: sheetTheme.subTextColor, lineHeight: 18 }}>
           {withdrawStep3Preview.limitLeft} {selectedCurrency?.short_name} 24 Hour withdrawal limit.
         </AppText>
       </Pressable>
-    </RBSheet>
+    </AutoHeightSheet>
   );
 
-  const NETWORK_FEE_INFO_SHEET_HEIGHT = Math.round(Dimensions.get("window").height * 0.35);
-
   const networkFeeInfoSheetOnly = (
-    <RBSheet customModalProps={{ statusBarTranslucent: true }}
+    <AutoHeightSheet
       ref={networkFeeInfoSheetRef}
-      height={NETWORK_FEE_INFO_SHEET_HEIGHT}
-      closeOnDragDown
+      isDark={isDark}
+      buildSheetStyles={buildSheetStyles}
+      estimatedHeight={240}
       closeOnPressMask
-      customStyles={{
-        container: {
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          backgroundColor: themeColors.background,
-        },
-        wrapper: { backgroundColor: "rgba(0,0,0,0.6)" },
-        draggableIcon: { backgroundColor: colors.textGray },
-      }}
+      contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 16, paddingTop: 4 }}
     >
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 28, paddingTop: 4 }}
-      >
-        <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: themeColors.text, marginBottom: 10 }}>
+        <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: sheetTheme.textColor, marginBottom: 10 }}>
           About Network Fee
         </AppText>
-        <AppText weight={SEMI_BOLD} type={THIRTEEN} style={{ color: themeColors.text, marginBottom: 8 }}>
+        <AppText weight={SEMI_BOLD} type={THIRTEEN} style={{ color: sheetTheme.textColor, marginBottom: 8 }}>
           The address you entered is an external wallet address.
         </AppText>
-        <AppText type={TWELVE} style={{ color: themeColors.secondaryText, lineHeight: 18 }}>
+        <AppText type={TWELVE} style={{ color: sheetTheme.subTextColor, lineHeight: 18 }}>
           Withdrawals to external wallet addresses are securely processed via on-chain transactions. Each transaction
           generates a unique TXID for tracking and transparency, while a network fee is applied based on the selected
           blockchain to ensure smooth processing.
         </AppText>
-      </ScrollView>
-    </RBSheet>
+    </AutoHeightSheet>
   );
 
   useEffect(() => {
@@ -2475,7 +2591,7 @@ const WithdrawForm = () => {
             <FastImage source={INFO} resizeMode="contain" style={{ width: 18, height: 18 }} tintColor={themeColors.text} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => NavigationService.navigate(WITHDRAW_HISTORY_SCREEN)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <FastImage source={printIcon} resizeMode="contain" style={{ width: 20, height: 17 }} tintColor={themeColors.text} />
+            <FastImage source={historyIcon} resizeMode="contain" style={{ width: 22, height: 22 }} tintColor={themeColors.text} />
           </TouchableOpacity>
         </View>
       </View>
@@ -2489,7 +2605,7 @@ const WithdrawForm = () => {
         <View style={styles.wdStepBlock}>
 
           {/* Top Tabs */}
-          <View style={{ flexDirection: "row", gap: 30, paddingHorizontal: 4, marginVertical: 20 }}>
+          {/* <View style={{ flexDirection: "row", gap: 30, paddingHorizontal: 4, marginVertical: 20 }}>
             <TouchableOpacity onPress={() => setWithdrawToTab("address")}>
               <AppText
                 type={SIXTEEN}
@@ -2511,47 +2627,16 @@ const WithdrawForm = () => {
               </AppText>
               {withdrawToTab === "agce_user" && <View style={{ height: 2, backgroundColor: themeColors.text, width: "100%", marginTop: 6, borderRadius: 1 }} />}
             </TouchableOpacity>
-          </View>
-
+          </View> */}
+          <View style={[styles.wdFormCard, { backgroundColor: formUi.cardBg, borderColor: formUi.cardBorder }]}>
           {withdrawToTab === "address" ? (
             <View style={{}}>
-              <AppText weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text, marginBottom: 4 }}>Network</AppText>
-              <TouchableOpacity
-                activeOpacity={0.75}
-                onPress={openWithdrawNetworkSheet}
-                disabled={activeWithdrawChains.length === 0}
-                style={{
-                  height: 52,
-                  borderRadius: 16,
-                  paddingHorizontal: 20,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  backgroundColor: isDark ? darkTheme.darkThemeInputColor : lightTheme.input,
-                  opacity: activeWithdrawChains.length === 0 ? 0.6 : 1
-                }}
-              >
-                <AppText weight={MEDIUM} type={FOURTEEN} style={{ color: network ? themeColors.text : themeColors.secondaryText }}>
-                  {network ? String(network).toUpperCase() : "Select Network"}
-                </AppText>
-                <FastImage source={down_arrow} style={{ width: 10, height: 10 }} resizeMode="contain" tintColor={themeColors.secondaryText} />
-              </TouchableOpacity>
-
               {/* Address Input */}
-              <AppText weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text, marginBottom: 4, marginTop: 16 }}>Address</AppText>
-              <View
-                style={{
-                  height: 52,
-                  borderRadius: 16,
-                  paddingHorizontal: 20,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: isDark ? darkTheme.darkThemeInputColor : lightTheme.input,
-                }}
-              >
+              <AppText weight={SEMI_BOLD} type={FOURTEEN} style={[styles.wdFormLabel, { color: themeColors.text }]}>Address</AppText>
+              <View style={[styles.wdFormInput, { backgroundColor: formUi.inputBg, borderColor: formUi.inputBorder }]}>
                 <TextInput
                   style={{ flex: 1, color: themeColors.text, fontSize: 14, fontWeight: "400", padding: 0, marginRight: 10 }}
-                  placeholder="Enter Address"
+                  placeholder="Enter wallet address"
                   placeholderTextColor={themeColors.secondaryText}
                   value={withdrawAddress}
                   onChangeText={(value) => handleWithdrawalAddress(value)}
@@ -2580,14 +2665,36 @@ const WithdrawForm = () => {
                 </AppText>
               ) : isWithdrawAddressValidating ? (
                 <View style={{ flexDirection: "row", alignItems: "center", marginTop: 6, gap: 6 }}>
-                  <ActivityIndicator size="small" color="#E2B24C" />
-                  <AppText type={TWELVE} style={{ color: "#E2B24C" }}>Validating address...</AppText>
+                  <ActivityIndicator size="small" color={colors.cyanTheme} />
+                  <AppText type={TWELVE} style={{ color: colors.cyanTheme }}>Validating address...</AppText>
                 </View>
               ) : withdrawAddressValidError ? (
                 <AppText type={TWELVE} style={{ color: "#E74C3C", marginTop: 6 }}>
                   {withdrawAddressValidError}
                 </AppText>
               ) : null}
+
+              {/* Network Select */}
+              <AppText weight={SEMI_BOLD} type={FOURTEEN} style={[styles.wdFormLabel, { color: themeColors.text, marginTop: 18 }]}>Network</AppText>
+              <TouchableOpacity
+                activeOpacity={0.75}
+                onPress={openWithdrawNetworkSheet}
+                disabled={activeWithdrawChains.length === 0}
+                style={[
+                  styles.wdFormInput,
+                  {
+                    justifyContent: "space-between",
+                    backgroundColor: formUi.inputBg,
+                    borderColor: formUi.inputBorder,
+                    opacity: activeWithdrawChains.length === 0 ? 0.6 : 1,
+                  },
+                ]}
+              >
+                <AppText type={FOURTEEN} style={{ color: network ? themeColors.text : themeColors.secondaryText }}>
+                  {network ? String(network).toUpperCase() : "Select Network"}
+                </AppText>
+                <ChevronDown color={themeColors.secondaryText} size={20} />
+              </TouchableOpacity>
             </View>
           ) : (
             <View style={{ gap: 16 }}>
@@ -2751,23 +2858,13 @@ const WithdrawForm = () => {
 
           {/* Amount and Final Summary Section */}
           {Object.keys(selectedCurrency).length > 0 && (
-            <View style={{ marginTop: 12 }}>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                <AppText weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text }}>Withdrawal Amount</AppText>
+            <View style={{ marginTop: 18 }}>
+              <AppText weight={SEMI_BOLD} type={FOURTEEN} style={[styles.wdFormLabel, { color: themeColors.text }]}>Withdrawal Amount</AppText>
 
-              </View>
-
-              <View style={{
-                height: 48,
-                borderRadius: 12,
-                paddingHorizontal: 16,
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: isDark ? darkTheme.darkThemeInputColor : lightTheme.input,
-              }}>
+              <View style={[styles.wdFormInput, { backgroundColor: formUi.inputBg, borderColor: formUi.inputBorder }]}>
                 <TextInput
                   style={{ flex: 1, color: themeColors.text, fontSize: 14, fontWeight: "400", padding: 0 }}
-                  placeholder={chainMinWithdrawalDisplay ? `Minimal ${chainMinWithdrawalDisplay}` : "Enter Amount"}
+                  placeholder={chainMinWithdrawalDisplay ? `Minimal ${chainMinWithdrawalDisplay}` : "Please Enter"}
                   placeholderTextColor={themeColors.secondaryText}
                   value={withdrawAmount}
                   onChangeText={(val) => {
@@ -2776,10 +2873,9 @@ const WithdrawForm = () => {
                   }}
                   keyboardType="numeric"
                 />
-                <AppText weight={MEDIUM} type={FOURTEEN} style={{ color: themeColors.text, marginRight: 12 }}>{selectedCurrency.short_name}</AppText>
-                <View style={{ width: 1, height: 18, backgroundColor: isDark ? themeColors.border : "#D1D5DB" }} />
-                <TouchableOpacity style={{ marginLeft: 12 }} onPress={handleMaxWithdrawal} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                  <AppText weight={BOLD} type={FOURTEEN} style={{ color: "#E2B24C" }}>MAX</AppText>
+                <AppText weight={MEDIUM} type={FOURTEEN} style={{ color: themeColors.text, marginRight: 14 }}>{selectedCurrency.short_name}</AppText>
+                <TouchableOpacity onPress={handleMaxWithdrawal} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <AppText weight={SEMI_BOLD} type={FOURTEEN} style={{ color: colors.cyanTheme }}>MAX</AppText>
                 </TouchableOpacity>
               </View>
 
@@ -2789,21 +2885,35 @@ const WithdrawForm = () => {
                 </AppText>
               ) : null}
 
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 5, marginVertical: 10 }}>
-                <AppText type={TWELVE} style={{ color: themeColors.secondaryText }}>Available Withdraw</AppText>
-                <TouchableOpacity onPress={() => {/* transfer logic if any */ }} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <AppText weight={MEDIUM} type={TWELVE} style={{ color: themeColors.text }}>
+              <View style={styles.wdBalanceRow}>
+                <AppText type={TWELVE} style={{ color: themeColors.secondaryText }}>Available Balance</AppText>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <AppText weight={SEMI_BOLD} type={THIRTEEN} style={{ color: themeColors.text }}>
                     {formatFundAvailableFromRow(mainWalletFundRow)} {selectedCurrency.short_name}
                   </AppText>
-                </TouchableOpacity>
-              </View>
-              <View style={{ padding: 10, borderRadius: 12, bottom: 5 }}>
-                <AppText type={TEN} style={{ color: themeColors.secondaryText, lineHeight: 16 }}>
-                  * Beware of scams! Coincode will never ask for personal information or private transfers via SMS or email.
-                </AppText>
+                  <TouchableOpacity onPress={onRefresh} disabled={refreshing} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <RefreshCw color={colors.cyanTheme} size={14} />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           )}
+
+          {/* Stay Safe Warning */}
+          <View style={[styles.wdSafeCard, { backgroundColor: formUi.safeBg, borderColor: formUi.safeBorder }]}>
+            <View style={[styles.wdSafeIcon, { backgroundColor: formUi.safeIconBg }]}>
+              <ShieldCheck color={formUi.safeIcon} size={20} />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <AppText weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text }}>
+                Stay Safe, Always
+              </AppText>
+              <AppText type={TWELVE} style={{ color: themeColors.secondaryText, marginTop: 4, lineHeight: 18 }}>
+                Never share your passwords, OTPs, recovery phrases, or private keys with anyone. Always verify wallet addresses before confirming transactions.
+              </AppText>
+            </View>
+          </View>
+          </View>
         </View>
 
         {formattedAnnouncements?.length > 0 && (
@@ -2843,15 +2953,22 @@ const WithdrawForm = () => {
       {/* Fixed Bottom Section */}
       {!isKeyboardVisible && (
         <View style={{
-          padding: 16,
+          paddingHorizontal: 16,
+          paddingTop: 16,
           paddingBottom: Platform.OS === 'ios' ? 24 : 16,
           backgroundColor: themeColors.background,
-          borderTopWidth: 1,
-          borderTopColor: isDark ? "#2A2E39" : "#E5E7EB"
         }}>
-          {/* Row 1: Fee */}
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12, paddingHorizontal: 4 }}>
-            <AppText type={THIRTEEN} style={{ color: themeColors.secondaryText }}>Fee</AppText>
+          {/* Row 1: Network Fee */}
+          <View style={styles.wdFooterRow}>
+            <View style={styles.wdFooterLabel}>
+              <View style={[styles.wdFooterIcon, { backgroundColor: formUi.iconCircleBg }]}>
+                <Briefcase color={themeColors.text} size={14} />
+              </View>
+              <AppText type={FOURTEEN} style={{ color: themeColors.secondaryText, marginLeft: 8, marginRight: 6 }}>Network Fee</AppText>
+              <TouchableOpacity onPress={() => networkFeeInfoSheetRef.current?.open()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Info color={themeColors.secondaryText} size={14} />
+              </TouchableOpacity>
+            </View>
             <AppText weight={MEDIUM} type={FOURTEEN} style={{ color: themeColors.text }}>
               {withdrawStep3Preview.feeNum !== null
                 ? `${formatWithdrawAmountDisplay(withdrawStep3Preview.feeNum)} ${selectedCurrency?.short_name || "—"}`
@@ -2859,59 +2976,48 @@ const WithdrawForm = () => {
             </AppText>
           </View>
 
-          {/* Row 2: Receive Amount */}
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12, paddingHorizontal: 4 }}>
-            <AppText type={THIRTEEN} style={{ color: themeColors.secondaryText }}>Receive Amount</AppText>
-            <AppText weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text }}>
+          {/* Row 2: You Will Receive */}
+          <View style={[styles.wdFooterRow, { marginBottom: 18 }]}>
+            <View style={styles.wdFooterLabel}>
+              <View style={[styles.wdFooterIcon, { backgroundColor: formUi.iconCircleBg }]}>
+                <ArrowDown color={themeColors.text} size={14} />
+              </View>
+              <AppText type={FOURTEEN} style={{ color: themeColors.secondaryText, marginLeft: 8, marginRight: 6 }}>You Will Receive</AppText>
+              {/* <Info color={themeColors.secondaryText} size={14} /> */}
+            </View>
+            <AppText weight={MEDIUM} type={FOURTEEN} style={{ color: themeColors.text }}>
               {withdrawStep3Preview.receiveNum !== null
                 ? `${formatWithdrawAmountDisplay(withdrawStep3Preview.receiveNum)} ${selectedCurrency?.short_name || "—"}`
                 : `-- ${selectedCurrency?.short_name || "—"}`}
             </AppText>
           </View>
 
-
-
-          <TouchableOpacity
-            disabled={
+          {(() => {
+            const isWithdrawDisabled =
               !withdrawAmount ||
               !!withdrawAmountInlineError ||
               (withdrawToTab === "address" && !showWithdrawContentAfterValidatedAddress) ||
-              (withdrawToTab === "agce_user" && !isAgceFormValid)
-            }
-            onPress={handleWithdrawPrimaryPress}
-            activeOpacity={0.8}
-            style={{
-              height: 54,
-              borderRadius: 100,
-              backgroundColor: (
-                !withdrawAmount ||
-                !!withdrawAmountInlineError ||
-                (withdrawToTab === "address" && !showWithdrawContentAfterValidatedAddress) ||
-                (withdrawToTab === "agce_user" && !isAgceFormValid)
-              )
-                ? (isDark ? darkTheme.darkThemeInputColor : "#E5E7EB")
-                : (isDark ? colors.white : colors.black),
-              justifyContent: "center",
-              alignItems: "center"
-            }}
-          >
-            <AppText
-              weight={SEMI_BOLD}
-              type={SIXTEEN}
-              style={{
-                color: (
-                  !withdrawAmount ||
-                  !!withdrawAmountInlineError ||
-                  (withdrawToTab === "address" && !showWithdrawContentAfterValidatedAddress) ||
-                  (withdrawToTab === "agce_user" && !isAgceFormValid)
-                )
-                  ? (isDark ? "#6B6B70" : "#9CA3AF")
-                  : (isDark ? colors.black : colors.white)
-              }}
-            >
-              Withdraw
-            </AppText>
-          </TouchableOpacity>
+              (withdrawToTab === "agce_user" && !isAgceFormValid);
+            return (
+              <TouchableOpacity
+                disabled={isWithdrawDisabled}
+                onPress={handleWithdrawPrimaryPress}
+                activeOpacity={0.8}
+                style={{
+                  height: 54,
+                  borderRadius: 100,
+                  backgroundColor: colors.cyanTheme,
+                  opacity: isWithdrawDisabled ? 0.45 : 1,
+                  justifyContent: "center",
+                  alignItems: "center"
+                }}
+              >
+                <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: colors.white }}>
+                  Withdrawal
+                </AppText>
+              </TouchableOpacity>
+            );
+          })()}
         </View>
       )}
 
@@ -2946,29 +3052,20 @@ const WithdrawForm = () => {
       />
 
       {/* Remove Address Confirmation Sheet */}
-      <RBSheet customModalProps={{ statusBarTranslucent: true }}
+      <AutoHeightSheet
         ref={addressDeleteSheetRef}
-        closeOnDragDown
+        isDark={isDark}
+        buildSheetStyles={buildSheetStyles}
+        estimatedHeight={300}
         closeOnPressMask
-        height={330}
-        customStyles={{
-          container: {
-            backgroundColor: themeColors.background,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            padding: 20,
-          },
-          draggableIcon: {
-            backgroundColor: isDark ? themeColors.border : "#DDD"
-          }
-        }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 8 }}
       >
-        <View style={{ flex: 1 }}>
+        <View>
           <View style={{ alignItems: "center", marginBottom: 16 }}>
             <View style={{
               width: 80,
               height: 80,
-              backgroundColor: isDark ? themeColors.border : "#F3F4F6",
+              backgroundColor: sheetTheme.cardBg,
               borderRadius: 40,
               justifyContent: "center",
               alignItems: "center",
@@ -2982,24 +3079,24 @@ const WithdrawForm = () => {
               <View style={{
                 position: "absolute",
                 top: 20,
-                backgroundColor: "#E2B24C",
+                backgroundColor: colors.cyanTheme,
                 width: 18,
                 height: 18,
                 borderRadius: 9,
                 justifyContent: "center",
                 alignItems: "center",
                 borderWidth: 2,
-                borderColor: isDark ? themeColors.border : "#F3F4F6"
+                borderColor: sheetTheme.borderColor
               }}>
                 <AppText weight={BOLD} style={{ color: "#FFF", fontSize: 10 }}>!</AppText>
               </View>
             </View>
 
-            <AppText weight={BOLD} type={SIXTEEN} style={{ color: themeColors.text, textAlign: "center", marginBottom: 8 }}>
+            <AppText weight={BOLD} type={SIXTEEN} style={{ color: sheetTheme.textColor, textAlign: "center", marginBottom: 8 }}>
               {getDeleteModalTitle(addressToDelete)}
             </AppText>
 
-            <AppText type={TWELVE} style={{ color: themeColors.secondaryText, textAlign: "center", lineHeight: 18 }}>
+            <AppText type={TWELVE} style={{ color: sheetTheme.subTextColor, textAlign: "center", lineHeight: 18 }}>
               {getDeleteModalMessage(addressToDelete)}
             </AppText>
           </View>
@@ -3011,13 +3108,13 @@ const WithdrawForm = () => {
                 flex: 1,
                 paddingVertical: 12,
                 borderRadius: 100,
-                backgroundColor: "transparent",
+                backgroundColor: sheetTheme.buttonBg,
                 borderWidth: 1,
-                borderColor: isDark ? "#2A2E39" : "#E5E7EB",
+                borderColor: sheetTheme.borderColor,
                 alignItems: "center"
               }}
             >
-              <AppText weight={SEMI_BOLD} type={FOURTEEN} style={{ color: themeColors.text }}>Cancel</AppText>
+              <AppText weight={SEMI_BOLD} type={FOURTEEN} style={{ color: sheetTheme.textColor }}>Cancel</AppText>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleConfirmDeleteAddress}
@@ -3026,51 +3123,37 @@ const WithdrawForm = () => {
                 flex: 1,
                 paddingVertical: 12,
                 borderRadius: 100,
-                backgroundColor: isDark ? "#2A2A2E" : "#F3F4F6",
+                backgroundColor: colors.cyanTheme,
                 alignItems: "center"
               }}
             >
               {addressDeleteBusy ? (
-                <ActivityIndicator size="small" color="#FFF" />
+                <ActivityIndicator size="small" color={colors.white} />
               ) : (
-                <AppText weight={SEMI_BOLD} type={FOURTEEN} style={{ color: "#FFF" }}>Remove</AppText>
+                <AppText weight={SEMI_BOLD} type={FOURTEEN} style={{ color: colors.white }}>Remove</AppText>
               )}
             </TouchableOpacity>
           </View>
         </View>
-      </RBSheet>
+      </AutoHeightSheet>
       {withdrawNetworkSheetOnly}
 
       {withdrawAgceCountrySheetOnly}
-      {saveAddrBeneficiaryCountrySheetOnly}
-      <RBSheet customModalProps={{ statusBarTranslucent: true }}
+      {Platform.OS !== "ios" && saveAddrBeneficiaryCountrySheetOnly}
+      <AutoHeightSheet
         ref={withdrawConfirmSheetRef}
-        closeOnDragDown
+        isDark={isDark}
+        buildSheetStyles={buildSheetStyles}
+        estimatedHeight={260}
         closeOnPressMask
-        height={withdrawToTab === "agce_user" ? confirmSheetHeight : 280}
-        customStyles={{
-          container: {
-            backgroundColor: themeColors.background,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-          },
-          draggableIcon: { backgroundColor: isDark ? themeColors.border : "#DDD" },
-        }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 12 }}
       >
-        <View
-          onLayout={(e) => {
-            const { height } = e.nativeEvent.layout;
-            if (height > 0) {
-              setConfirmSheetHeight(height + 40); // 40 for draggable icon and padding
-            }
-          }}
-          style={{ padding: 24, paddingBottom: 32 }}
-        >
-          <View style={{ alignItems: "center", marginBottom: 32 }}>
-            <AppText weight={BOLD} type={SIXTEEN} style={{ color: themeColors.text, marginBottom: 12 }}>
+        <View>
+          <View style={{ alignItems: "center", marginBottom: 24 }}>
+            <AppText weight={BOLD} type={SIXTEEN} style={{ color: sheetTheme.textColor, marginBottom: 12 }}>
               Confirm Withdrawal
             </AppText>
-            <AppText type={THIRTEEN} style={{ color: themeColors.secondaryText, textAlign: "center", lineHeight: 20 }}>
+            <AppText type={THIRTEEN} style={{ color: sheetTheme.subTextColor, textAlign: "center", lineHeight: 20 }}>
               {withdrawToTab === "agce_user"
                 ? "You are about to perform an internal transfer. Please ensure the recipient details are correct, as internal transfers are processed instantly."
                 : `You have chosen the ${saveAddrNetwork || network || "—"} network. Kindly verify that your withdrawal address is compatible with this network, as unsupported transfers may result in loss of funds.`
@@ -3088,10 +3171,11 @@ const WithdrawForm = () => {
                 justifyContent: "center",
                 alignItems: "center",
                 borderWidth: 1,
-                borderColor: isDark ? themeColors.border : "#E5E7EB"
+                borderColor: sheetTheme.borderColor,
+                backgroundColor: sheetTheme.buttonBg
               }}
             >
-              <AppText weight={SEMI_BOLD} style={{ color: themeColors.text }}>Cancel</AppText>
+              <AppText weight={SEMI_BOLD} style={{ color: sheetTheme.textColor }}>Cancel</AppText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -3103,35 +3187,29 @@ const WithdrawForm = () => {
                 borderRadius: 12,
                 justifyContent: "center",
                 alignItems: "center",
-                backgroundColor: themeColors.button
+                backgroundColor: colors.cyanTheme
               }}
             >
-              <AppText weight={SEMI_BOLD} style={{ color: "#FFF" }}>
+              <AppText weight={SEMI_BOLD} style={{ color: colors.white }}>
                 {withdrawConfirmBusy ? "..." : "Confirm"}
               </AppText>
             </TouchableOpacity>
           </View>
         </View>
-      </RBSheet>
+      </AutoHeightSheet>
 
-      <RBSheet customModalProps={{ statusBarTranslucent: true }}
+      <AutoHeightSheet
         ref={withdrawSummarySheetRef}
-        closeOnDragDown
+        isDark={isDark}
+        buildSheetStyles={buildSheetStyles}
+        estimatedHeight={480}
         closeOnPressMask
-        height={580}
-        customStyles={{
-          container: {
-            backgroundColor: themeColors.background,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-          },
-          draggableIcon: { backgroundColor: isDark ? themeColors.border : "#DDD" },
-        }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 12 }}
       >
-        <View style={{ padding: 24 }}>
-          <AppText weight={BOLD} type={SIXTEEN} style={{ color: themeColors.text, marginBottom: 24 }}>Withdrawal</AppText>
+        <View>
+          <AppText weight={BOLD} type={SIXTEEN} style={{ color: sheetTheme.textColor, marginBottom: 12 }}>Withdrawal</AppText>
 
-          <View style={{ marginBottom: 24 }}>
+          <View style={{ marginBottom: 20 }}>
             {[
               {
                 label: "Address",
@@ -3163,27 +3241,27 @@ const WithdrawForm = () => {
                 justifyContent: "space-between",
                 paddingVertical: 14,
                 borderBottomWidth: idx < 4 ? 0.5 : 0,
-                borderBottomColor: isDark ? themeColors.border : "#F3F4F6",
+                borderBottomColor: sheetTheme.rowBorderColor,
                 alignItems: "flex-start"
               }}>
-                <AppText type={FOURTEEN} style={{ color: themeColors.secondaryText, marginTop: 1 }}>{item.label}</AppText>
+                <AppText type={FOURTEEN} style={{ color: sheetTheme.subTextColor, marginTop: 1 }}>{item.label}</AppText>
                 <View style={{ flex: 1, marginLeft: 32 }}>
-                  <AppText type={FOURTEEN} weight={MEDIUM} style={{ color: themeColors.text, textAlign: "right" }} numberOfLines={3}>{item.value}</AppText>
+                  <AppText type={FOURTEEN} weight={MEDIUM} style={{ color: sheetTheme.textColor, textAlign: "right" }} numberOfLines={3}>{item.value}</AppText>
                 </View>
               </View>
             ))}
           </View>
 
-          <View style={{ marginBottom: 32 }}>
+          <View style={{ marginBottom: 24 }}>
             <View style={{ flexDirection: "row", marginBottom: 8 }}>
-              <AppText style={{ color: themeColors.secondaryText, marginRight: 8 }}>•</AppText>
-              <AppText type={TEN} style={{ color: themeColors.secondaryText, flex: 1 }}>
+              <AppText style={{ color: sheetTheme.subTextColor, marginRight: 8 }}>•</AppText>
+              <AppText type={TEN} style={{ color: sheetTheme.subTextColor, flex: 1 }}>
                 Make Sure The Address Is Accurate And Matches The Selected Network.
               </AppText>
             </View>
             <View style={{ flexDirection: "row" }}>
-              <AppText style={{ color: themeColors.secondaryText, marginRight: 8 }}>•</AppText>
-              <AppText type={TEN} style={{ color: themeColors.secondaryText, flex: 1 }}>Once Submitted, Transactions Cannot Be Reversed.</AppText>
+              <AppText style={{ color: sheetTheme.subTextColor, marginRight: 8 }}>•</AppText>
+              <AppText type={TEN} style={{ color: sheetTheme.subTextColor, flex: 1 }}>Once Submitted, Transactions Cannot Be Reversed.</AppText>
             </View>
           </View>
 
@@ -3199,60 +3277,56 @@ const WithdrawForm = () => {
               borderRadius: 100,
               justifyContent: "center",
               alignItems: "center",
-              backgroundColor: "#111827"
+              backgroundColor: colors.cyanTheme
             }}
           >
-            <AppText weight={SEMI_BOLD} style={{ color: "#FFF" }}>Continue</AppText>
+            <AppText weight={SEMI_BOLD} style={{ color: colors.white }}>Continue</AppText>
           </TouchableOpacity>
         </View>
-      </RBSheet>
+      </AutoHeightSheet>
 
-      <RBSheet customModalProps={{ statusBarTranslucent: true }}
+      <AutoHeightSheet
         ref={withdrawSecuritySheetRef}
-        closeOnDragDown
+        isDark={isDark}
+        buildSheetStyles={buildSheetStyles}
+        estimatedHeight={380}
         closeOnPressMask
-        height={480}
-        customStyles={{
-          container: {
-            backgroundColor: themeColors.background,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-          },
-          draggableIcon: { backgroundColor: isDark ? themeColors.border : "#DDD" },
-        }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 12 }}
       >
-        <View style={{ padding: 24 }}>
-          <AppText weight={BOLD} type={SIXTEEN} style={{ color: themeColors.text, marginBottom: 8 }}>
+        <View>
+          <AppText weight={BOLD} type={SIXTEEN} style={{ color: sheetTheme.textColor, marginBottom: 8 }}>
             {withdrawToTab === "agce_user" && agceRecipientTab === "email" ? "Verify your email" : "Security verification"}
           </AppText>
-          <AppText type={TWELVE} style={{ color: themeColors.secondaryText, lineHeight: 18, marginBottom: 20 }}>
+          <AppText type={TWELVE} style={{ color: sheetTheme.subTextColor, lineHeight: 18, marginBottom: 20 }}>
             Complete all required steps. For email or SMS, tap Send code to receive your OTP, then enter it below.
           </AppText>
 
-          <View style={{ marginBottom: 32 }}>
-            <AppText weight={MEDIUM} type={TWELVE} style={{ color: themeColors.text, marginBottom: 12 }}>Email verification code</AppText>
+          <View style={{ marginBottom: 24 }}>
+            <AppText weight={MEDIUM} type={TWELVE} style={{ color: sheetTheme.textColor, marginBottom: 12 }}>Email verification code</AppText>
             <View style={{
               flexDirection: "row",
               alignItems: "center",
-              backgroundColor: isDark ? darkTheme.darkThemeInputColor : lightTheme.input,
+              backgroundColor: sheetTheme.cardBg,
+              borderWidth: 1,
+              borderColor: sheetTheme.borderColor,
               borderRadius: 12,
               height: 52,
               paddingHorizontal: 16
             }}>
               <TextInput
                 placeholder="Enter email code"
-                placeholderTextColor={themeColors.secondaryText}
+                placeholderTextColor={sheetTheme.subTextColor}
                 value={otp}
                 onChangeText={setOtp}
                 keyboardType="numeric"
-                style={{ flex: 1, color: themeColors.text, fontSize: 14 }}
+                style={{ flex: 1, color: sheetTheme.textColor, fontSize: 14 }}
               />
               <TouchableOpacity
                 onPress={handleGetOtp}
                 disabled={disableBtn}
                 style={{ paddingLeft: 12 }}
               >
-                <AppText weight={MEDIUM} type={TWELVE} style={{ color: disableBtn ? themeColors.secondaryText : "#C5A161" }}>
+                <AppText weight={MEDIUM} type={TWELVE} style={{ color: disableBtn ? sheetTheme.subTextColor : colors.cyanTheme }}>
                   {disableBtn ? `Resend (${timer}s)` : "Send code"}
                 </AppText>
               </TouchableOpacity>
@@ -3270,11 +3344,12 @@ const WithdrawForm = () => {
               borderRadius: 100,
               justifyContent: "center",
               alignItems: "center",
-              backgroundColor: otp.length === 6 ? colors.black : "#777",
-              marginBottom: 24
+              backgroundColor: colors.cyanTheme,
+              opacity: otp.length === 6 ? 1 : 0.45,
+              marginBottom: 16
             }}
           >
-            <AppText weight={SEMI_BOLD} style={{ color: "#FFF" }}>Confirm withdrawal</AppText>
+            <AppText weight={SEMI_BOLD} style={{ color: colors.white }}>Confirm withdrawal</AppText>
           </TouchableOpacity>
 
           <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center" }}>
@@ -3282,46 +3357,54 @@ const WithdrawForm = () => {
               source={SECURITY_SHEIELD}
               style={{ width: 16, height: 16, marginRight: 8 }}
               resizeMode="contain"
-              tintColor={themeColors.secondaryText}
+              tintColor={sheetTheme.subTextColor}
             />
-            <AppText type={TEN} style={{ color: themeColors.secondaryText }}>Protected by Advanced Encryption</AppText>
+            <AppText type={TEN} style={{ color: sheetTheme.subTextColor }}>Protected by Advanced Encryption</AppText>
           </View>
         </View>
-      </RBSheet>
+      </AutoHeightSheet>
 
 
       {withdrawLimitInfoSheetOnly}
       {networkFeeInfoSheetOnly}
 
-      <RBSheet customModalProps={{ statusBarTranslucent: true }}
+      <AutoHeightSheet
         ref={faqSheetRef}
-        height={600}
-        closeOnDragDown
+        isDark={isDark}
+        buildSheetStyles={buildSheetStyles}
+        estimatedHeight={260}
         closeOnPressMask
-        customStyles={{
-          container: { backgroundColor: themeColors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
-          draggableIcon: { backgroundColor: isDark ? themeColors.border : "#DDD" }
-        }}
-      >
-        <View style={{ flex: 1 }}>
-          <View style={styles.modalHeader}>
-            <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: themeColors.text }}>
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 12 }}
+        header={
+          <View style={[styles.modalHeader, { paddingHorizontal: 20, paddingTop: 4 }]}>
+            <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: sheetTheme.textColor }}>
               Withdraw help
             </AppText>
-            <TouchableOpacity onPress={() => faqSheetRef.current?.close()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <AppText type={TWENTY} style={{ color: themeColors.text }}>
-                ×
-              </AppText>
-            </TouchableOpacity>
+            {/* <TouchableOpacity
+              onPress={() => faqSheetRef.current?.close()}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              activeOpacity={0.75}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 15,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: sheetTheme.closeCircleBg,
+              }}
+            >
+              <X color={sheetTheme.iconTint} size={14} strokeWidth={2.4} />
+            </TouchableOpacity> */}
           </View>
-          <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        }
+      >
             {faqData.map((item, index) => (
               <View
                 key={String(index)}
                 style={[
                   styles.faqItemInner,
                   index === faqData.length - 1 && styles.faqItemInnerLast,
-                  { borderColor: isDark ? themeColors.border : colors.inputBorder },
+                  { borderColor: sheetTheme.rowBorderColor },
                 ]}
               >
                 <TouchableOpacity
@@ -3329,20 +3412,20 @@ const WithdrawForm = () => {
                   onPress={() => setFaqActiveIndex(faqActiveIndex === index ? null : index)}
                   activeOpacity={0.7}
                 >
-                  <AppText type={THIRTEEN} weight={SEMI_BOLD} style={[styles.faqQuestion, { color: themeColors.secondaryText }]}>
+                  <AppText type={THIRTEEN} weight={SEMI_BOLD} style={[styles.faqQuestion, { color: sheetTheme.textColor }]}>
                     {item.title}
                   </AppText>
                   <FastImage
                     source={faqActiveIndex === index ? upIcon : downIcon}
                     resizeMode="contain"
                     style={styles.faqArrow}
-                    tintColor={themeColors.secondaryText}
+                    tintColor={sheetTheme.subTextColor}
                   />
                 </TouchableOpacity>
                 {faqActiveIndex === index && (
                   <View style={styles.faqAnswer}>
                     {item.content.split("\n").map((line, lineIndex) => (
-                      <AppText key={lineIndex} type={TWELVE} style={{ color: themeColors.secondaryText, lineHeight: 18 }}>
+                      <AppText key={lineIndex} type={TWELVE} style={{ color: sheetTheme.subTextColor, lineHeight: 18 }}>
                         {line}
                       </AppText>
                     ))}
@@ -3350,19 +3433,19 @@ const WithdrawForm = () => {
                 )}
               </View>
             ))}
-          </ScrollView>
-        </View>
-      </RBSheet>
+      </AutoHeightSheet>
 
       <Modal visible={withdrawAvailSourceOpen} animationType="fade" transparent onRequestClose={() => setWithdrawAvailSourceOpen(false)}>
-        <View style={[styles.modalOverlay, { justifyContent: "center", paddingBottom: 24 }]}>
+        <View style={[styles.modalOverlay, { justifyContent: "center", paddingBottom: 24, backgroundColor: isDark ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0.35)" }]}>
           <View
             style={[
               styles.modalContent,
               {
-                backgroundColor: themeColors.background,
-                borderColor: isDark ? themeColors.border : "#EEE",
+                backgroundColor: "transparent",
+                borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
                 borderWidth: 1,
+                borderRadius: 24,
+                overflow: "hidden",
                 maxWidth: 400,
                 alignSelf: "center",
                 width: "100%",
@@ -3370,24 +3453,38 @@ const WithdrawForm = () => {
               },
             ]}
           >
+            <BlurSheetBackground isDark={isDark} tint="cyan" />
             <View style={styles.modalHeader}>
-              <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: themeColors.text }}>
+              <AppText weight={SEMI_BOLD} type={SIXTEEN} style={{ color: sheetTheme.textColor }}>
                 Main Wallet
               </AppText>
-              <TouchableOpacity onPress={() => setWithdrawAvailSourceOpen(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <AppText type={TWENTY} style={{ color: themeColors.text }}>×</AppText>
+              <TouchableOpacity
+                onPress={() => setWithdrawAvailSourceOpen(false)}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                activeOpacity={0.75}
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 15,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: sheetTheme.closeCircleBg,
+                }}
+              >
+                <X color={sheetTheme.iconTint} size={14} strokeWidth={2.4} />
               </TouchableOpacity>
             </View>
             <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-              <AppText weight={SEMI_BOLD} type={THIRTEEN} style={{ color: themeColors.text, marginBottom: 8 }}>
+              <AppText weight={SEMI_BOLD} type={THIRTEEN} style={{ color: sheetTheme.textColor, marginBottom: 8 }}>
                 {formatFundAvailableFromRow(mainWalletFundRow)} {selectedCurrency?.short_name}
               </AppText>
-              <AppText type={TWELVE} style={{ color: themeColors.secondaryText, lineHeight: 18 }}>
+              <AppText type={TWELVE} style={{ color: sheetTheme.subTextColor, lineHeight: 18 }}>
                 • Withdrawals use your Main Wallet balance only.
               </AppText>
               <Button
                 children="OK"
-                containerStyle={{ marginTop: 16, borderRadius: 10 }}
+                containerStyle={{ marginTop: 16, borderRadius: 26, backgroundColor: colors.cyanTheme }}
+                titleStyle={{ color: colors.white, fontWeight: "600" }}
                 onPress={() => setWithdrawAvailSourceOpen(false)}
               />
             </View>
@@ -3396,24 +3493,17 @@ const WithdrawForm = () => {
       </Modal>
 
       {/* Verification Reminder Sheet */}
-      <RBSheet customModalProps={{ statusBarTranslucent: true }}
+      <AutoHeightSheet
         ref={verifyReminderSheetRef}
-        height={300}
-        closeOnDragDown
+        isDark={isDark}
+        buildSheetStyles={buildSheetStyles}
+        estimatedHeight={300}
         closeOnPressMask
-        customStyles={{
-          container: {
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            backgroundColor: themeColors.background,
-          },
-          wrapper: { backgroundColor: "rgba(0,0,0,0.6)" },
-          draggableIcon: { backgroundColor: colors.textGray },
-        }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 12 }}
       >
-        <View style={{ padding: 24 }}>
-          <AppText type={SIXTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text, marginBottom: 16 }}>Verification Reminder</AppText>
-          <AppText type={TWELVE} style={{ color: themeColors.secondaryText, marginBottom: 24, lineHeight: 18 }}>
+        <View>
+          <AppText type={SIXTEEN} weight={SEMI_BOLD} style={{ color: sheetTheme.textColor, marginBottom: 12 }}>Verification Reminder</AppText>
+          <AppText type={TWELVE} style={{ color: sheetTheme.subTextColor, marginBottom: 8, lineHeight: 18 }}>
             In line with compliance and travel rule obligations, we need you to register and verify this destination once before we can send funds. Complete the address certification flow a single time; approved addresses are stored in your address book and will not require repeat verification for future withdrawals to the same destination.
           </AppText>
           <View style={{ flexDirection: "row", gap: 12, marginTop: 16, width: "100%" }}>
@@ -3422,11 +3512,11 @@ const WithdrawForm = () => {
               containerStyle={{
                 flex: 1,
                 flexBasis: 0,
-                backgroundColor: isDark ? themeColors.border : "#EDEDEE",
+                backgroundColor: sheetTheme.buttonBg,
                 borderRadius: 100,
                 height: 44
               }}
-              titleStyle={{ color: themeColors.text, fontWeight: "600", fontSize: 14 }}
+              titleStyle={{ color: sheetTheme.textColor, fontWeight: "600", fontSize: 14 }}
               onPress={() => verifyReminderSheetRef.current?.close()}
             />
             <Button
@@ -3434,11 +3524,11 @@ const WithdrawForm = () => {
               containerStyle={{
                 flex: 1,
                 flexBasis: 0,
-                backgroundColor: isDark ? "#FFFFFF" : "#111827",
+                backgroundColor: colors.cyanTheme,
                 borderRadius: 100,
                 height: 44
               }}
-              titleStyle={{ color: isDark ? "#000000" : "#FFFFFF", fontWeight: "600", fontSize: 14 }}
+              titleStyle={{ color: colors.white, fontWeight: "600", fontSize: 14 }}
               onPress={() => {
                 verifyReminderSheetRef.current?.close();
                 setTimeout(() => {
@@ -3453,43 +3543,43 @@ const WithdrawForm = () => {
             />
           </View>
         </View>
-      </RBSheet>
+      </AutoHeightSheet>
 
       {/* Add Withdrawal Address Form Sheet */}
-      <RBSheet customModalProps={{ statusBarTranslucent: true }}
+      <AutoHeightSheet
         ref={saveAddressSheetRef}
+        isDark={isDark}
+        buildSheetStyles={buildSheetStyles}
+        estimatedHeight={saveAddrStep === "form" ? SHEET_MAX_HEIGHT : 420}
         closeOnDragDown={false}
         closeOnPressBack={false}
         closeOnPressMask={false}
         keyboardAvoidingViewEnabled={Platform.OS === "ios"}
         onClose={resetAddAddressForm} // Clear form on close
-        height={
-          (saveAddrStep === "owner" || saveAddrStep === "wallet_type" || saveAddrStep === "proof_select" || saveAddrStep === "otp")
-            ? 400
-            : (saveAddrStep === "verify_method")
-              ? 460
-              : (saveAddrStep === "exchange")
-                ? 560
-                : Math.round(Dimensions.get("window").height * 0.88)
-        }
-        customStyles={{
-          container: {
-            backgroundColor: themeColors.background,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-          },
-          wrapper: { backgroundColor: "rgba(0,0,0,0.6)" },
-          draggableIcon: { display: "none" }
+        ScrollComponent={KeyboardAwareScrollView}
+        scrollProps={{
+          enableOnAndroid: true,
+          enableAutomaticScroll: true,
+          extraScrollHeight: Platform.OS === "ios" ? 40 : 120,
+          extraHeight: Platform.OS === "ios" ? 40 : 120,
         }}
-      >
-        <View style={{
-          flex: 1,
-          paddingHorizontal: 24,
-          paddingTop: 10,
-          paddingBottom: Platform.OS === "ios" ? 24 : 16
-        }}>
-          <View style={{ flexDirection: "row", marginBottom: 16, paddingTop: 6, justifyContent: "center" }}>
-            <AppText type={EIGHTEEN} weight={SEMI_BOLD} style={{ color: themeColors.text, textAlign: "center" }}>
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 8 }}
+        header={ADDRESS_CONFIRMATION_STEPS.includes(saveAddrStep) || ["verify_method", "satoshi", "metamask"].includes(saveAddrStep) ? (
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 24, paddingTop: 22, paddingBottom: 18 }}>
+            <AppText type={TWENTY} weight={BOLD} style={{ color: sheetTheme.textColor }}>
+              {saveAddrStep === "verify_method"
+                ? "Verify your identity"
+                : (saveAddrStep === "satoshi" || saveAddrStep === "metamask")
+                  ? "Verify withdrawal address"
+                  : "Address Confirmation"}
+            </AppText>
+            <TouchableOpacity onPress={() => saveAddressSheetRef.current?.close()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <X color={sheetTheme.iconTint} size={22} strokeWidth={2.2} />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={{ flexDirection: "row", paddingHorizontal: 24, paddingTop: 22, paddingBottom: 16, justifyContent: "center" }}>
+            <AppText type={EIGHTEEN} weight={SEMI_BOLD} style={{ color: sheetTheme.textColor, textAlign: "center" }}>
               {saveAddrStep === "form"
                 ? "Add withdrawal address"
                 : (saveAddrStep === "verify_method")
@@ -3501,115 +3591,29 @@ const WithdrawForm = () => {
                       : "Address confirmation"}
             </AppText>
           </View>
-
-          <KeyboardAwareScrollView
-            enableOnAndroid={true}
-            enableAutomaticScroll={true}
-            extraScrollHeight={Platform.OS === "ios" ? 40 : 120}
-            extraHeight={Platform.OS === "ios" ? 40 : 120}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 20, flexGrow: 1 }}
-            style={{ flex: 1 }}
-          >
-            <AddWithdrawalAddressBasics
-              saveAddrCountrySheetRef={saveAddrCountrySheetRef}
-              isDark={isDark}
-              themeColors={themeColors}
-              userData={userData}
-              saveAddrStep={saveAddrStep}
-              saveAddrLabel={saveAddrLabel}
-              setSaveAddrLabel={setSaveAddrLabel}
-              saveAddrCoin={saveAddrCoin}
-              setSaveAddrCoin={setSaveAddrCoin}
-              withdrawCoins={withdrawCoinsList}
-              saveAddrCoinOpen={saveAddrCoinOpen}
-              setSaveAddrCoinOpen={setSaveAddrCoinOpen}
-              saveAddrAddress={saveAddrAddress}
-              setSaveAddrAddress={setSaveAddrAddress}
-              saveAddrAddressTouched={saveAddrAddressTouched}
-              setSaveAddrAddressTouched={setSaveAddrAddressTouched}
-              saveAddrAddressValidating={saveAddrAddressValidating}
-              saveAddrAddressValidError={saveAddrAddressValidError}
-              saveAddrAddressInlineError={saveAddrAddressInlineError}
-              validateSaveAddrAddressApiRef={validateSaveAddrAddressApiRef}
-              saveAddrNetwork={saveAddrNetwork}
-              setSaveAddrNetwork={setSaveAddrNetwork}
-              saveAddrNetworkOpen={saveAddrNetworkOpen}
-              setSaveAddrNetworkOpen={setSaveAddrNetworkOpen}
-              CHAIN_FULL_NAMES={CHAIN_FULL_NAMES}
-              saveAddrMemo={saveAddrMemo}
-              setSaveAddrMemo={setSaveAddrMemo}
-              saveAddrProofMethod={saveAddrProofMethod}
-              setSaveAddrProofMethod={setSaveAddrProofMethod}
-              saveAddrBenFullName={saveAddrBenFullName}
-              setSaveAddrBenFullName={setSaveAddrBenFullName}
-              saveAddrBenPan={saveAddrBenPan}
-              setSaveAddrBenPan={setSaveAddrBenPan}
-              saveAddrBenCountry={saveAddrBenCountry}
-              setSaveAddrBenCountry={setSaveAddrBenCountry}
-              saveAddrBenPin={saveAddrBenPin}
-              setSaveAddrBenPin={setSaveAddrBenPin}
-              saveAddrBenAddress={saveAddrBenAddress}
-              setSaveAddrBenAddress={setSaveAddrBenAddress}
-              saveAddrVerifyOptions={saveAddrVerifyOptions}
-              selectedSaveAddrVerifyMethod={selectedSaveAddrVerifyMethod}
-              setSelectedSaveAddrVerifyMethod={setSelectedSaveAddrVerifyMethod}
-              getWithdrawNetworksOrStaticFallback={getWithdrawNetworksOrStaticFallback}
-              saveAddrOwnership={saveAddrOwnership}
-              setSaveAddrOwnership={setSaveAddrOwnership}
-              saveAddrWalletType={saveAddrWalletType}
-              setSaveAddrWalletType={setSaveAddrWalletType}
-              saveAddrExchange={saveAddrExchange}
-              setSaveAddrExchange={setSaveAddrExchange}
-              saveAddrExchangeSearch={saveAddrExchangeSearch}
-              setSaveAddrExchangeSearch={setSaveAddrExchangeSearch}
-              saveAddrExchangeOpen={saveAddrExchangeOpen}
-              setSaveAddrExchangeOpen={setSaveAddrExchangeOpen}
-              ADDRESS_BOOK_TOP_EXCHANGES={ADDRESS_BOOK_TOP_EXCHANGES}
-              ADDRESS_BOOK_EXCHANGE_OTHER={ADDRESS_BOOK_EXCHANGE_OTHER}
-              saveAddrExchangeManual={saveAddrExchangeManual}
-              setSaveAddrExchangeManual={setSaveAddrExchangeManual}
-              saveAddrDeclarationAccepted={saveAddrDeclarationAccepted}
-              setSaveAddrDeclarationAccepted={setSaveAddrDeclarationAccepted}
-              ADDRESS_BOOK_DECLARATION_TEXT={ADDRESS_BOOK_DECLARATION_TEXT}
-              upIcon={upIcon}
-              downIcon={downIcon}
-              checkIc={checkIc}
-              SECURITY_SHEIELD={SECURITY_SHEIELD}
-              EMAIL_VERIFY={EMAIL_VERIFY}
-              PHONE_VERIFY={PHONE_VERIFY}
-              GOOGLE_VERIFY={GOOGLE_VERIFY}
-              PASSKEY_VERIFY={PASSKEY_VERIFY}
-            />
-
-            <AddWithdrawalAddressVerification
-              isDark={isDark}
-              themeColors={themeColors}
-              saveAddrStep={saveAddrStep}
-              selectedSaveAddrVerifyMethod={selectedSaveAddrVerifyMethod}
-              saveAddrOtp={saveAddrOtp}
-              setSaveAddrOtp={setSaveAddrOtp}
-              saveAddrWhitelistData={saveAddrWhitelistData}
-              userData={userData}
-              saveAddrOtpTimer={saveAddrOtpTimer}
-              saveAddrResendActive={saveAddrResendActive}
-              handleResendSaveAddrOtp={handleResendSaveAddrOtp}
-              saveAddrSatoshiPolling={saveAddrSatoshiPolling}
-              satoshiWhitelistAwaitingProof={satoshiWhitelistAwaitingProof}
-              setSatoshiDepositLoading={setSatoshiDepositLoading}
-              setSaveAddrStep={setSaveAddrStep}
-              satoshiDepositLoading={satoshiDepositLoading}
-              satoshiDepositError={satoshiDepositError}
-              handleSatoshiWhitelistSent={handleSatoshiWhitelistSent}
-              SECURITY_SHEIELD={SECURITY_SHEIELD}
-              LOCKED={LOCKED}
-              bitcoinIcon={bitcoinIcon}
-            />
-          </KeyboardAwareScrollView>
-
+        )}
+        footer={<View style={{ paddingHorizontal: 24, paddingBottom: 8 }}>
           {saveAddrStep === "satoshi" || saveAddrStep === "metamask" ? (
-            <View style={{ marginTop: 16, paddingBottom: 10, alignItems: "center" }}>
+            <View style={{ flexDirection: "row", gap: 12, marginTop: 16, paddingBottom: 10, width: "100%" }}>
+              <Button
+                children="Back"
+                containerStyle={{
+                  flex: 1,
+                  flexBasis: 0,
+                  backgroundColor: sheetTheme.buttonBg,
+                  borderRadius: 100,
+                  height: 48
+                }}
+                titleStyle={{ color: sheetTheme.textColor, fontWeight: "600", fontSize: 15 }}
+                onPress={() => {
+                  if (satoshiResumeMode) {
+                    setSatoshiResumeMode(false);
+                    saveAddressSheetRef.current?.close();
+                  } else {
+                    setSaveAddrStep("otp");
+                  }
+                }}
+              />
               <Button
                 children={
                   saveAddrBusy
@@ -3624,13 +3628,14 @@ const WithdrawForm = () => {
                 }
                 disabled={saveAddrBusy}
                 containerStyle={{
-                  width: "100%",
-                  backgroundColor: isDark ? "#FFFFFF" : "#111827",
+                  flex: 1.6,
+                  flexBasis: 0,
+                  backgroundColor: colors.cyanTheme,
                   borderRadius: 100,
-                  height: 44,
+                  height: 48,
                   opacity: saveAddrBusy ? 0.6 : 1
                 }}
-                titleStyle={{ color: isDark ? "#000000" : "#FFFFFF", fontWeight: "600" }}
+                titleStyle={{ color: colors.white, fontWeight: "600", fontSize: 15 }}
                 onPress={() => {
                   if (saveAddrStep === "satoshi") {
                     handleSatoshiWhitelistSent();
@@ -3654,21 +3659,6 @@ const WithdrawForm = () => {
                   }
                 }}
               />
-              <TouchableOpacity
-                onPress={() => {
-                  if (satoshiResumeMode) {
-                    setSatoshiResumeMode(false);
-                    saveAddressSheetRef.current?.close();
-                  } else {
-                    setSaveAddrStep("otp");
-                  }
-                }}
-                style={{ marginTop: 14, paddingVertical: 6 }}
-              >
-                <AppText type={FOURTEEN} weight={SEMI_BOLD} style={{ color: isDark ? "#FFFFFF" : "#000000" }}>
-                  Back
-                </AppText>
-              </TouchableOpacity>
             </View>
           ) : (
             <View style={{ flexDirection: "row", gap: 12, marginTop: 20, paddingBottom: 10, width: "100%" }}>
@@ -3677,11 +3667,11 @@ const WithdrawForm = () => {
                 containerStyle={{
                   flex: 1,
                   flexBasis: 0,
-                  backgroundColor: isDark ? themeColors.border : "#EDEDEE",
+                  backgroundColor: sheetTheme.buttonBg,
                   borderRadius: 100,
                   height: 44
                 }}
-                titleStyle={{ color: themeColors.text, fontWeight: "600", fontSize: 14 }}
+                titleStyle={{ color: sheetTheme.textColor, fontWeight: "600", fontSize: 14 }}
                 onPress={() => {
                   if (saveAddrStep === "form") {
                     saveAddressSheetRef.current?.close();
@@ -3732,13 +3722,8 @@ const WithdrawForm = () => {
                 if (saveAddrStep === "verify_method" || saveAddrStep === "proof_select" || saveAddrStep === "other_identity") buttonText = "Continue";
                 else if (saveAddrStep === "otp") buttonText = "Verify";
 
-                const nextBtnBg = isDark
-                  ? "#FFFFFF"
-                  : (isNextDisabled ? "#E5E7EB" : "#111827");
-
-                const nextBtnTextColor = isDark
-                  ? "#000000"
-                  : (isNextDisabled ? "#9CA3AF" : "#FFFFFF");
+                const nextBtnBg = colors.cyanTheme;
+                const nextBtnTextColor = colors.white;
 
                 return (
                   <Button
@@ -4080,8 +4065,105 @@ const WithdrawForm = () => {
               })()}
             </View>
           )}
-        </View>
-      </RBSheet>
+        </View>}
+      >
+            <AddWithdrawalAddressBasics
+              saveAddrCountrySheetRef={saveAddrCountrySheetRef}
+              isDark={isDark}
+              themeColors={themeColors}
+              userData={userData}
+              saveAddrStep={saveAddrStep}
+              saveAddrLabel={saveAddrLabel}
+              setSaveAddrLabel={setSaveAddrLabel}
+              saveAddrCoin={saveAddrCoin}
+              setSaveAddrCoin={setSaveAddrCoin}
+              withdrawCoins={withdrawCoinsList}
+              saveAddrCoinOpen={saveAddrCoinOpen}
+              setSaveAddrCoinOpen={setSaveAddrCoinOpen}
+              saveAddrAddress={saveAddrAddress}
+              setSaveAddrAddress={setSaveAddrAddress}
+              saveAddrAddressTouched={saveAddrAddressTouched}
+              setSaveAddrAddressTouched={setSaveAddrAddressTouched}
+              saveAddrAddressValidating={saveAddrAddressValidating}
+              saveAddrAddressValidError={saveAddrAddressValidError}
+              saveAddrAddressInlineError={saveAddrAddressInlineError}
+              validateSaveAddrAddressApiRef={validateSaveAddrAddressApiRef}
+              saveAddrNetwork={saveAddrNetwork}
+              setSaveAddrNetwork={setSaveAddrNetwork}
+              saveAddrNetworkOpen={saveAddrNetworkOpen}
+              setSaveAddrNetworkOpen={setSaveAddrNetworkOpen}
+              CHAIN_FULL_NAMES={CHAIN_FULL_NAMES}
+              saveAddrMemo={saveAddrMemo}
+              setSaveAddrMemo={setSaveAddrMemo}
+              saveAddrProofMethod={saveAddrProofMethod}
+              setSaveAddrProofMethod={setSaveAddrProofMethod}
+              saveAddrBenFullName={saveAddrBenFullName}
+              setSaveAddrBenFullName={setSaveAddrBenFullName}
+              saveAddrBenPan={saveAddrBenPan}
+              setSaveAddrBenPan={setSaveAddrBenPan}
+              saveAddrBenCountry={saveAddrBenCountry}
+              setSaveAddrBenCountry={setSaveAddrBenCountry}
+              saveAddrBenPin={saveAddrBenPin}
+              setSaveAddrBenPin={setSaveAddrBenPin}
+              saveAddrBenAddress={saveAddrBenAddress}
+              setSaveAddrBenAddress={setSaveAddrBenAddress}
+              saveAddrVerifyOptions={saveAddrVerifyOptions}
+              selectedSaveAddrVerifyMethod={selectedSaveAddrVerifyMethod}
+              setSelectedSaveAddrVerifyMethod={setSelectedSaveAddrVerifyMethod}
+              getWithdrawNetworksOrStaticFallback={getWithdrawNetworksOrStaticFallback}
+              saveAddrOwnership={saveAddrOwnership}
+              setSaveAddrOwnership={setSaveAddrOwnership}
+              saveAddrWalletType={saveAddrWalletType}
+              setSaveAddrWalletType={setSaveAddrWalletType}
+              saveAddrExchange={saveAddrExchange}
+              setSaveAddrExchange={setSaveAddrExchange}
+              saveAddrExchangeSearch={saveAddrExchangeSearch}
+              setSaveAddrExchangeSearch={setSaveAddrExchangeSearch}
+              saveAddrExchangeOpen={saveAddrExchangeOpen}
+              setSaveAddrExchangeOpen={setSaveAddrExchangeOpen}
+              ADDRESS_BOOK_TOP_EXCHANGES={ADDRESS_BOOK_TOP_EXCHANGES}
+              ADDRESS_BOOK_EXCHANGE_OTHER={ADDRESS_BOOK_EXCHANGE_OTHER}
+              saveAddrExchangeManual={saveAddrExchangeManual}
+              setSaveAddrExchangeManual={setSaveAddrExchangeManual}
+              saveAddrDeclarationAccepted={saveAddrDeclarationAccepted}
+              setSaveAddrDeclarationAccepted={setSaveAddrDeclarationAccepted}
+              ADDRESS_BOOK_DECLARATION_TEXT={ADDRESS_BOOK_DECLARATION_TEXT}
+              upIcon={upIcon}
+              downIcon={downIcon}
+              checkIc={checkIc}
+              SECURITY_SHEIELD={SECURITY_SHEIELD}
+              EMAIL_VERIFY={EMAIL_VERIFY}
+              PHONE_VERIFY={PHONE_VERIFY}
+              GOOGLE_VERIFY={GOOGLE_VERIFY}
+              PASSKEY_VERIFY={PASSKEY_VERIFY}
+            />
+
+            <AddWithdrawalAddressVerification
+              isDark={isDark}
+              themeColors={themeColors}
+              saveAddrStep={saveAddrStep}
+              selectedSaveAddrVerifyMethod={selectedSaveAddrVerifyMethod}
+              saveAddrOtp={saveAddrOtp}
+              setSaveAddrOtp={setSaveAddrOtp}
+              saveAddrWhitelistData={saveAddrWhitelistData}
+              userData={userData}
+              saveAddrOtpTimer={saveAddrOtpTimer}
+              saveAddrResendActive={saveAddrResendActive}
+              handleResendSaveAddrOtp={handleResendSaveAddrOtp}
+              saveAddrSatoshiPolling={saveAddrSatoshiPolling}
+              satoshiWhitelistAwaitingProof={satoshiWhitelistAwaitingProof}
+              setSatoshiDepositLoading={setSatoshiDepositLoading}
+              setSaveAddrStep={setSaveAddrStep}
+              satoshiDepositLoading={satoshiDepositLoading}
+              satoshiDepositError={satoshiDepositError}
+              handleSatoshiWhitelistSent={handleSatoshiWhitelistSent}
+              SECURITY_SHEIELD={SECURITY_SHEIELD}
+              LOCKED={LOCKED}
+              bitcoinIcon={bitcoinIcon}
+            />
+            {/* iOS can't present a sibling Modal over an open one; nest it inside this sheet. */}
+            {Platform.OS === "ios" && saveAddrBeneficiaryCountrySheetOnly}
+      </AutoHeightSheet>
 
       {/* Removed withdrawVerifyCombinedSheetRef as it is now a full screen view */}
 
@@ -4161,7 +4243,7 @@ const WithdrawForm = () => {
                 width: "100%"
               }}
             >
-              <AppText weight={BOLD} type={FIFTEEN} color="#000000">Verify now</AppText>
+              <AppText weight={BOLD} type={FIFTEEN} color={colors.white}>Verify now</AppText>
             </TouchableOpacity>
           </View>
         </View>
@@ -4188,6 +4270,60 @@ const styles = StyleSheet.create({
   },
   wdStepBlock: {
     marginBottom: 14,
+  },
+  wdFormCard: {
+    marginTop: 16,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+  },
+  wdFormLabel: {
+    marginBottom: 8,
+  },
+  wdFormInput: {
+    height: 52,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  wdBalanceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 12,
+  },
+  wdSafeCard: {
+    flexDirection: "row",
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 20,
+  },
+  wdSafeIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  wdFooterRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  wdFooterLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  wdFooterIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    justifyContent: "center",
+    alignItems: "center",
   },
   wdStepHeaderRow: {
     flexDirection: "row",
@@ -4451,6 +4587,46 @@ const styles = StyleSheet.create({
   },
   modalList: {
     maxHeight: 400,
+  },
+  selectNetworkHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  selectNetworkNotice: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+  },
+  selectNetworkNoticeIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+    marginTop: 1,
+  },
+  selectNetworkCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    marginBottom: 10,
+  },
+  selectNetworkDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
   },
   networkSheetInner: {
     flex: 1,
